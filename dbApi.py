@@ -82,9 +82,24 @@ class DbApi():
 		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE itemHash=%s;", (itemHash, ))
 		return cur.fetchall()
 
-	def getOtherHashes(self, itemHash, fsPath):
+	def getOtherHashes(self, itemHash, fsMaskPath):
 		cur = self.conn.cursor()
-		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE itemHash=%s AND NOT fsPath=%s;", (itemHash, fsPath))
+		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE itemHash=%s AND NOT fsPath=%s;", (itemHash, fsMaskPath))
+		return cur.fetchall()
+
+	def getOtherDPHashes(self, dHash, pHash, fsMaskPath):
+		cur = self.conn.cursor()
+		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE dHash=%s AND pHash=%s AND NOT fsPath=%s;", (dHash, pHash, fsMaskPath))
+		return cur.fetchall()
+
+	def getOtherDHashes(self, dHash, fsMaskPath):
+		cur = self.conn.cursor()
+		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE dHash=%s AND NOT fsPath=%s;", (dHash, fsMaskPath))
+		return cur.fetchall()
+
+	def getOtherPHashes(self, pHash, fsMaskPath):
+		cur = self.conn.cursor()
+		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE pHash=%s AND NOT fsPath=%s;", (pHash, fsMaskPath))
 		return cur.fetchall()
 
 

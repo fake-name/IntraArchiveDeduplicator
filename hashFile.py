@@ -1,34 +1,11 @@
-"""
-Image hashing library
-======================
 
-Example:
+from PIL import Image
 
->>> import Image
->>> import imagehash
->>> hash = imagehash.average_hash(Image.open('test.png'))
->>> print(hash)
-d879f8f89b1bbf
->>> otherhash = imagehash.average_hash(Image.open('other.bmp'))
->>> print(otherhash)
-ffff3720200ffff
->>> print(hash == otherhash)
-False
->>> print(hash - otherhash)
-36
->>> for r in range(1, 30, 5):
-...     rothash = imagehash.average_hash(Image.open('test.png').rotate(r))
-...     print('Rotation by %d: %d Hamming difference' % (r, hash - rothash))
-...
-Rotation by 1: 2 Hamming difference
-Rotation by 6: 11 Hamming difference
-Rotation by 11: 13 Hamming difference
-Rotation by 16: 17 Hamming difference
-Rotation by 21: 19 Hamming difference
-Rotation by 26: 21 Hamming difference
->>>
+import io
+import hashlib
 
-"""
+
+
 
 from PIL import Image
 import numpy
@@ -147,4 +124,33 @@ def dhash(image, hash_size=8):
 
 
 __dir__ = [average_hash, phash, ImageHash]
+
+
+
+
+
+IMAGE_EXTS = ("bmp", "eps", "gif", "im", "jpeg", "jpg", "msp", "pcx", "png", "ppm", "spider", "tiff", "webp", "xbm")
+
+
+def hashFile(basePath, fname, fContents):
+	# basePath, fname, fContents = arg
+	fMD5 = hashlib.md5()
+
+
+	fMD5.update(fContents)
+	hexHash = fMD5.hexdigest()
+	pHash = None
+	dHash = None
+
+
+	if fname.lower().endswith(IMAGE_EXTS) or (basePath.lower().endswith(IMAGE_EXTS) and fname == ""):
+
+
+		im = Image.open(io.BytesIO(fContents))
+		pHashArr, im = phash(im)
+		dHashArr     = dhash(im)
+		pHash = "".join(["1" if val else "0" for val in pHashArr ])
+		dHash = "".join(["1" if val else "0" for val in dHashArr ])
+
+	return fname, hexHash, pHash, dHash
 

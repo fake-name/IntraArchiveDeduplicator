@@ -1,17 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import hashlib
 
-import time
 import queue
 import runState
 
 import UniversalArchiveIterator
 
-import ImageHash
-import io
-import concurrent.futures
 import multiprocessing
 
 import magic
@@ -23,36 +18,12 @@ import logging
 import random
 random.seed()
 
-from PIL import Image
+from hashFile import hashFile
 
 import traceback
 
 IMAGE_EXTS = ("bmp", "eps", "gif", "im", "jpeg", "jpg", "msp", "pcx", "png", "ppm", "spider", "tiff", "webp", "xbm")
 ARCH_EXTS = ("zip", "rar", "cbz", "cbr")
-
-def hashFile(basePath, fname, fContents):
-	# basePath, fname, fContents = arg
-	fMD5 = hashlib.md5()
-
-
-	fMD5.update(fContents)
-	hexHash = fMD5.hexdigest()
-	pHash = None
-	dHash = None
-
-
-	if fname.lower().endswith(IMAGE_EXTS) or (basePath.lower().endswith(IMAGE_EXTS) and fname == ""):
-
-
-		im = Image.open(io.BytesIO(fContents))
-		pHashArr, im = ImageHash.phash(im)
-		dHashArr     = ImageHash.dhash(im)
-		pHash = "".join(["1" if val else "0" for val in pHashArr ])
-		dHash = "".join(["1" if val else "0" for val in dHashArr ])
-
-	return fname, hexHash, pHash, dHash
-
-
 
 class HashEngine(object):
 

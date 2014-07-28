@@ -154,3 +154,11 @@ def hashFile(basePath, fname, fContents):
 
 	return fname, hexHash, pHash, dHash
 
+
+def getMd5Hash(fContents):
+	fMD5 = hashlib.md5()
+	fMD5.update(fContents)
+	hexHash = fMD5.hexdigest()
+	return hexHash
+
+

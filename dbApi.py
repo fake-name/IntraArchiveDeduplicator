@@ -70,6 +70,34 @@ class DbApi():
 		return cur.fetchone()
 
 
+	def getPHashes(self, limit=None):
+
+		# Specifying a name for the cursor causes it to run server-side, making is stream results,
+		# rather then completing the query and returning them as a lump item (which blocks)
+		cur = self.conn.cursor("hash_fetcher")
+		if not limit:
+			cur.execute("SELECT dbId, pHash FROM dedupitems WHERE pHash IS NOT NULL;")
+		else:
+			limit = int(limit)
+			cur.execute("SELECT dbId, pHash FROM dedupitems WHERE pHash IS NOT NULL LIMIT %s;", (limit, ))
+
+		return cur
+
+
+	def getDHashes(self, limit=None):
+
+		# Specifying a name for the cursor causes it to run server-side, making is stream results,
+		# rather then completing the query and returning them as a lump item (which blocks)
+		cur = self.conn.cursor("hash_fetcher")
+		if not limit:
+			cur.execute("SELECT dbId, dHash FROM dedupitems WHERE dHash IS NOT NULL;")
+		else:
+			limit = int(limit)
+			cur.execute("SELECT dbId, dHash FROM dedupitems WHERE dHash IS NOT NULL LIMIT %s;", (limit, ))
+
+		return cur
+
+
 	def numHashInDB(self, itemHash):
 		cur = self.conn.cursor()
 		cur.execute("SELECT COUNT(*) FROM dedupitems WHERE itemHash=%s;", (itemHash, ))

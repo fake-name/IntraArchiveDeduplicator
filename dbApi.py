@@ -47,6 +47,7 @@ class DbApi():
 
 			print("Checking indexes exist")
 			cur.execute('''CREATE UNIQUE INDEX name_index  ON dedupitems(fsPath, internalPath);''')
+			cur.execute('''CREATE        INDEX path_index  ON dedupitems(fsPath text_pattern_ops);''')
 			cur.execute('''CREATE        INDEX ihash_index ON dedupitems(itemHash);''')
 			cur.execute('''CREATE        INDEX phash_index ON dedupitems(pHash);''')
 			cur.execute('''CREATE        INDEX dhash_index ON dedupitems(dHash);''')
@@ -55,6 +56,8 @@ class DbApi():
 			# print("Indexes Instantiated")
 		# else:
 		# 	print("Table exists")
+
+
 
 	def commit(self):
 		self.log.info("Committing changes to DB.")
@@ -133,20 +136,28 @@ class DbApi():
 
 
 	def insertItem(self, basePath, internalPath, itemHash=None, pHash=None, dHash=None):
-
 		cur = self.conn.cursor()
 		cur.execute("INSERT INTO dedupitems (fsPath, internalPath, itemhash, pHash, dHash) VALUES (%s, %s, %s, %s, %s);", (basePath, internalPath, itemHash, pHash, dHash))
 
 
 	def updateItem(self, basePath, internalPath, itemHash=None, pHash=None, dHash=None):
-
 		cur = self.conn.cursor()
 		cur.execute("UPDATE dedupitems SET itemhash=%s, pHash=%s, dHash=%s WHERE fsPath=%s AND internalPath=%s;", (itemHash, pHash, dHash, basePath, internalPath))
 
+	def moveItem(self, oldPath, newPath):
+		cur = self.conn.cursor()
+		cur.execute("UPDATE dedupitems SET fsPath=%s WHERE fsPath=%s;", (newPath, oldPath))
+
 	def deleteLikeBasePath(self, basePath):
+		self.log.info("Deleting all items with base-path '%s'", basePath)
 		cur = self.conn.cursor()
 		cur.execute("DELETE FROM dedupitems WHERE fsPath LIKE %s;", (basePath+"%", ))
 		self.conn.commit()
+
+	def getLikeBasePath(self, basePath):
+		cur = self.conn.cursor()
+		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE fsPath LIKE %s;", (basePath+"%", ))
+		return cur.fetchall()
 
 	def deleteBasePath(self, basePath):
 		cur = self.conn.cursor()
@@ -178,6 +189,7 @@ class DbApi():
 		self.insertList.append(basePath)
 		self.insertList.append(internalPath)
 		self.insertList.append(itemHash)
+
 
 	def insertAggregate(self):
 		cur = self.conn.cursor()
@@ -266,6 +278,7 @@ class DbApi():
 		print("Ret = ", ret[0])
 		ret = [(item[0], item[1]) for item in ret]
 		return set(ret)
+
 
 if __name__ == "__main__":
 

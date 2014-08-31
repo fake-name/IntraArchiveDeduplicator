@@ -41,7 +41,7 @@ class DedupScanTool(object):
 		print("Opening DB")
 		self.toProcessQueue = multiprocessing.Queue()
 		self.processedHashQueue = multiprocessing.Queue()
-		self.dbTool = dbFrontend.DatabaseUpdater(self.processedHashQueue)
+		self.dbTool = dbFrontend.DatabaseUpdater(self.processedHashQueue, self.toProcessQueue)
 		self.dbTool.startThread()
 		print("Opened.")
 

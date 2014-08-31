@@ -28,10 +28,12 @@ def cmdLineSpinner():
 
 
 class DatabaseUpdater(object):
-	def __init__(self, hashQueue):
+	def __init__(self, hashQueue, monitorQueue):
 		self.log = logging.getLogger("Main.DbInt")
 		self.dbInt = dbApi.DbApi()
 		self.hashQueue = hashQueue
+
+		self.processingHashQueue = monitorQueue
 
 		self.stopOnEmpty = False
 
@@ -97,6 +99,7 @@ class DatabaseUpdater(object):
 
 				commits += 1
 				if commits % 250 == 0:
+					sys.stdout.write("\nHave ~%s items remaining to process\n" % self.processingHashQueue.qsize())
 					self.dbInt.commit()
 			except queue.Empty:
 				if self.stopOnEmpty:

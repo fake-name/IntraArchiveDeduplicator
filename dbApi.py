@@ -16,7 +16,7 @@ class DbApi():
 
 	def __init__(self):
 
-		self.log = logging.getLogger("Main.Database")
+		self.log = logging.getLogger("Main.DbApi")
 
 
 
@@ -24,6 +24,7 @@ class DbApi():
 									dbname=settings.PSQL_DB_NAME,
 									user=settings.PSQL_USER,
 									password=settings.PSQL_PASS)
+		self.conn.autocommit = True
 		cur = self.conn.cursor()
 
 		# print("DB opened.")

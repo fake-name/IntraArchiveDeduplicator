@@ -3,7 +3,6 @@
 
 import os
 import os.path
-import time
 import sys
 import logSetup
 
@@ -15,15 +14,11 @@ import logging
 import random
 random.seed()
 
-import dbApi
-
 import signal
 import dbFrontend
 import fileHasher
 
 import types
-
-
 
 
 class DedupScanTool(object):
@@ -46,7 +41,7 @@ class DedupScanTool(object):
 		print("Opened.")
 
 
-		self.log.info("Initializing scanning threads.")
+		self.log.info("Initializing %s scanning threads.", self.threads)
 		self.hashEngine = fileHasher.HashEngine(self.toProcessQueue, self.processedHashQueue, self.threads)
 		self.hashEngine.runThreads()
 		self.log.info("File scanning threads running.")
@@ -87,6 +82,8 @@ class DedupScanTool(object):
 			self.log.info("Checking for removed files.")
 			self.dbTool.cleanPathCache(targetDir)
 			self.log.info("Check complete")
+		else:
+			self.log.info("Skipping removed file check!.")
 
 
 		if not runState.run:

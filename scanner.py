@@ -33,6 +33,12 @@ class DedupScanTool(object):
 		except:
 			self.threads = 2
 
+		try:
+			self.doPhash = not bool(scanConf.noPhash)
+		except:
+			self.doPhash = True
+
+
 		print("Opening DB")
 		self.toProcessQueue = multiprocessing.Queue()
 		self.processedHashQueue = multiprocessing.Queue()
@@ -42,7 +48,7 @@ class DedupScanTool(object):
 
 
 		self.log.info("Initializing %s scanning threads.", self.threads)
-		self.hashEngine = fileHasher.HashEngine(self.toProcessQueue, self.processedHashQueue, self.threads)
+		self.hashEngine = fileHasher.HashEngine(self.toProcessQueue, self.processedHashQueue, self.threads, self.doPhash)
 		self.hashEngine.runThreads()
 		self.log.info("File scanning threads running.")
 

@@ -132,7 +132,7 @@ __dir__ = [average_hash, phash, ImageHash]
 IMAGE_EXTS = ("bmp", "eps", "gif", "im", "jpeg", "jpg", "msp", "pcx", "png", "ppm", "spider", "tiff", "webp", "xbm")
 
 
-def hashFile(basePath, fname, fContents):
+def hashFile(basePath, fname, fContents, shouldPhash=True):
 	# basePath, fname, fContents = arg
 	fMD5 = hashlib.md5()
 
@@ -143,7 +143,7 @@ def hashFile(basePath, fname, fContents):
 	dHash = None
 
 
-	if fname.lower().endswith(IMAGE_EXTS) or (basePath.lower().endswith(IMAGE_EXTS) and fname == ""):
+	if (fname.lower().endswith(IMAGE_EXTS) or (basePath.lower().endswith(IMAGE_EXTS) and fname == "")) and shouldPhash:
 
 
 		im = Image.open(io.BytesIO(fContents))

@@ -10,21 +10,30 @@ import threading
 
 import sys
 
-def cmdLineSpinner():
-	# outStr = "-\\|/"
-	outStr = "|-"
-	outInt = 0
-	x = 0
-	while True:
-		outInt = (outInt + 1) % 80
+class Spinner(object):
+	def __init__(self):
+		# outStr = "-\\|/"
+		self.outStr  = "|-"
+		self.outStar = "*x"
+		self.outInt = 0
+		self.x = 0
 
-		#sys.stdout.write( "\r%s\r" % outStrs[outInt])
-		if outInt == 0:
+		self.itemLen = len(self.outStr)
+
+	def next(self, star=False):
+		self.outInt = (self.outInt + 1) % 80
+
+		#sys.stdout.write( "\r%s\r" % outStrs[self.outInt])
+		if self.outInt == 0:
 			sys.stdout.write("\r")
-			x = (x + 1) % len(outStr)
-		sys.stdout.write(outStr[x])
+			self.x = (self.x + 1) % self.itemLen
+		if star:
+			sys.stdout.write(self.outStar[self.x])
+		else:
+			sys.stdout.write(self.outStr[self.x])
+
+
 		sys.stdout.flush()
-		yield
 
 
 class DatabaseUpdater(object):
@@ -37,7 +46,7 @@ class DatabaseUpdater(object):
 
 		self.stopOnEmpty = False
 
-		self.spinner = cmdLineSpinner()
+		self.spinner = Spinner()
 
 	def cleanPathCache(self, fqPathBase):
 
@@ -68,7 +77,7 @@ class DatabaseUpdater(object):
 				print("Breaking due to exit flag")
 				return
 
-			next(self.spinner)
+			self.spinner.next()
 
 	def run(self):
 		commits = 0
@@ -77,7 +86,7 @@ class DatabaseUpdater(object):
 			try:
 				item = self.hashQueue.get(timeout=0.1)
 				if item == "skipped":
-					next(self.spinner)
+					self.spinner.next(star=True)
 					continue
 
 				basePath, internalPath, itemHash, pHash, dHash = item
@@ -95,7 +104,7 @@ class DatabaseUpdater(object):
 					self.dbInt.insertItem(basePath, internalPath, itemHash, pHash, dHash)
 				# self.log.info("Item = %s, %s, %s, %s, %s", basePath, internalPath, itemHash, pHash, dHash)
 				# self.log.info("Queue Items = %s", self.hashQueue.qsize())
-				next(self.spinner)
+				self.spinner.next()
 
 				commits += 1
 				if commits % 250 == 0:

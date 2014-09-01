@@ -17,10 +17,11 @@ if __name__ == "__main__":
 
 	# ---------------  Scanning  ----------------------
 	parserDirScan = subparsers.add_parser('dir-scan', help="Scan set of directory, and generate a list of hashes of all the files therein")
-	parserDirScan.add_argument('-i', '--in-folder', required=True, dest="sourcePath")
-	parserDirScan.add_argument('-n', '--no-clean', required=False, dest="noCleanTemps", action='store_true')
-	parserDirScan.add_argument('-p', '--purge', required=False, dest="purge", action='store_true')
-	parserDirScan.add_argument('-t', '--threads', required=False, dest="threadNo")
+	parserDirScan.add_argument('-i', '--in-folder',   required=True,  dest="sourcePath")
+	parserDirScan.add_argument('-n', '--no-clean',    required=False, dest="noCleanTemps", action='store_true')
+	parserDirScan.add_argument('-p', '--purge',       required=False, dest="purge", action='store_true')
+	parserDirScan.add_argument('-t', '--threads',     required=False, dest="threadNo")
+	parserDirScan.add_argument('-s', '--nophash',     required=False, dest="noPhash", action='store_true')
 
 	parserDirScan.set_defaults(func=scanner.doScan)
 

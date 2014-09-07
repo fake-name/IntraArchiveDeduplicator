@@ -17,7 +17,7 @@ random.seed()
 import signal
 import dbFrontend
 import fileHasher
-
+import time
 import types
 
 
@@ -82,7 +82,10 @@ class DedupScanTool(object):
 
 		if cmdArgs.purge:
 			self.log.warning("Purging all extant scan results on specified path")
-			self.dbTool.dbInt.deleteBasePath(targetDir)
+			if os.path.isdir(targetDir):
+				self.dbTool.dbInt.deleteLikeBasePath(targetDir+"/")
+			else:
+				self.dbTool.dbInt.deleteBasePath(targetDir)
 			self.log.warning("Purge complete.")
 		elif not cmdArgs.noCleanTemps:
 			self.log.info("Checking for removed files.")
@@ -102,6 +105,7 @@ class DedupScanTool(object):
 				#print root, dir#, files
 				for fileN in files:
 					wholePath = os.path.join(root, fileN)
+					# print("File", wholePath)
 					self.toProcessQueue.put((wholePath, fileN))
 
 		except (KeyboardInterrupt, SystemExit, GeneratorExit):
@@ -125,6 +129,12 @@ class DedupScanTool(object):
 	def waitComplete(self):
 
 		self.log.info("Waiting for all queued file scans complete.")
+
+		self.toProcessQueue.close()
+		self.toProcessQueue.join_thread()
+
+		self.log.info("Pending files flushed. Telling worker pool to halt when finished.")
+
 		self.hashEngine.gracefulShutdown()
 		self.dbTool.gracefulShutdown()
 		self.log.info("Complete. Exiting.")
@@ -134,7 +144,7 @@ class DedupScanTool(object):
 			print("")
 			print("SIGINT Received: Telling threads to stop")
 			runState.run = False
-			self.hashEngine.gracefulShutdown()
+			self.hashEngine.haltEarly()
 
 		else:
 			print("Multiple keyboard interrupts. Raising")
@@ -151,6 +161,7 @@ def doScan(scanConf):
 	ddT.queueFolderContents(scanConf)
 	ddT.waitComplete()
 
+	print("Scan Complete")
 	runState.run = False
 
 

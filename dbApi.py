@@ -24,39 +24,39 @@ class DbApi():
 									dbname=settings.PSQL_DB_NAME,
 									user=settings.PSQL_USER,
 									password=settings.PSQL_PASS)
-		self.conn.autocommit = True
-		cur = self.conn.cursor()
+		# self.conn.autocommit = True
+		with self.conn.cursor() as cur:
 
-		# print("DB opened.")
-		cur.execute("SELECT * FROM information_schema.tables WHERE table_name=%s", ('dedupitems',))
-		# print("table exists = ", cur.rowcount)
-		tableExists = bool(cur.rowcount)
-		if not tableExists:
-			cur.execute('''CREATE TABLE IF NOT EXISTS dedupitems (
-												dbId            SERIAL PRIMARY KEY,
+			# print("DB opened.")
+			cur.execute("SELECT * FROM information_schema.tables WHERE table_name=%s", ('dedupitems',))
+			# print("table exists = ", cur.rowcount)
+			tableExists = bool(cur.rowcount)
+			if not tableExists:
+				cur.execute('''CREATE TABLE IF NOT EXISTS dedupitems (
+													dbId            SERIAL PRIMARY KEY,
 
-												fsPath          text NOT NULL,
-												internalPath    text NOT NULL,
+													fsPath          text NOT NULL,
+													internalPath    text NOT NULL,
 
-												itemHash        text,
-												pHash           text,
-												dHash           text,
-												itemKind        text
+													itemHash        text,
+													pHash           text,
+													dHash           text,
+													itemKind        text
 
-												);''')
+													);''')
 
-			print("Checking indexes exist")
-			cur.execute('''CREATE UNIQUE INDEX name_index  ON dedupitems(fsPath, internalPath);''')
-			cur.execute('''CREATE        INDEX path_index  ON dedupitems(fsPath text_pattern_ops);''')
-			cur.execute('''CREATE        INDEX ihash_index ON dedupitems(itemHash);''')
-			cur.execute('''CREATE        INDEX phash_index ON dedupitems(pHash);''')
-			cur.execute('''CREATE        INDEX dhash_index ON dedupitems(dHash);''')
+				print("Checking indexes exist")
+				cur.execute('''CREATE UNIQUE INDEX name_index  ON dedupitems(fsPath, internalPath);''')
+				cur.execute('''CREATE        INDEX path_index  ON dedupitems(fsPath text_pattern_ops);''')
+				cur.execute('''CREATE        INDEX ihash_index ON dedupitems(itemHash);''')
+				cur.execute('''CREATE        INDEX phash_index ON dedupitems(pHash);''')
+				cur.execute('''CREATE        INDEX dhash_index ON dedupitems(dHash);''')
 
-			self.conn.commit()
 			# print("Indexes Instantiated")
 		# else:
 		# 	print("Table exists")
 
+		self.conn.commit()
 
 
 	def commit(self):
@@ -66,12 +66,16 @@ class DbApi():
 	def itemInDB(self, basePath, internalPath, itemHash):
 		cur = self.conn.cursor()
 		cur.execute("SELECT COUNT(*) FROM dedupitems WHERE fsPath=%s AND internalPath=%s AND itemHash=%s;", (basePath, internalPath, itemHash))
-		return cur.fetchone()
+		ret = cur.fetchone()
+		self.conn.commit()
+		return ret
 
 	def basePathInDB(self, basePath):
 		cur = self.conn.cursor()
 		cur.execute("SELECT COUNT(*) FROM dedupitems WHERE fsPath=%s;", (basePath, ))
-		return cur.fetchone()
+		ret = cur.fetchone()
+		self.conn.commit()
+		return ret
 
 
 	def getPHashes(self, limit=None):
@@ -105,34 +109,51 @@ class DbApi():
 	def numHashInDB(self, itemHash):
 		cur = self.conn.cursor()
 		cur.execute("SELECT COUNT(*) FROM dedupitems WHERE itemHash=%s;", (itemHash, ))
-		return cur.fetchone()
 
+		ret = cur.fetchone()
+		self.conn.commit()
+		return ret
 
 
 	def getByHash(self, itemHash):
 		cur = self.conn.cursor()
 		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE itemHash=%s;", (itemHash, ))
-		return cur.fetchall()
+
+		ret = cur.fetchall()
+		self.conn.commit()
+		return ret
 
 	def getOtherHashes(self, itemHash, fsMaskPath):
 		cur = self.conn.cursor()
 		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE itemHash=%s AND NOT fsPath=%s;", (itemHash, fsMaskPath))
-		return cur.fetchall()
+
+		ret = cur.fetchall()
+		self.conn.commit()
+		return ret
 
 	def getOtherDPHashes(self, dHash, pHash, fsMaskPath):
 		cur = self.conn.cursor()
 		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE dHash=%s AND pHash=%s AND NOT fsPath=%s;", (dHash, pHash, fsMaskPath))
-		return cur.fetchall()
+
+		ret = cur.fetchall()
+		self.conn.commit()
+		return ret
 
 	def getOtherDHashes(self, dHash, fsMaskPath):
 		cur = self.conn.cursor()
 		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE dHash=%s AND NOT fsPath=%s;", (dHash, fsMaskPath))
-		return cur.fetchall()
+
+		ret = cur.fetchall()
+		self.conn.commit()
+		return ret
 
 	def getOtherPHashes(self, pHash, fsMaskPath):
 		cur = self.conn.cursor()
 		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE pHash=%s AND NOT fsPath=%s;", (pHash, fsMaskPath))
-		return cur.fetchall()
+
+		ret = cur.fetchall()
+		self.conn.commit()
+		return ret
 
 
 	def insertItem(self, basePath, internalPath, itemHash=None, pHash=None, dHash=None):
@@ -152,32 +173,51 @@ class DbApi():
 		self.log.info("Deleting all items with base-path '%s'", basePath)
 		cur = self.conn.cursor()
 		cur.execute("DELETE FROM dedupitems WHERE fsPath LIKE %s;", (basePath+"%", ))
+		if cur.rowcount == 0:
+			self.log.warn("Deleted {num} items!".format(num=cur.rowcount))
+		else:
+			self.log.info("Deleted {num} items!".format(num=cur.rowcount))
 		self.conn.commit()
 
 	def getLikeBasePath(self, basePath):
 		cur = self.conn.cursor()
 		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE fsPath LIKE %s;", (basePath+"%", ))
-		return cur.fetchall()
+
+		ret = cur.fetchall()
+		self.conn.commit()
+		return ret
 
 	def deleteBasePath(self, basePath):
 		cur = self.conn.cursor()
 		cur.execute("DELETE FROM dedupitems WHERE fsPath=%s;", (basePath, ))
+		if cur.rowcount == 0:
+			self.log.warn("Deleted {num} items!".format(num=cur.rowcount))
+		else:
+			self.log.info("Deleted {num} items!".format(num=cur.rowcount))
 		self.conn.commit()
 
 	def getItemsOnBasePath(self, basePath):
 		cur = self.conn.cursor()
 		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE fsPath=%s;", (basePath, ))
-		return cur.fetchall()
+
+		ret = cur.fetchall()
+		self.conn.commit()
+		return ret
 
 	def getItemNumberOnBasePath(self, basePath):
 		cur = self.conn.cursor()
 		cur.execute("SELECT COUNT(*) FROM dedupitems WHERE fsPath=%s;", (basePath, ))
-		return cur.fetchall()
+
+		ret = cur.fetchall()
+		self.conn.commit()
+		return ret
 
 	def getInternalItemsOnBasePath(self, basePath):
 		cur = self.conn.cursor()
 		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE fsPath=%s AND internalPath IS NOT NULL;", (basePath, ))
-		return cur.fetchall()
+		ret = cur.fetchall()
+		self.conn.commit()
+		return ret
 
 	def aggregateItems(self, basePath, internalPath, itemHash):
 		if not hasattr(self, "insertStr"):
@@ -195,8 +235,10 @@ class DbApi():
 		cur = self.conn.cursor()
 		cur.execute("INSERT INTO dedupitems (fsPath, internalPath, itemhash) VALUES %s;" % ",".join(self.insertStr), self.insertList)
 
+		self.conn.commit()
 		self.insertStr = []
 		self.insertList = []
+
 
 	def getUniqueOnBasePath(self, basePath):
 
@@ -213,13 +255,17 @@ class DbApi():
 	def getItemNum(self):
 		cur = self.conn.cursor()
 		cur.execute("SELECT count(*) FROM dedupitems;")
-		return cur.fetchone()
+		ret = cur.fetchone()
+		self.conn.commit()
+		return ret
 
 	def getHashes(self, fsPath, internalPath):
 
 		cur = self.conn.cursor()
 		cur.execute("SELECT itemHash,pHash,dHash FROM dedupitems WHERE fsPath=%s AND internalPath=%s;", (fsPath, internalPath))
 		ret = cur.fetchone()
+
+		self.conn.commit()
 		if ret:
 			return ret
 		return False, False, False
@@ -239,6 +285,7 @@ class DbApi():
 						)
 						ORDER BY pHash''', (basePath+"%", ))
 		ret = cur.fetchall()
+		self.conn.commit()
 		return ret
 
 
@@ -256,6 +303,7 @@ class DbApi():
 							HAVING COUNT(*) > 1
 						)''', (basePath+"%", ))
 		ret = cur.fetchall()
+		self.conn.commit()
 		return [item[0] for item in ret]
 
 	def getDuplicateBaseFiles(self, basePath):
@@ -275,6 +323,7 @@ class DbApi():
 						AND fsPath LIKE %s''', ("", "", basePath+"%"))
 
 		ret = cur.fetchall()
+		self.conn.commit()
 		print("Ret = ", ret[0])
 		ret = [(item[0], item[1]) for item in ret]
 		return set(ret)

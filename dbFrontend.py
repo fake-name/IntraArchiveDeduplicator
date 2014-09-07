@@ -5,7 +5,7 @@ import logging
 import os.path
 import queue
 import threading
-
+import time
 
 
 import sys
@@ -45,6 +45,7 @@ class DatabaseUpdater(object):
 		self.processingHashQueue = monitorQueue
 
 		self.stopOnEmpty = False
+		self.stopped = False
 
 		self.spinner = Spinner()
 
@@ -108,15 +109,16 @@ class DatabaseUpdater(object):
 
 				commits += 1
 				if commits % 250 == 0:
-					sys.stdout.write("\nHave ~%s items remaining to process\n" % self.processingHashQueue.qsize())
+					self.log.info("Have ~%s items remaining to process" % self.processingHashQueue.qsize())
 					self.dbInt.commit()
 			except queue.Empty:
 				if self.stopOnEmpty:
 					break
 				pass
 
-
-		self.log.info("DbInterface Exiting")
+		self.dbInt.commit()
+		self.log.info("DbInterface Exiting, %s")
+		self.stopped = True
 
 	def startThread(self):
 		self.log.info("Starting thread")
@@ -127,3 +129,5 @@ class DatabaseUpdater(object):
 
 	def gracefulShutdown(self):
 		self.stopOnEmpty = True
+		while not self.stopped:
+			time.sleep(0.5)

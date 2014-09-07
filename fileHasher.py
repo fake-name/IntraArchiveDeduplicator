@@ -57,9 +57,12 @@ class HashEngine(object):
 		self.manNamespace.run = False
 		self.pool.terminate()
 
+	def haltEarly(self):
+		self.manNamespace.run = False
+
 	def gracefulShutdown(self):
 
-		self.manNamespace.run = False
+
 		self.manNamespace.stopOnEmpty = True
 
 		self.pool.close()
@@ -112,15 +115,18 @@ class HashThread(object):
 
 		if not self.runMgr.run:
 			self.tlog.info("Scanner exiting due to halt flag.")
+		else:
+			self.inQ.close()
+			self.outQ.close()
 
+			self.inQ.join_thread()
+			self.outQ.join_thread()
 
-	def close(self):
-		self.pool.shutdown()
 
 
 
 	def scanArchive(self, archPath):
-
+		# print("Scanning archive", archPath)
 		archIterator = UniversalArchiveIterator.ArchiveIterator(archPath)
 
 		for fName, fp in archIterator:

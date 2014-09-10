@@ -15,20 +15,24 @@ class Spinner(object):
 		# outStr = "-\\|/"
 		self.outStr  = "|-"
 		self.outStar = "*x"
+		self.outClean = "Dd"
 		self.outInt = 0
 		self.x = 0
 
 		self.itemLen = len(self.outStr)
 
-	def next(self, star=False):
+	def next(self, star=False, clean=False):
 		self.outInt = (self.outInt + 1) % 80
 
 		#sys.stdout.write( "\r%s\r" % outStrs[self.outInt])
 		if self.outInt == 0:
 			sys.stdout.write("\r")
 			self.x = (self.x + 1) % self.itemLen
+
 		if star:
 			sys.stdout.write(self.outStar[self.x])
+		elif clean:
+			sys.stdout.write(self.outClean[self.x])
 		else:
 			sys.stdout.write(self.outStr[self.x])
 
@@ -78,7 +82,7 @@ class DatabaseUpdater(object):
 				print("Breaking due to exit flag")
 				return
 
-			self.spinner.next()
+			self.spinner.next(clean=True)
 
 	def run(self):
 		commits = 0

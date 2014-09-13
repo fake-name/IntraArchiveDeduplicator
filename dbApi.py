@@ -58,6 +58,10 @@ class DbApi():
 
 		self.conn.commit()
 
+	def rollback(self):
+		self.log.info("Rolling back DB changes.")
+		cur = self.conn.cursor()
+		cur.execute("ROLLBACK;")
 
 	def commit(self):
 		self.log.info("Committing changes to DB.")
@@ -199,6 +203,14 @@ class DbApi():
 	def getItemsOnBasePath(self, basePath):
 		cur = self.conn.cursor()
 		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE fsPath=%s;", (basePath, ))
+
+		ret = cur.fetchall()
+		self.conn.commit()
+		return ret
+
+	def getItemsOnBasePathInternalPath(self, basePath, internalPath):
+		cur = self.conn.cursor()
+		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE fsPath=%s AND internalPath=%s;", (basePath, internalPath))
 
 		ret = cur.fetchall()
 		self.conn.commit()

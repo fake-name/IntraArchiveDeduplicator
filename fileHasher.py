@@ -84,13 +84,15 @@ class HashThread(object):
 
 
 
-	def __init__(self, inputQueue, outputQueue, runMgr, pHash):
+	def __init__(self, inputQueue, outputQueue, runMgr, pHash, checkChecksumScannedArches=True):
 		self.log = logging.getLogger("Main.HashEngine")
 		self.tlog = logging.getLogger("Main.HashEngineThread")
 		self.runMgr = runMgr
 		self.inQ = inputQueue
 		self.outQ = outputQueue
 		self.doPhash = pHash
+
+		self.checkArchiveChanged = checkChecksumScannedArches
 
 		self.dbApi = dbApi.DbApi()
 		self.loops = 0
@@ -102,7 +104,7 @@ class HashThread(object):
 				try:
 					filePath, fileName = self.inQ.get(timeout=0.5)
 					# self.tlog.info("Scan task! %s", filePath)
-					self.processFile(filePath, fileName)
+					self.processFile(filePath)
 				except queue.Empty:
 					if self.runMgr.stopOnEmpty:
 						self.tlog.info("Hashing thread out of tasks. Exiting.")
@@ -169,71 +171,111 @@ class HashThread(object):
 	def hashBareFile(self, wholePath, dbPath, doPhash=True):
 		with open(wholePath, "rb") as fp:
 			fCont = fp.read()
-			fName, hexHash, pHash, dHash = hashFile(wholePath, "", fCont, shouldPhash=doPhash)
-			self.outQ.put((dbPath, fName, hexHash, pHash, dHash))
 
-	def processFile(self, wholePath, fileN):
+		fName, hexHash, pHash, dHash = hashFile(wholePath, "", fCont, shouldPhash=doPhash)
+		self.outQ.put((dbPath, fName, hexHash, pHash, dHash))
 
+	def getFileMd5(self, wholePath):
+
+		with open(wholePath, "rb") as fp:
+			fCont = fp.read()
+
+		dummy_fName, hexHash, dummy_pHash, dummy_dHash = hashFile(wholePath, "", fCont)
+		return hexHash, fCont
+
+
+	def processArchive(self, wholePath):
 		fType = "none"
+		fCont = None
+		archHash = self.dbApi.getItemsOnBasePathInternalPath(wholePath, "")
+		if not archHash:
+			self.log.warn("Missing whole archive hash for file. Completely rehashing!")
+			self.log.warn("Target file = '%s'", wholePath)
+			self.dbApi.deleteBasePath(wholePath)
+			curHash, fCont = self.getFileMd5(wholePath)
+			self.outQ.put((wholePath, "", curHash, None, None))
 
-
-		if wholePath.startswith("/content"):
-			dbFilePath = wholePath.replace("/content", "/media/Storage/Scripts")
+		elif len(archHash) != 1:
+			print("ArchHash", archHash)
+			raise ValueError("Multiple hashes for a single file? Wat?")
 		else:
-			dbFilePath = wholePath
+			dummy_fPath, dummy_name, haveHash = archHash.pop()
+			curHash, fCont = self.getFileMd5(wholePath)
 
-		extantItems = self.dbApi.getItemsOnBasePath(dbFilePath)
-		# print("Extant items = ", extantItems, wholePath)
+			if curHash == haveHash:
 
+				self.outQ.put("hash_match")
+				return
+			else:
+				print("curHash", curHash)
+				print("haveHash", haveHash)
+				self.log.warn("Archive %s has changed! Rehashing!", wholePath)
 
-		haveFileHashList = [item[2] != "" for item in extantItems]
+		# TODO: Use `fCont` to prevent having to read each file twice.
 
+		try:
+			fType = magic.from_file(wholePath, mime=True)
+			fType = fType.decode("ascii")
+		except magic.MagicException:
+			self.tlog.error("REALLY Corrupt Archive! ")
+			self.tlog.error("%s", wholePath)
+			self.tlog.error("%s", traceback.format_exc())
+			fType = "none"
+		except IOError:
+			self.tlog.error("Something happened to the file before processing (did it get moved?)! ")
+			self.tlog.error("%s", wholePath)
+			self.tlog.error("%s", traceback.format_exc())
+			fType = "none"
 
-		# Only rescan if we don't have hashes for all the items in the archive (no idea how that would happen),
-		# or we have no items for the archive
-		if not (all(haveFileHashList) and len(extantItems)):
+		if fType == 'application/zip' or fType == 'application/x-rar':
 
-			if fileN.endswith(ARCH_EXTS):
-				try:
-					fType = magic.from_file(wholePath, mime=True)
-					fType = fType.decode("ascii")
-				except magic.MagicException:
-					self.tlog.error("REALLY Corrupt Archive! ")
-					self.tlog.error("%s", wholePath)
-					self.tlog.error("%s", traceback.format_exc())
-					fType = "none"
-				except IOError:
-					self.tlog.error("Something happened to the file before processing (did it get moved?)! ")
-					self.tlog.error("%s", wholePath)
-					self.tlog.error("%s", traceback.format_exc())
-					fType = "none"
+			# self.tlog.info("Scanning into archive - %s - %s", fileN, wholePath)
 
-				if fType == 'application/zip' or fType == 'application/x-rar':
+			try:
+				self.scanArchive(wholePath)
 
-					# self.tlog.info("Scanning into archive - %s - %s", fileN, wholePath)
+			except KeyboardInterrupt:
+				raise
+			except:
+				self.tlog.error("Archive is damaged, corrupt, or not actually an archive: %s", wholePath)
+				self.tlog.error("Error Traceback:")
+				self.tlog.error(traceback.format_exc())
+				# print("wat?")
 
-					try:
-						self.scanArchive(wholePath)
+			# print("Archive scan complete")
+			return
 
-					except KeyboardInterrupt:
-						raise
-					except:
-						self.tlog.error("Archive is damaged, corrupt, or not actually an archive: %s", wholePath)
-						self.tlog.error("Error Traceback:")
-						self.tlog.error(traceback.format_exc())
-						# print("wat?")
+	def processFile(self, wholePath):
+		if wholePath.startswith("/content"):
+			raise ValueError("Wat?")
 
-					# print("Archive scan complete")
-					return
+		# print("path", wholePath)
+		if wholePath.lower().endswith(ARCH_EXTS):
+			self.processArchive(wholePath)
+		else:
 
-			elif fileN.lower().endswith(IMAGE_EXTS):  # It looks like an image.
-				self.processImageFile(wholePath, dbFilePath)
-				# self.tlog.info("Skipping Image = %s", fileN)
+			# Get list of all hashes for items on wholePath
+			extantItems = self.dbApi.getItemsOnBasePath(wholePath)
+			haveFileHashList = [item[2] != "" for item in extantItems]
+
+			print("Extant items = ", extantItems, wholePath)
+
+			# Only rescan if we don't have hashes for all the items in the archive (no idea how that would happen),
+			# or we have no items for the archive
+
+			if all(haveFileHashList) and len(extantItems):
+
+				self.outQ.put("skipped")
+				return
+
+			elif wholePath.lower().endswith(IMAGE_EXTS):  # It looks like an image.
+				self.processImageFile(wholePath, wholePath)
+				# self.tlog.info("Skipping Image = %s", wholePath)
 
 			elif not any([item[2] and not item[1] for item in extantItems]):
-				# print("File", dbFilePath)
+				# print("File", wholePath)
 				try:
-					self.hashBareFile(wholePath, dbFilePath)
+					self.hashBareFile(wholePath, wholePath)
 
 				except IOError:
 
@@ -241,10 +283,10 @@ class HashThread(object):
 					self.tlog.error("%s", wholePath)
 					self.tlog.error("%s", traceback.format_exc())
 				except (IndexError, UnboundLocalError):
-					self.tlog.error("Error while processing fileN")
+					self.tlog.error("Error while processing wholePath")
 					self.tlog.error("%s", wholePath)
 					self.tlog.error("%s", traceback.format_exc())
 
-		else:
-			self.outQ.put("skipped")
-			# self.tlog.info("Skipping file = %s", fileN)
+			else:
+				self.outQ.put("skipped")
+				# self.tlog.info("Skipping file = %s", wholePath)

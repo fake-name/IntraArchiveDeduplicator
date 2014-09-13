@@ -15,13 +15,14 @@ class Spinner(object):
 		# outStr = "-\\|/"
 		self.outStr  = "|-"
 		self.outStar = "*x"
+		self.outMatch = r"\/"
 		self.outClean = "Dd"
 		self.outInt = 0
 		self.x = 0
 
 		self.itemLen = len(self.outStr)
 
-	def next(self, star=False, clean=False):
+	def next(self, star=False, clean=False, hashmatch=False):
 		self.outInt = (self.outInt + 1) % 80
 
 		#sys.stdout.write( "\r%s\r" % outStrs[self.outInt])
@@ -33,6 +34,8 @@ class Spinner(object):
 			sys.stdout.write(self.outStar[self.x])
 		elif clean:
 			sys.stdout.write(self.outClean[self.x])
+		elif hashmatch:
+			sys.stdout.write(self.outMatch[self.x])
 		else:
 			sys.stdout.write(self.outStr[self.x])
 
@@ -92,6 +95,9 @@ class DatabaseUpdater(object):
 				item = self.hashQueue.get(timeout=0.1)
 				if item == "skipped":
 					self.spinner.next(star=True)
+					continue
+				if item == "hash_match":
+					self.spinner.next(hashmatch=True)
 					continue
 
 				basePath, internalPath, itemHash, pHash, dHash = item

@@ -6,37 +6,67 @@ import zlib
 
 import zipfile
 import rarfile
+import io
 
 import logging
 import traceback
+import py7zlib
 
 
-class ArchiveIterator(object):
+class ArchiveReader(object):
 
-	def __init__(self, archPath):
-		self.logger = logging.getLogger("Main.archIter")
+	fp = None
+
+	def __init__(self, archPath, fileContents=None):
+		self.logger = logging.getLogger("Main.ArchTool")
 		self.archPath = archPath
-		self.fType = magic.from_file(archPath, mime=True)
-		self.fType = self.fType.decode("ascii")
+
+		self.fType = magic.from_file(archPath, mime=True).decode("ascii")
+
 		#print "wholepath - ", wholePath
 		if self.fType == 'application/x-rar':
 			#print "Rar File"
-			self.archHandle = self.iterRarFiles()
+			self.archHandle = rarfile.RarFile(self.archPath) # self.iterRarFiles()
 			self.archType = "rar"
 		elif self.fType == 'application/zip':
 			#print "Zip File"
-			self.archHandle = self.iterZipFiles()
-			self.archType = "zip"
-		else:
-			raise ValueError("Tried to create ArchiveIterator on a non-archive file")
+			try:
+				if fileContents:  # Use pre-read fileContents whenever possible.
+					self.archHandle = zipfile.ZipFile(io.BytesIO(fileContents))
+				else:
+					self.archHandle = zipfile.ZipFile(self.archPath) # self.iterZipFiles()
 
-	def getFiles(self, archH):
-		names = archH.namelist()
+				self.archType = "zip"
+			except zipfile.BadZipfile:
+				print("Invalid zip file!")
+				traceback.print_exc()
+				raise ValueError
+		elif self.fType == 'application/x-7z-compressed':
+			#print "Zip File"
+			try:
+				if fileContents:  # Use pre-read fileContents whenever possible.
+					self.archHandle = py7zlib.Archive7z(io.BytesIO(fileContents))
+				else:
+					self.fp = open(archPath, "rb")
+					self.archHandle = py7zlib.Archive7z(self.fp) # self.iterZipFiles()
+
+				self.archType = "zip"  # py7zlib.Archive7z mimics the interface of zipfile.ZipFile, so we'll use the zipfile.ZipFile codepaths
+
+			except zipfile.BadZipfile:
+				print("Invalid zip file!")
+				traceback.print_exc()
+				raise ValueError
+		else:
+			print("Returned MIME Type for file = ", self.fType )
+			raise ValueError("Tried to create ArchiveReader on a non-archive file")
+
+	def getFileList(self):
+		names = self.archHandle.namelist()
 		ret = []
 		for name in names:
 
 			try:
-				if not archH.getinfo(name).isdir():
+				if not self.archHandle.getinfo(name).isdir():
 					ret.append(name)
 			except:
 				if not name.endswith("/"):
@@ -91,25 +121,29 @@ class ArchiveIterator(object):
 				self.logger.error("%s", tbLine)
 			raise
 
+	def getFileContentHandle(self, fileName):
+		return self.archHandle.open(fileName)
+
 
 	def iterZipFiles(self):
-		zipFP = zipfile.ZipFile(self.archPath)
-		names = self.getFiles(zipFP)
+		names = self.getFileList()
 		for name in names:
-			with zipFP.open(name) as tempFp:
+			with self.archHandle.open(name) as tempFp:
 				yield name, tempFp
-		zipFP.close()
+
 
 
 	def iterRarFiles(self):
-		rarFP = rarfile.RarFile(self.archPath)
-		names = self.getFiles(rarFP)
+		names = self.getFileList()
 		for name in names:
-			with rarFP.open(name) as tempFp:
+			with self.archHandle.open(name) as tempFp:
 				name = name.replace("\\", "/")
 				yield name, tempFp
 
 				#raise
 
-		rarFP.close()
 
+	def close(self):
+		self.archHandle.close()
+		if self.fp:
+			self.fp.close()

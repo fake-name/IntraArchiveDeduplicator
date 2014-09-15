@@ -38,6 +38,12 @@ class DedupScanTool(object):
 		except:
 			self.doPhash = True
 
+		try:
+			self.checkIntegrity = not bool(scanConf.noIntegrityCheck)
+		except:
+			self.checkIntegrity = True
+
+
 
 		print("Opening DB")
 		self.toProcessQueue = multiprocessing.Queue()
@@ -47,8 +53,9 @@ class DedupScanTool(object):
 		print("Opened.")
 
 
+
 		self.log.info("Initializing %s scanning threads.", self.threads)
-		self.hashEngine = fileHasher.HashEngine(self.toProcessQueue, self.processedHashQueue, self.threads, self.doPhash)
+		self.hashEngine = fileHasher.HashEngine(self.toProcessQueue, self.processedHashQueue, self.threads, self.doPhash, integrity=self.checkIntegrity)
 		self.hashEngine.runThreads()
 		self.log.info("File scanning threads running.")
 
@@ -93,6 +100,11 @@ class DedupScanTool(object):
 			self.log.info("Check complete")
 		else:
 			self.log.info("Skipping removed file check!.")
+
+		if self.checkIntegrity:
+			self.log.info("Verifying archive checksums.")
+		else:
+			self.log.info("Not verifying archive checksums.")
 
 
 		if not runState.run:

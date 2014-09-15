@@ -5,7 +5,7 @@
 import queue
 import runState
 
-import UniversalArchiveIterator
+import UniversalArchiveReader
 
 import multiprocessing
 
@@ -23,18 +23,19 @@ from hashFile import hashFile
 import traceback
 
 IMAGE_EXTS = ("bmp", "eps", "gif", "im", "jpeg", "jpg", "msp", "pcx", "png", "ppm", "spider", "tiff", "webp", "xbm")
-ARCH_EXTS = ("zip", "rar", "cbz", "cbr")
+ARCH_EXTS = ("zip", "rar", "cbz", "cbr", "7z", "cb7")
 
 class HashEngine(object):
 
 
-	def __init__(self, inputQueue, outputQueue, threads=2, pHash=True):
+	def __init__(self, inputQueue, outputQueue, threads=2, pHash=True, integrity=True):
 		self.log           = logging.getLogger("Main.HashEngine")
 		self.tlog          = logging.getLogger("Main.HashEngineThread")
 		self.hashWorkers   = threads
 		self.inQ           = inputQueue
 		self.outQ          = outputQueue
 		self.doPhash       = pHash
+		self.archIntegrity = integrity
 
 		self.runStateMgr   = multiprocessing.Manager()
 		self.manNamespace  = self.runStateMgr.Namespace()
@@ -48,7 +49,9 @@ class HashEngine(object):
 		args = (self.inQ,
 			self.outQ,
 			self.manNamespace,
-			self.doPhash)
+			self.doPhash,
+			True,
+			self.archIntegrity)
 
 		self.pool = multiprocessing.pool.Pool(processes=self.hashWorkers, initializer=createHashThread, initargs=args )
 
@@ -73,24 +76,25 @@ class HashEngine(object):
 
 
 
-def createHashThread(inQueue, outQueue, runMgr, pHash):
+def createHashThread(inQueue, outQueue, runMgr, pHash, checkChecksumScannedArches, integrity):
 	# Make all the thread-pool threads ignore SIGINT, so they won't freak out on CTRL+C
 	signal.signal(signal.SIGINT, signal.SIG_IGN)
 
-	runner = HashThread(inQueue, outQueue, runMgr, pHash)
+	runner = HashThread(inQueue, outQueue, runMgr, pHash, checkChecksumScannedArches, integrity)
 	runner.run()
 
 class HashThread(object):
 
 
 
-	def __init__(self, inputQueue, outputQueue, runMgr, pHash, checkChecksumScannedArches=True):
+	def __init__(self, inputQueue, outputQueue, runMgr, pHash, checkChecksumScannedArches=True, integrity=True):
 		self.log = logging.getLogger("Main.HashEngine")
 		self.tlog = logging.getLogger("Main.HashEngineThread")
 		self.runMgr = runMgr
 		self.inQ = inputQueue
 		self.outQ = outputQueue
 		self.doPhash = pHash
+		self.archIntegrity = integrity
 
 		self.checkArchiveChanged = checkChecksumScannedArches
 
@@ -127,9 +131,9 @@ class HashThread(object):
 
 
 
-	def scanArchive(self, archPath):
+	def scanArchive(self, archPath, archData):
 		# print("Scanning archive", archPath)
-		archIterator = UniversalArchiveIterator.ArchiveIterator(archPath)
+		archIterator = UniversalArchiveReader.ArchiveReader(archPath, fileContents=archData)
 
 		for fName, fp in archIterator:
 
@@ -142,7 +146,7 @@ class HashThread(object):
 
 			if not runState.run:
 				break
-
+		archIterator.close()
 
 	def processImageFile(self, wholePath, dbFilePath):
 
@@ -199,6 +203,9 @@ class HashThread(object):
 			print("ArchHash", archHash)
 			raise ValueError("Multiple hashes for a single file? Wat?")
 		else:
+			if not self.archIntegrity:
+				self.outQ.put("skipped")
+				return
 			dummy_fPath, dummy_name, haveHash = archHash.pop()
 			curHash, fCont = self.getFileMd5(wholePath)
 
@@ -232,7 +239,7 @@ class HashThread(object):
 			# self.tlog.info("Scanning into archive - %s - %s", fileN, wholePath)
 
 			try:
-				self.scanArchive(wholePath)
+				self.scanArchive(wholePath, fCont)
 
 			except KeyboardInterrupt:
 				raise
@@ -258,7 +265,7 @@ class HashThread(object):
 			extantItems = self.dbApi.getItemsOnBasePath(wholePath)
 			haveFileHashList = [item[2] != "" for item in extantItems]
 
-			print("Extant items = ", extantItems, wholePath)
+			# print("Extant items = ", extantItems, wholePath)
 
 			# Only rescan if we don't have hashes for all the items in the archive (no idea how that would happen),
 			# or we have no items for the archive

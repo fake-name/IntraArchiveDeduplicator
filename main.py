@@ -22,6 +22,7 @@ if __name__ == "__main__":
 	parserDirScan.add_argument('-p', '--purge',       required=False, dest="purge", action='store_true')
 	parserDirScan.add_argument('-t', '--threads',     required=False, dest="threadNo")
 	parserDirScan.add_argument('-s', '--nophash',     required=False, dest="noPhash", action='store_true')
+	parserDirScan.add_argument('-c', '--noIntegrity', required=False, dest="noIntegrityCheck", action='store_true')
 
 	parserDirScan.set_defaults(func=scanner.doScan)
 

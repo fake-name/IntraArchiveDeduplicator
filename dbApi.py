@@ -41,7 +41,10 @@ class DbApi():
 													itemHash        text,
 													pHash           text,
 													dHash           text,
-													itemKind        text
+													itemKind        text,
+
+													imgx            INTEGER,
+													imgy            INTEGER
 
 													);''')
 
@@ -57,6 +60,10 @@ class DbApi():
 		# 	print("Table exists")
 
 		self.conn.commit()
+
+	# General TODO:
+	# Use python-sql to allow flexible kwargs for queries. This
+	# should allow the number of discrete methods here to be cut DRAMATICALLY.
 
 	def rollback(self):
 		self.log.info("Rolling back DB changes.")
@@ -160,14 +167,17 @@ class DbApi():
 		return ret
 
 
-	def insertItem(self, basePath, internalPath, itemHash=None, pHash=None, dHash=None):
+	# TODO: Refactor to use kwargs
+	def insertItem(self, basePath, internalPath, itemHash=None, pHash=None, dHash=None, imgX=None, imgY=None):
 		cur = self.conn.cursor()
-		cur.execute("INSERT INTO dedupitems (fsPath, internalPath, itemhash, pHash, dHash) VALUES (%s, %s, %s, %s, %s);", (basePath, internalPath, itemHash, pHash, dHash))
+		cur.execute("INSERT INTO dedupitems (fsPath, internalPath, itemhash, pHash, dHash, imgx, imgy) VALUES (%s, %s, %s, %s, %s, %s, %s);",
+			(basePath, internalPath, itemHash, pHash, dHash, imgX, imgY))
 
 
-	def updateItem(self, basePath, internalPath, itemHash=None, pHash=None, dHash=None):
+	def updateItem(self, basePath, internalPath, itemHash=None, pHash=None, dHash=None, imgX=None, imgY=None):
 		cur = self.conn.cursor()
-		cur.execute("UPDATE dedupitems SET itemhash=%s, pHash=%s, dHash=%s WHERE fsPath=%s AND internalPath=%s;", (itemHash, pHash, dHash, basePath, internalPath))
+		cur.execute("UPDATE dedupitems SET itemhash=%s, pHash=%s, dHash=%s, imgx=%s, imgy=%s WHERE fsPath=%s AND internalPath=%s;",
+			(itemHash, pHash, dHash, imgX, imgY, basePath, internalPath))
 
 	def moveItem(self, oldPath, newPath):
 		cur = self.conn.cursor()
@@ -195,7 +205,7 @@ class DbApi():
 		cur = self.conn.cursor()
 		cur.execute("DELETE FROM dedupitems WHERE fsPath=%s;", (basePath, ))
 		if cur.rowcount == 0:
-			self.log.warn("Deleted {num} items!".format(num=cur.rowcount))
+			pass
 		else:
 			self.log.info("Deleted {num} items!".format(num=cur.rowcount))
 		self.conn.commit()

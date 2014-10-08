@@ -100,19 +100,19 @@ class DatabaseUpdater(object):
 					self.spinner.next(hashmatch=True)
 					continue
 
-				basePath, internalPath, itemHash, pHash, dHash = item
+				basePath, internalPath, itemHash, pHash, dHash, imX, imY = item
 				if basePath.startswith("/content"):
 					basePath = basePath.replace("/content", "/media/Storage/Scripts")
 				baseHash, oldPHash, oldDHash = self.dbInt.getHashes(basePath, internalPath)
 				if all((baseHash, oldPHash, oldDHash)):
 					self.log.critical("Already hashed item?")
-					self.log.critical("%s, %s, %s, %s, %s", basePath, internalPath, itemHash, pHash, dHash)
+					self.log.critical("%s, %s, %s, %s, %s, %s, %s", basePath, internalPath, itemHash, pHash, dHash, imX, imY)
 
 				if baseHash:
 					# print("Updating DB", basePath, internalPath, itemHash, pHash, dHash)
-					self.dbInt.updateItem(basePath, internalPath, itemHash, pHash, dHash)
+					self.dbInt.updateItem(basePath, internalPath, itemHash, pHash, dHash, imX, imY)
 				else:
-					self.dbInt.insertItem(basePath, internalPath, itemHash, pHash, dHash)
+					self.dbInt.insertItem(basePath, internalPath, itemHash, pHash, dHash, imX, imY)
 				# self.log.info("Item = %s, %s, %s, %s, %s", basePath, internalPath, itemHash, pHash, dHash)
 				# self.log.info("Queue Items = %s", self.hashQueue.qsize())
 				self.spinner.next()

@@ -18,7 +18,7 @@ import logging
 import random
 random.seed()
 
-from hashFile import hashFile
+import hashFile as hasher
 
 import traceback
 
@@ -139,9 +139,9 @@ class HashThread(object):
 
 			fCont = fp.read()
 
-			fName, hexHash, pHash, dHash = hashFile(archPath, fName, fCont)
+			fName, hexHash, pHash, dHash, imX, imY = hasher.hashFile(archPath, fName, fCont)
 
-			self.outQ.put((archPath, fName, hexHash, pHash, dHash))
+			self.outQ.put((archPath, fName, hexHash, pHash, dHash, imX, imY))
 
 
 			if not runState.run:
@@ -157,11 +157,11 @@ class HashThread(object):
 				fCont = fp.read()
 				try:
 					if self.doPhash:
-						fName, hexHash, pHash, dHash = hashFile(wholePath, "", fCont)
+						fName, hexHash, pHash, dHash, imX, imY = hasher.hashFile(wholePath, "", fCont)
 					else:
-						fName, hexHash, pHash, dHash = hashFile(wholePath, "", fCont)
+						fName, hexHash, pHash, dHash, imX, imY = hasher.hashFile(wholePath, "", fCont)
 
-					self.outQ.put((dbFilePath, fName, hexHash, pHash, dHash))
+					self.outQ.put((dbFilePath, fName, hexHash, pHash, dHash, imX, imY))
 				except (IndexError, UnboundLocalError):
 					self.tlog.error("Error while processing fileN")
 					self.tlog.error("%s", wholePath)
@@ -176,15 +176,14 @@ class HashThread(object):
 		with open(wholePath, "rb") as fp:
 			fCont = fp.read()
 
-		fName, hexHash, pHash, dHash = hashFile(wholePath, "", fCont, shouldPhash=doPhash)
-		self.outQ.put((dbPath, fName, hexHash, pHash, dHash))
+		fName, hexHash, pHash, dHash, imX, imY = hasher.hashFile(wholePath, "", fCont, shouldPhash=doPhash)
+		self.outQ.put((dbPath, fName, hexHash, pHash, dHash, imX, imY))
 
 	def getFileMd5(self, wholePath):
 
 		with open(wholePath, "rb") as fp:
 			fCont = fp.read()
-
-		dummy_fName, hexHash, dummy_pHash, dummy_dHash = hashFile(wholePath, "", fCont)
+		hexHash = hasher.getMd5Hash(fCont)
 		return hexHash, fCont
 
 
@@ -193,11 +192,9 @@ class HashThread(object):
 		fCont = None
 		archHash = self.dbApi.getItemsOnBasePathInternalPath(wholePath, "")
 		if not archHash:
-			self.log.warn("Missing whole archive hash for file. Completely rehashing!")
-			self.log.warn("Target file = '%s'", wholePath)
 			self.dbApi.deleteBasePath(wholePath)
 			curHash, fCont = self.getFileMd5(wholePath)
-			self.outQ.put((wholePath, "", curHash, None, None))
+			self.outQ.put((wholePath, "", curHash, None, None ,None, None))
 
 		elif len(archHash) != 1:
 			print("ArchHash", archHash)

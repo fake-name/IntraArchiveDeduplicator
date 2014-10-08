@@ -131,17 +131,25 @@ __dir__ = [average_hash, phash, ImageHash]
 
 IMAGE_EXTS = ("bmp", "eps", "gif", "im", "jpeg", "jpg", "msp", "pcx", "png", "ppm", "spider", "tiff", "webp", "xbm")
 
+'''
+Generate various hashes of file
 
+basepath/fname are required for determining if the passed file is probably an image (by looking at extensions)
+Actual file contents must be in fContents
+
+'''
 def hashFile(basePath, fname, fContents, shouldPhash=True):
 	# basePath, fname, fContents = arg
+
 	fMD5 = hashlib.md5()
-
-
 	fMD5.update(fContents)
 	hexHash = fMD5.hexdigest()
+
 	pHash = None
 	dHash = None
 
+	imX = None
+	imY = None
 
 	if (fname.lower().endswith(IMAGE_EXTS) or (basePath.lower().endswith(IMAGE_EXTS) and fname == "")) and shouldPhash:
 
@@ -152,7 +160,10 @@ def hashFile(basePath, fname, fContents, shouldPhash=True):
 		pHash = "".join(["1" if val else "0" for val in pHashArr ])
 		dHash = "".join(["1" if val else "0" for val in dHashArr ])
 
-	return fname, hexHash, pHash, dHash
+		imX, imY = im.size
+
+
+	return fname, hexHash, pHash, dHash, imX, imY
 
 
 def getMd5Hash(fContents):

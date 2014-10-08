@@ -195,7 +195,7 @@ class DbApi():
 
 	def getLikeBasePath(self, basePath):
 		cur = self.conn.cursor()
-		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE fsPath LIKE %s;", (basePath+"%", ))
+		cur.execute("SELECT fsPath,internalPath,itemhash,pHash,dHash,imgx,imgy FROM dedupitems WHERE fsPath LIKE %s;", (basePath+"%", ))
 
 		ret = cur.fetchall()
 		self.conn.commit()

@@ -27,7 +27,7 @@ class Deduper(object):
 
 				otherBases = set()
 				isDuplicated = True
-				for dummy_fsPath, dummy_internalPath, itemhash in self.dbInt.getItemsOnBasePath(basepath):
+				for dummy_fsPath, dummy_internalPath, itemhash, phash in self.dbInt.getItemsOnBasePath(basepath):
 					otherItems = self.dbInt.getByHash(itemhash)
 					if len(otherItems) < 2:
 						isDuplicated = False

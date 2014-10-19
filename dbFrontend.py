@@ -96,28 +96,23 @@ class DatabaseUpdater(object):
 				if item == "skipped":
 					self.spinner.next(star=True)
 					continue
-				if item == "hash_match":
+				elif item == "hash_match":
 					self.spinner.next(hashmatch=True)
 					continue
+				elif item == "processed":
+					self.spinner.next()
+					continue
 
-				basePath, internalPath, itemHash, pHash, dHash, imX, imY = item
-				if basePath.startswith("/content"):
-					basePath = basePath.replace("/content", "/media/Storage/Scripts")
-				baseHash, oldPHash, oldDHash = self.dbInt.getHashes(basePath, internalPath)
-				if all((baseHash, oldPHash, oldDHash)):
-					self.log.critical("Already hashed item?")
-					self.log.critical("%s, %s, %s, %s, %s, %s, %s", basePath, internalPath, itemHash, pHash, dHash, imX, imY)
-
-				if baseHash:
-					# print("Updating DB", basePath, internalPath, itemHash, pHash, dHash)
-					self.dbInt.updateItem(basePath, internalPath, itemHash, pHash, dHash, imX, imY)
 				else:
-					self.dbInt.insertItem(basePath, internalPath, itemHash, pHash, dHash, imX, imY)
-				# self.log.info("Item = %s, %s, %s, %s, %s", basePath, internalPath, itemHash, pHash, dHash)
-				# self.log.info("Queue Items = %s", self.hashQueue.qsize())
-				self.spinner.next()
+					print()
+					print()
+					print("WAT?")
+					print()
+					print(item)
+					print()
+					print()
 
-				commits += 1
+
 				if commits % 250 == 0:
 					self.log.info("Have ~%s items remaining to process" % self.processingHashQueue.qsize())
 					self.dbInt.commit()
@@ -126,8 +121,7 @@ class DatabaseUpdater(object):
 					break
 				pass
 
-		self.dbInt.commit()
-		self.log.info("DbInterface Exiting, %s")
+		self.log.info("UI Thread Exiting")
 		self.stopped = True
 
 	def startThread(self):

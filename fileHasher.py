@@ -10,6 +10,7 @@ import UniversalArchiveReader
 import multiprocessing
 
 import magic
+import logging
 import dbApi
 import signal
 
@@ -86,10 +87,20 @@ def createHashThread(inQueue, outQueue, runMgr, pHash, checkChecksumScannedArche
 class HashThread(object):
 
 
+	loggerPath = "Main.HashEngine"
 
 	def __init__(self, inputQueue, outputQueue, runMgr, pHash, checkChecksumScannedArches=True, integrity=True):
-		self.log = logging.getLogger("Main.HashEngine")
-		self.tlog = logging.getLogger("Main.HashEngineThread")
+
+
+
+		# If we're running as a multiprocessing thread, inject that into
+		# the logger path
+		threadName = multiprocessing.current_process().name
+		if threadName:
+			self.tlog = logging.getLogger("%s.%s" % (self.loggerPath, threadName))
+		else:
+			self.tlog = logging.getLogger(self.loggerPath)
+
 		self.runMgr = runMgr
 		self.inQ = inputQueue
 		self.outQ = outputQueue
@@ -100,6 +111,10 @@ class HashThread(object):
 
 		self.dbApi = dbApi.DbApi()
 		self.loops = 0
+
+		self.logger = None
+
+
 
 
 	def run(self):
@@ -133,19 +148,36 @@ class HashThread(object):
 
 	def scanArchive(self, archPath, archData):
 		# print("Scanning archive", archPath)
+
 		archIterator = UniversalArchiveReader.ArchiveReader(archPath, fileContents=archData)
+		self.dbApi.begin()
 
-		for fName, fp in archIterator:
+		try:
+			for fName, fp in archIterator:
 
-			fCont = fp.read()
+				fCont = fp.read()
 
-			fName, hexHash, pHash, dHash, imX, imY = hasher.hashFile(archPath, fName, fCont)
+				fName, hexHash, pHash, dHash, imX, imY = hasher.hashFile(archPath, fName, fCont)
 
-			self.outQ.put((archPath, fName, hexHash, pHash, dHash, imX, imY))
+				insertArgs = {
+							"fsPath"       :archPath,
+							"internalPath" :fName,
+							"itemHash"     :hexHash,
+							"pHash"        :pHash,
+							"dHash"        :dHash,
+							"imgX"         :imX,
+							"imgY"         :imY
+						}
 
+				self.dbApi.insertIntoDb(**insertArgs)
+				self.outQ.put("processed")
+				if not runState.run:
+					break
+		except:
+			self.dbApi.rollback()
+			raise
 
-			if not runState.run:
-				break
+		self.dbApi.commit()
 		archIterator.close()
 
 	def processImageFile(self, wholePath, dbFilePath):
@@ -156,12 +188,23 @@ class HashThread(object):
 			with open(wholePath, "rb") as fp:
 				fCont = fp.read()
 				try:
-					if self.doPhash:
-						fName, hexHash, pHash, dHash, imX, imY = hasher.hashFile(wholePath, "", fCont)
-					else:
-						fName, hexHash, pHash, dHash, imX, imY = hasher.hashFile(wholePath, "", fCont)
 
-					self.outQ.put((dbFilePath, fName, hexHash, pHash, dHash, imX, imY))
+					fName, hexHash, pHash, dHash, imX, imY = hasher.hashFile(wholePath, "", fCont)
+
+					insertArgs = {
+								"fsPath"       :wholePath,
+								"internalPath" :fName,     # fname == '' in this case
+								"itemHash"     :hexHash,
+								"pHash"        :pHash,
+								"dHash"        :dHash,
+								"imgX"         :imX,
+								"imgY"         :imY
+							}
+
+					self.dbApi.insertIntoDb(**insertArgs)
+
+					self.outQ.put("processed")
+
 				except (IndexError, UnboundLocalError):
 					self.tlog.error("Error while processing fileN")
 					self.tlog.error("%s", wholePath)
@@ -176,8 +219,22 @@ class HashThread(object):
 		with open(wholePath, "rb") as fp:
 			fCont = fp.read()
 
-		fName, hexHash, pHash, dHash, imX, imY = hasher.hashFile(wholePath, "", fCont, shouldPhash=doPhash)
-		self.outQ.put((dbPath, fName, hexHash, pHash, dHash, imX, imY))
+		fName, hexHash, pHash, dHash, imX, imY = hasher.hashFile(wholePath, "", fCont)
+
+		insertArgs = {
+					"fsPath"       :wholePath,
+					"internalPath" :fName,     # fname == '' in this case
+					"itemHash"     :hexHash,
+					"pHash"        :pHash,
+					"dHash"        :dHash,
+					"imgX"         :imX,
+					"imgY"         :imY
+				}
+
+		self.dbApi.insertIntoDb(**insertArgs)
+
+		self.outQ.put("processed")
+
 
 	def getFileMd5(self, wholePath):
 
@@ -194,26 +251,33 @@ class HashThread(object):
 		if not archHash:
 			self.dbApi.deleteBasePath(wholePath)
 			curHash, fCont = self.getFileMd5(wholePath)
-			self.outQ.put((wholePath, "", curHash, None, None ,None, None))
+
+			insertArgs = {
+						"fsPath"       :wholePath,
+						"internalPath" :'',
+						"itemHash"     :curHash
+					}
+			self.dbApi.insertIntoDb(**insertArgs)
+			self.outQ.put("processed")
 
 		elif len(archHash) != 1:
 			print("ArchHash", archHash)
 			raise ValueError("Multiple hashes for a single file? Wat?")
 		else:
 			if not self.archIntegrity:
+				# print("Skipped", wholePath)
 				self.outQ.put("skipped")
 				return
 			dummy_fPath, dummy_name, haveHash = archHash.pop()
 			curHash, fCont = self.getFileMd5(wholePath)
 
 			if curHash == haveHash:
-
+				# print("Skipped", wholePath)
 				self.outQ.put("hash_match")
 				return
 			else:
-				print("curHash", curHash)
-				print("haveHash", haveHash)
-				self.log.warn("Archive %s has changed! Rehashing!", wholePath)
+				self.tlog.warn("Archive %s has changed! Rehashing!", wholePath)
+				self.dbApi.deleteBasePath(wholePath)
 
 		# TODO: Use `fCont` to prevent having to read each file twice.
 

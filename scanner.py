@@ -169,6 +169,11 @@ def doScan(scanConf):
 
 	signal.signal(signal.SIGINT, ddT.sigIntHandler)
 	print("Doing scan")
+	print("Progress spinner legend:")
+	print("'-', '|' - File processed normally")
+	print("'/', '\\' - File MD5 matches existing scan, not processed further")
+	print("'*', 'x' - File skipped")
+	print("'D', 'd' - File existence checked (only during deleted item purge step)")
 
 	ddT.queueFolderContents(scanConf)
 	ddT.waitComplete()

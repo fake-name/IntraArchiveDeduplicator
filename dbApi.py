@@ -16,19 +16,31 @@ from contextlib import contextmanager
 
 import sql
 import sql.aggregate as sqla
+import sql.operators as sqlo
 
-import copy
+import multiprocessing
 import functools
 import operator as opclass
 
 class DbApi():
 
 	tableName = 'dedupitems'
-	QUERY_DEBUG = True
+	QUERY_DEBUG = False
+
+	inLargeTransaction = False
+
+
+	loggerPath = "Main.DbApi"
 
 	def __init__(self):
 
-		self.log = logging.getLogger("Main.DbApi")
+		# If we're running as a multiprocessing thread, inject that into
+		# the logger path
+		threadName = multiprocessing.current_process().name
+		if threadName:
+			self.log = logging.getLogger("%s.%s" % (self.loggerPath, threadName))
+		else:
+			self.log = logging.getLogger(self.loggerPath)
 
 
 
@@ -84,22 +96,29 @@ class DbApi():
 
 
 		self.colMap = {
-				"dbId"          : self.table.dbid,
-				"fsPath"        : self.table.fspath,
-				"internalPath"  : self.table.internalpath,
-				"itemHash"      : self.table.itemhash,
-				"pHash"         : self.table.phash,
-				"dHash"         : self.table.dhash,
-				"itemKind"      : self.table.itemkind,
+				"dbid"          : self.table.dbid,
+				"fspath"        : self.table.fspath,
+				"internalpath"  : self.table.internalpath,
+				"itemhash"      : self.table.itemhash,
+				"phash"         : self.table.phash,
+				"dhash"         : self.table.dhash,
+				"itemkind"      : self.table.itemkind,
 				"imgx"          : self.table.imgx,
 				"imgy"          : self.table.imgy
 			}
 
 
 
+
 	@contextmanager
 	def transaction(self, commit=True):
 		cursor = self.conn.cursor()
+
+		# Larger transaction blocks need to auto-skip
+		# local commit operations
+		if self.inLargeTransaction:
+			commit=False
+
 		if commit:
 			cursor.execute("BEGIN;")
 
@@ -165,22 +184,21 @@ class DbApi():
 
 
 
-	def generateUpdateQuery(self, **kwargs):
-		if "dbId" in kwargs:
-			where = (self.table.dbid == kwargs.pop('dbId'))
-		elif "fsPath" in kwargs and "internalPath" in kwargs:
-			where = (self.table.fsPath == kwargs.pop('fsPath')) & (self.table.internalPath == kwargs.pop('internalPath'))
-		elif "fsPath" in kwargs:
-			where = (self.table.fsPath == kwargs.pop('fsPath'))
-		else:
-			raise ValueError("updateDbEntryKey must be passed a single unique column identifier (either dbId, fsPath, or fsPath & internalPath)")
+	def generateUpdateQuery(self, where=False, **kwargs):
+		if not where:
+			if "dbId" in kwargs:
+				where = (self.table.dbid == kwargs.pop('dbId'))
+			elif "fsPath" in kwargs and "internalPath" in kwargs:
+				where = (self.table.fsPath == kwargs.pop('fsPath')) & (self.table.internalPath == kwargs.pop('internalPath'))
+			elif "fsPath" in kwargs:
+				where = (self.table.fsPath == kwargs.pop('fsPath'))
+			else:
+				raise ValueError("updateDbEntryKey must be passed a single unique column identifier (either dbId, fsPath, or fsPath & internalPath)")
 
 		cols = []
 		vals = []
 
 		for key, val in kwargs.items():
-			key = key.lower()
-
 			if key not in self.colMap:
 				raise ValueError("Invalid column name for insert! '%s'" % key)
 			cols.append(self.colMap[key])
@@ -204,7 +222,7 @@ class DbApi():
 			cur.execute(query, queryArguments)
 
 
-	def getItems(self, wantCols=None, **kwargs):
+	def getItems(self, wantCols=None, where=None, **kwargs):
 		cols = []
 		if wantCols:
 			for colName in wantCols:
@@ -212,11 +230,18 @@ class DbApi():
 		else:
 			cols = self.cols
 
-		where = self.sqlBuildConditional(**kwargs)
+		if not where:
+			where = self.sqlBuildConditional(**kwargs)
+
 		query = self.table.select(*cols, where=where)
 
 
 		query, params = tuple(query)
+
+		if self.QUERY_DEBUG:
+			print("Query = ", query)
+			print("Args = ", params)
+
 
 		with self.transaction() as cur:
 			cur.execute(query, params)
@@ -224,11 +249,47 @@ class DbApi():
 
 		return ret
 
+	def getStreamingCursor(self, wantCols=None, where=None, limit=None, **kwargs):
+		cols = []
+		if wantCols:
+			for colName in wantCols:
+				cols.append(self.colMap[colName])
+		else:
+			cols = self.cols
+
+		if not where:
+			where = self.sqlBuildConditional(**kwargs)
+
+
+		query = self.table.select(*cols, where=where)
+
+		if limit:
+			query.limit = int(limit)
+
+		query, params = tuple(query)
+
+		if self.QUERY_DEBUG:
+			print("Query = ", query)
+			print("Args = ", params)
+
+		# Specifying a name for the cursor causes it to run server-side, making is stream results,
+		# rather then completing the query and returning them as a lump item (which blocks)
+
+		self.conn.cursor().execute("BEGIN;")
+		cur = self.conn.cursor("streaming_cursor")
+		cur.execute(query, params)
+		return cur
+
 	def itemInDB(self, **kwargs):
 		where = self.sqlBuildConditional(**kwargs)
 		query = self.table.select(sqla.Count(sql.Literal(1)), where=where)
 
 		query, params = tuple(query)
+
+		if self.QUERY_DEBUG:
+			print("Query = ", query)
+			print("Args = ", params)
+
 
 		with self.transaction() as cur:
 			cur.execute(query, params)
@@ -301,7 +362,7 @@ class DbApi():
 		return set(ret)
 
 	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-	# Old-shit compatibility wrappings
+	# Old-shit compatibility wrappings and convenience calls
 	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
@@ -317,50 +378,72 @@ class DbApi():
 	def getById(self, dbId):
 		return self.getItems(wantCols=["fsPath","internalPath","itemHash"], dbId=dbId)
 
+	def getOtherHashes(self, itemHash, fsMaskPath):
+		where = (self.table.itemhash == itemHash) & (self.table.fspath != fsMaskPath)
+		return self.getItems(wantCols=["fsPath","internalPath","itemHash"], where=where)
+
+	def getOtherDPHashes(self, dHash, pHash, fsMaskPath):
+		where = ((self.table.dhash == dHash) & (self.table.phash == pHash)) & (self.table.fspath != fsMaskPath)
+		return self.getItems(wantCols=["fsPath","internalPath","itemHash"], where=where)
+
+	def getOtherDHashes(self, dHash, fsMaskPath):
+		where = ((self.table.dhash == dHash)) & (self.table.fspath != fsMaskPath)
+		return self.getItems(wantCols=["fsPath","internalPath","itemHash"], where=where)
+
+	def getOtherPHashes(self, pHash, fsMaskPath):
+		where = ((self.table.phash == pHash)) & (self.table.fspath != fsMaskPath)
+		return self.getItems(wantCols=["fsPath","internalPath","itemHash"], where=where)
+
 
 
 	# Update items
 
+
 	def moveItem(self, oldPath, newPath):
-		self.updateDbEntry()
-		with self.transaction() as cur:
-			cur.execute("UPDATE dedupitems SET fsPath=%s WHERE fsPath=%s;", (newPath, oldPath))
-
-
-
-
-	def commit(self):
-		print("FIXME")
-		print("FIXME")
-		print("FIXME")
-		print("FIXME")
-		print("FIXME")
-		print("FIXME")
-
-		self.log.info("Committing changes to DB.")
-		self.conn.commit()
+		where = (self.table.fspath == oldPath)
+		self.updateDbEntry(where=where, fsPath=newPath)
 
 
 	def getPhashLikeBasePath(self, basePath):
-		cur = self.conn.cursor()
-		cur.execute("SELECT dbId, pHash FROM dedupitems WHERE fsPath LIKE %s AND pHash IS NOT NULL;", (basePath+"%", ))
-
-		ret = cur.fetchall()
-		self.conn.commit()
-		return ret
+		where = (sqlo.Like(self.table.fspath, basePath+'%')) & (self.table.phash != None)
+		return self.getItems(wantCols=["dbId","pHash"], where=where)
 
 	def getPHashes(self, limit=None):
+		where = (self.table.phash != None)
+		return self.getStreamingCursor(["dbId", "pHash"], where=where, limit=limit)
 
-		# Specifying a name for the cursor causes it to run server-side, making is stream results,
-		# rather then completing the query and returning them as a lump item (which blocks)
-		cur = self.conn.cursor("hash_fetcher")
-		if not limit:
-			cur.execute("SELECT dbId, pHash FROM dedupitems WHERE pHash IS NOT NULL;")
-		else:
-			limit = int(limit)
-			cur.execute("SELECT dbId, pHash FROM dedupitems WHERE pHash IS NOT NULL LIMIT %s;", (limit, ))
+	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+	# Block-transaction methods
+	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-		return cur
+	def commit(self):
+		cur = self.conn.cursor()
+		cur.execute("COMMIT;")
+		self.inLargeTransaction = False
+		self.log.info("Block complete. Committing changes to DB.")
+
+	def rollback(self):
+		cur = self.conn.cursor()
+		cur.execute("ROLLBACK;")
+		self.inLargeTransaction = False
+		self.log.warn("Block failed. Rolling back changes to DB.")
+
+	def begin(self):
+		self.log.info("Beginning block transaction.")
+		self.inLargeTransaction = True
+		cur = self.conn.cursor()
+		cur.execute("BEGIN;")
+
+	def insertItem(self, **kwargs):
+		print("FIX ME INDIRECT CALL!!!!")
+		self.insertIntoDb(**kwargs)
+
+
+	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+	# TODO: Clean up everything from here down
+	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+
 
 	def getDHashes(self, limit=None):
 
@@ -377,47 +460,7 @@ class DbApi():
 
 
 
-
-	def getOtherHashes(self, itemHash, fsMaskPath):
-		cur = self.conn.cursor()
-		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE itemHash=%s AND NOT fsPath=%s;", (itemHash, fsMaskPath))
-
-		ret = cur.fetchall()
-		self.conn.commit()
-		return ret
-
-	def getOtherDPHashes(self, dHash, pHash, fsMaskPath):
-		cur = self.conn.cursor()
-		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE dHash=%s AND pHash=%s AND NOT fsPath=%s;", (dHash, pHash, fsMaskPath))
-
-		ret = cur.fetchall()
-		self.conn.commit()
-		return ret
-
-	def getOtherDHashes(self, dHash, fsMaskPath):
-		cur = self.conn.cursor()
-		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE dHash=%s AND NOT fsPath=%s;", (dHash, fsMaskPath))
-
-		ret = cur.fetchall()
-		self.conn.commit()
-		return ret
-
-	def getOtherPHashes(self, pHash, fsMaskPath):
-		cur = self.conn.cursor()
-		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE pHash=%s AND NOT fsPath=%s;", (pHash, fsMaskPath))
-
-		ret = cur.fetchall()
-		self.conn.commit()
-		return ret
-
-
 	# TODO: Refactor to use kwargs
-	def insertItem(self, basePath, internalPath, itemHash=None, pHash=None, dHash=None, imgX=None, imgY=None):
-		cur = self.conn.cursor()
-		cur.execute("INSERT INTO dedupitems (fsPath, internalPath, itemhash, pHash, dHash, imgx, imgy) VALUES (%s, %s, %s, %s, %s, %s, %s);",
-			(basePath, internalPath, itemHash, pHash, dHash, imgX, imgY))
-
-
 	def updateItem(self, basePath, internalPath, itemHash=None, pHash=None, dHash=None, imgX=None, imgY=None):
 		cur = self.conn.cursor()
 		cur.execute("UPDATE dedupitems SET itemhash=%s, pHash=%s, dHash=%s, imgx=%s, imgy=%s WHERE fsPath=%s AND internalPath=%s;",
@@ -431,7 +474,7 @@ class DbApi():
 		if cur.rowcount == 0:
 			self.log.warn("Deleted {num} items!".format(num=cur.rowcount))
 		else:
-			self.log.info("Deleted {num} items!".format(num=cur.rowcount))
+			self.log.info("Deleted {num} items on path '{path}'!".format(num=cur.rowcount, path=basePath))
 		self.conn.commit()
 
 	def getLikeBasePath(self, basePath):
@@ -448,7 +491,7 @@ class DbApi():
 			if cur.rowcount == 0:
 				pass
 			else:
-				self.log.info("Deleted {num} items!".format(num=cur.rowcount))
+				self.log.info("Deleted {num} items on path '{path}'!".format(num=cur.rowcount, path=basePath))
 
 	def getItemsOnBasePath(self, basePath):
 		cur = self.conn.cursor()
@@ -538,8 +581,8 @@ class DbApi():
 
 def test():
 	ind = DbApi()
-
-	cond = ind.getByHash('500')
+	ind.QUERY_DEBUG = True
+	cond = ind.getPHashes(limit=200)
 
 if __name__ == "__main__":
 

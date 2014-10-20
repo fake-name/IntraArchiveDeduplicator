@@ -43,10 +43,10 @@ class Spinner(object):
 		sys.stdout.flush()
 
 
-class DatabaseUpdater(object):
+class UiReadout(object):
 	def __init__(self, hashQueue, monitorQueue):
-		self.log = logging.getLogger("Main.DbInt")
-		self.dbInt = dbApi.DbApi()
+		self.log = logging.getLogger("Main.UI")
+
 		self.hashQueue = hashQueue
 
 		self.processingHashQueue = monitorQueue
@@ -56,36 +56,6 @@ class DatabaseUpdater(object):
 
 		self.spinner = Spinner()
 
-	def cleanPathCache(self, fqPathBase):
-
-		self.log.info("Querying for all files on specified path.")
-
-		itemsCursor = self.dbInt.getUniqueOnBasePath(fqPathBase)
-		items = []
-		retItems = 0
-		for item in itemsCursor:
-			retItems += 1
-			items.append(item[0])
-			if not runState.run:
-				print("Breaking due to exit flag")
-				return
-
-		self.log.info("Looking for files in the DB that are not on disk anymore.")
-
-		self.log.info("Recieved items = %d", retItems)
-		self.log.info("total unique items = %s", len(items))
-
-
-		for itemPath in items:
-			if not os.path.exists(itemPath):
-				self.log.info("Item %s does not exist. Should delete from DB", itemPath)
-				self.dbInt.deleteBasePath(itemPath)
-
-			if not runState.run:
-				print("Breaking due to exit flag")
-				return
-
-			self.spinner.next(clean=True)
 
 	def run(self):
 		commits = 0
@@ -98,6 +68,9 @@ class DatabaseUpdater(object):
 					continue
 				elif item == "hash_match":
 					self.spinner.next(hashmatch=True)
+					continue
+				elif item == "clean":
+					self.spinner.next(clean=True)
 					continue
 				elif item == "processed":
 					self.spinner.next()

@@ -14,7 +14,7 @@ import logging
 import dbApi
 import signal
 
-import logging
+import os.path
 
 import random
 random.seed()
@@ -71,6 +71,38 @@ class HashEngine(object):
 
 		self.pool.close()
 		self.pool.join()
+
+
+	def cleanPathCache(self, fqPathBase):
+
+		self.log.info("Querying for all files on specified path.")
+
+		itemsCursor = self.dbApi.getUniqueOnBasePath(fqPathBase)
+		items = []
+		retItems = 0
+		for item in itemsCursor:
+			retItems += 1
+			items.append(item[0])
+			if not runState.run:
+				print("Breaking due to exit flag")
+				return
+
+		self.log.info("Looking for files in the DB that are not on disk anymore.")
+
+		self.log.info("Recieved items = %d", retItems)
+		self.log.info("total unique items = %s", len(items))
+
+
+		for itemPath in items:
+			if not os.path.exists(itemPath):
+				self.log.info("Item %s does not exist. Should delete from DB", itemPath)
+				self.dbApi.deleteBasePath(itemPath)
+
+			if not runState.run:
+				print("Breaking due to exit flag")
+				return
+
+			self.outQ.put("clean")
 
 
 

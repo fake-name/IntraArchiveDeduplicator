@@ -226,7 +226,7 @@ class DbApi():
 		cols = []
 		if wantCols:
 			for colName in wantCols:
-				cols.append(self.colMap[colName])
+				cols.append(self.colMap[colName.lower()])
 		else:
 			cols = self.cols
 
@@ -434,7 +434,9 @@ class DbApi():
 		cur = self.conn.cursor()
 		cur.execute("BEGIN;")
 
-	def insertItem(self, **kwargs):
+	def insertItem(self, *args, **kwargs):
+		if args:
+			raise ValueError("All values passed to inseetItem must be keyworded. Passed positional arguments: '%s'" % args)
 		print("FIX ME INDIRECT CALL!!!!")
 		self.insertIntoDb(**kwargs)
 

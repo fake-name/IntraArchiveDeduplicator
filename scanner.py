@@ -15,7 +15,7 @@ import random
 random.seed()
 
 import signal
-import dbFrontend
+import uiFrontend
 import fileHasher
 import time
 import types
@@ -45,12 +45,11 @@ class DedupScanTool(object):
 
 
 
-		print("Opening DB")
 		self.toProcessQueue = multiprocessing.Queue()
 		self.processedHashQueue = multiprocessing.Queue()
-		self.dbTool = dbFrontend.DatabaseUpdater(self.processedHashQueue, self.toProcessQueue)
-		self.dbTool.startThread()
-		print("Opened.")
+		self.readout = uiFrontend.UiReadout(self.processedHashQueue, self.toProcessQueue)
+		self.readout.startThread()
+
 
 
 
@@ -90,13 +89,13 @@ class DedupScanTool(object):
 		if cmdArgs.purge:
 			self.log.warning("Purging all extant scan results on specified path")
 			if os.path.isdir(targetDir):
-				self.dbTool.dbInt.deleteLikeBasePath(targetDir+"/")
+				self.hashEngine.dbApi.deleteLikeBasePath(targetDir+"/")
 			else:
-				self.dbTool.dbInt.deleteBasePath(targetDir)
+				self.hashEngine.dbApi.deleteBasePath(targetDir)
 			self.log.warning("Purge complete.")
 		elif not cmdArgs.noCleanTemps:
 			self.log.info("Checking for removed files.")
-			self.dbTool.cleanPathCache(targetDir)
+			self.hashEngine.cleanPathCache(targetDir)
 			self.log.info("Check complete")
 		else:
 			self.log.info("Skipping removed file check!.")
@@ -148,7 +147,7 @@ class DedupScanTool(object):
 		self.log.info("Pending files flushed. Telling worker pool to halt when finished.")
 
 		self.hashEngine.gracefulShutdown()
-		self.dbTool.gracefulShutdown()
+		self.readout.gracefulShutdown()
 		self.log.info("Complete. Exiting.")
 
 	def sigIntHandler(self, dummy_signal, dummy_frame):
@@ -180,53 +179,3 @@ def doScan(scanConf):
 
 	print("Scan Complete")
 	runState.run = False
-
-
-if __name__ == "__main__":
-
-
-	# from pycallgraph import PyCallGraph
-	# from pycallgraph.output import GraphvizOutput
-
-	# graphviz = GraphvizOutput(output_file='filter_none.png')
-
-	# with PyCallGraph(output=graphviz):
-
-	conf = types.SimpleNamespace()
-	conf.purge = False
-	conf.noCleanTemps = True
-	# conf.sourcePath = '/media/Storage/MP'
-	conf.sourcePath = '/content/XaDownloads'
-
-	doScan(conf)
-
-
-	# parser = argparse.ArgumentParser()
-	# subparsers = parser.add_subparsers(title='subcommands', description='valid subcommands')
-
-	# ddTool = DedupTool()
-
-	# parserDirScan = subparsers.add_parser('dir-scan', help="Scan set of directory, and generate a list of hashes of all the files therein")
-	# parserDirScan.add_argument('-i', '--in-folder', required=True, dest="sourcePath")
-	# parserDirScan.add_argument('-c', '--clean', required=False, dest="cleanTemps", action='store_true')
-
-	# parserDirScan.set_defaults(func=ddTool.queueFolderContents)
-
-
-	# # parserDirScan = subparsers.add_parser('dir-clean', help="Load set of cached hashes, and move all duplicate zips therein")
-	# # parserDirScan.add_argument('-i', '--in-file', required=True, dest="cacheFilesPath")
-
-	# # parserDirScan.add_argument('--move', required=False, dest="movePath")
-	# # parserDirScan.add_argument('--move-go', required=False, dest="doMove", action='store_true')
-
-
-	# # parserDirScan.set_defaults(func=ddTool.deepCleanDirs)
-
-	# try:
-	# 	args = parser.parse_args()
-	# 	args.func(args)
-	# except KeyboardInterrupt:
-	# 	print("Swallowed KeyboardInterrupt")
-	# 	print("Exiting")
-	# 	sys.exit()
-

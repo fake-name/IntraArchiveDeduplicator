@@ -161,7 +161,7 @@ class DbApi():
 		operators = []
 
 		for key, val in kwargs.items():
-			print(key, val)
+			key = key.lower()
 			operators.append((self.colMap[key] == val))
 
 		# This is ugly as hell, but it functionally returns x & y & z ... for an array of [x, y, z]
@@ -199,6 +199,7 @@ class DbApi():
 		vals = []
 
 		for key, val in kwargs.items():
+			key = key.lower()
 			if key not in self.colMap:
 				raise ValueError("Invalid column name for insert! '%s'" % key)
 			cols.append(self.colMap[key])

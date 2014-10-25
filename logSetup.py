@@ -7,7 +7,8 @@ import os.path
 import sys
 import time
 import traceback
-
+# Pylint can't figure out what's in the record library for some reason
+#pylint: disable-msg=E1101
 
 LOGGING_CONFIGURED = False
 
@@ -20,35 +21,46 @@ def checkInit():
 	return True
 
 
-# Pyling can't figure out what's in the record library for some reason
-#pylint: disable-msg=E1101
+colours = [clr.Fore.BLUE, clr.Fore.RED, clr.Fore.GREEN, clr.Fore.YELLOW, clr.Fore.MAGENTA, clr.Fore.CYAN, clr.Back.YELLOW + clr.Fore.BLACK, clr.Back.YELLOW + clr.Fore.BLUE, clr.Fore.WHITE]
+
+def getColor(idx):
+	return colours[idx%len(colours)]
+
 class ColourHandler(logging.Handler):
 
 	def __init__(self, level=logging.DEBUG):
 		logging.Handler.__init__(self, level)
-		self.formatter = logging.Formatter(clr.Style.RESET_ALL+'\r%(colour)s%(name)s'+clr.Style.RESET_ALL+'%(padding)s - %(style)s%(levelname)s - %(message)s'+clr.Style.RESET_ALL)
+		self.formatter = logging.Formatter('\r%(name)s%(padding)s - %(style)s%(levelname)s - %(message)s'+clr.Style.RESET_ALL)
 		clr.init()
+
+		self.logPaths = {}
 
 	def emit(self, record):
 
 		# print record.levelname
 		# print record.name
 
-		if record.name == "Main.Mt.Watcher":
-			record.colour = clr.Fore.BLUE
-		elif record.name == "Main.Mt.Cl":
-			record.colour = clr.Fore.RED
-		elif record.name == "Main.Mt.Fl":
-			record.colour = clr.Fore.GREEN
-		elif record.name == "Main.Fu.Fl":
-			record.colour = clr.Fore.YELLOW
-		elif record.name == "Main.Fu.Cl":
-			record.colour = clr.Fore.MAGENTA
-		elif record.name == "Main.Web":
-			record.colour = clr.Fore.CYAN
-		else:
-			record.colour = clr.Fore.WHITE
+		segments = record.name.split(".")
+		if segments[0] == "Main" and len(segments) > 1:
+			segments.pop(0)
+			segments[0] = "Main."+segments[0]
 
+		nameList = []
+
+		for indice, pathSegment in enumerate(segments):
+			if not indice in self.logPaths:
+				self.logPaths[indice] = [pathSegment]
+			elif not pathSegment in self.logPaths[indice]:
+				self.logPaths[indice].append(pathSegment)
+
+			name = clr.Style.RESET_ALL
+			name += getColor(self.logPaths[indice].index(pathSegment))
+			name += pathSegment
+			name += clr.Style.RESET_ALL
+			nameList.append(name)
+
+
+		record.name = ".".join(nameList)
 
 		if record.levelname == "DEBUG":
 			record.style = clr.Style.DIM
@@ -61,23 +73,8 @@ class ColourHandler(logging.Handler):
 		else:
 			record.style = clr.Style.NORMAL
 
-		# record.padding = " "*(15-len(record.name))
-		# text = self.format(record)
-		# if "\n" in text:
-		# 	print text
-		# else:
-		# 	lenOffset = (tt.get_terminal_width()-3) + len(record.style) + len(record.colour) + len(clr.Style.RESET_ALL)*2
-		# 	if len(text)> lenOffset:
-		# 		print text[:lenOffset]
-		# 		text = text[lenOffset:]
-		# 		width = tt.get_terminal_width()-3
-		# 		while len(text) > width:
-		# 			print clr.Style.NORMAL+" "*20+record.style+"%s" % text[:width-20]
-		# 			text = text[width-20:]
-		# 	else:
-				# print text
-
 		record.padding = ""
+
 
 		sys.stdout.write("\r")
 		sys.stdout.write(self.format(record))

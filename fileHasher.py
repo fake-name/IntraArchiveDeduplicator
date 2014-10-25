@@ -277,6 +277,8 @@ class HashThread(object):
 
 
 	def processArchive(self, wholePath):
+
+
 		fType = "none"
 		fCont = None
 		archHash = self.dbApi.getItemsOnBasePathInternalPath(wholePath, "")
@@ -313,6 +315,7 @@ class HashThread(object):
 
 		# TODO: Use `fCont` to prevent having to read each file twice.
 
+
 		try:
 			fType = magic.from_file(wholePath, mime=True)
 			fType = fType.decode("ascii")
@@ -327,7 +330,9 @@ class HashThread(object):
 			self.tlog.error("%s", traceback.format_exc())
 			fType = "none"
 
-		if fType == 'application/zip' or fType == 'application/x-rar':
+		if 	fType == 'application/zip' or \
+			fType == 'application/x-rar' or \
+			fType == 'application/x-7z-compressed':
 
 			# self.tlog.info("Scanning into archive - %s - %s", fileN, wholePath)
 

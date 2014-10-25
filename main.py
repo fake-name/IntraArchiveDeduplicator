@@ -6,8 +6,11 @@ import sys
 
 import runState
 import signal
+
+import deduplicator.dupCheck
+
 if __name__ == "__main__":
-	signal.signal(signal.SIGINT, signal.SIG_IGN)
+	# signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
 	# procDdTool = proc.DedupTool()
@@ -43,10 +46,23 @@ if __name__ == "__main__":
 	parserDirScan.set_defaults(func=proc.Deduper.dedupe)
 	# parserDirRestore.set_defaults(func=procDdTool.restoreFiles)
 
+	# # --------------- phash stuff ----------------------
+
+
+
+	parserDirScan = subparsers.add_parser('phash-clean', help="Load phashes from scan-base, delete matching phashes within distance ")
+	parserDirScan.add_argument('-i', '--in-folder',    required=True, dest="targetDir")
+	parserDirScan.add_argument("-m", '--move-to-dir', required=True, dest="removeDir")
+	parserDirScan.add_argument("-s", '--scan-base',    required=True, dest="scanEnv")
+	parserDirScan.add_argument("-d", '--distance',     default=2,     dest="compDistance", type=int,)
+
+
+	parserDirScan.set_defaults(func=deduplicator.dupCheck.phashScan)
+	# parserDirRestore.set_defaults(func=procDdTool.restoreFiles)
+
 
 	argsParsed = parser.parse_args()
 	if len(sys.argv) > 1:
-		print("Argparsed = ", argsParsed)
 		argsParsed.func(argsParsed)
 	else:
-		print("You must specify the operating mode. Either 'dir-scan' or 'dir-clean'")
+		print("You must specify the operating mode. 'dir-scan', 'dir-clean' or 'phash-clean'")

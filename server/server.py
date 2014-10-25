@@ -46,8 +46,6 @@ class DbInterfaceServer(rpyc.Service):
 		if not self.checker:
 			raise ValueError("You need to open an archive first!")
 
-
-
 	def on_disconnect(self):
 		print("Disconnected!")
 
@@ -62,7 +60,7 @@ import server_reloader
 def main():
 	server_reloader.main(
 		run_server,
-		before_reload=lambda: print('Reloading code…')
+		before_reload=lambda: print('Reloading code...')
 	)
 
 if __name__ == '__main__':

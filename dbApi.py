@@ -413,6 +413,47 @@ class DbApi():
 		where = (self.table.phash != None)
 		return self.getStreamingCursor(["dbId", "pHash"], where=where, limit=limit)
 
+
+	def getLikeBasePath(self, basePath):
+		where = (sqlo.Like(self.table.fspath, basePath+'%'))
+		wantCols = [
+			"fspath",
+			"internalpath",
+			"itemhash",
+			"phash",
+			"dhash",
+			"imgx",
+			"imgy"
+		]
+		return self.getItems(wantCols=wantCols, where=where)
+
+
+	def getFileDictLikeBasePath(self, basePath):
+		items = self.getLikeBasePath(basePath)
+
+		ret = {}
+		for fsPath, internalPath, itemHash, pHash, dHash, imgx, imgy in items:
+			item = {
+				"fsPath"       : fsPath,
+				"internalPath" : internalPath,
+				"itemHash"     : itemHash,
+				"pHash"        : pHash,
+				"dHash"        : dHash,
+				"imgx"         : imgx,
+				"imgy"         : imgy
+			}
+			if fsPath in ret:
+				ret[fsPath].append(item)
+			else:
+				ret[fsPath] = [item]
+
+		return ret
+
+
+
+
+
+
 	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 	# Block-transaction methods
 	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -480,13 +521,6 @@ class DbApi():
 			self.log.info("Deleted {num} items on path '{path}'!".format(num=cur.rowcount, path=basePath))
 		self.conn.commit()
 
-	def getLikeBasePath(self, basePath):
-		cur = self.conn.cursor()
-		cur.execute("SELECT fsPath,internalPath,itemhash,pHash,dHash,imgx,imgy FROM dedupitems WHERE fsPath LIKE %s;", (basePath+"%", ))
-
-		ret = cur.fetchall()
-		self.conn.commit()
-		return ret
 
 	def deleteBasePath(self, basePath):
 		with self.transaction() as cur:

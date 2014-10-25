@@ -50,7 +50,7 @@ class ArchiveReader(object):
 					self.fp = open(archPath, "rb")
 					self.archHandle = py7zlib.Archive7z(self.fp) # self.iterZipFiles()
 
-				self.archType = "zip"  # py7zlib.Archive7z mimics the interface of zipfile.ZipFile, so we'll use the zipfile.ZipFile codepaths
+				self.archType = "7z"  # py7zlib.Archive7z mimics the interface of zipfile.ZipFile, so we'll use the zipfile.ZipFile codepaths
 
 			except zipfile.BadZipfile:
 				print("Invalid zip file!")
@@ -60,18 +60,29 @@ class ArchiveReader(object):
 			print("Returned MIME Type for file = ", self.fType )
 			raise ValueError("Tried to create ArchiveReader on a non-archive file")
 
-	def getFileList(self):
+
+	def getZipFileList(self):
 		names = self.archHandle.namelist()
 		ret = []
 		for name in names:
+			if not name.endswith("/"):
+				ret.append(name)
 
-			try:
-				if not self.archHandle.getinfo(name).isdir():
-					ret.append(name)
-			except:
-				if not name.endswith("/"):
-					ret.append(name)
 		return ret
+
+	def getRarFileList(self):
+		names = self.archHandle.namelist()
+		ret = []
+		for name in names:
+			if not self.archHandle.getinfo(name).isdir():
+				ret.append(name)
+
+		return ret
+
+
+	def get7zFileList(self):
+		names = self.archHandle.getnames()
+		return names
 
 
 	def __iter__(self):
@@ -81,6 +92,9 @@ class ArchiveReader(object):
 					yield item
 			elif self.archType == "zip":
 				for item in self.iterZipFiles():
+					yield item
+			elif self.archType == "7z":
+				for item in self.iter7zFiles():
 					yield item
 			else:
 				raise ValueError("Not a known archive type. Wat")
@@ -125,8 +139,14 @@ class ArchiveReader(object):
 		return self.archHandle.open(fileName)
 
 
+	def iter7zFiles(self):
+		names = self.get7zFileList()
+		for name in names:
+			tempFp = self.archHandle.getmember(name)
+			yield name, tempFp
+
 	def iterZipFiles(self):
-		names = self.getFileList()
+		names = self.getZipFileList()
 		for name in names:
 			with self.archHandle.open(name) as tempFp:
 				yield name, tempFp
@@ -134,7 +154,7 @@ class ArchiveReader(object):
 
 
 	def iterRarFiles(self):
-		names = self.getFileList()
+		names = self.getRarFileList()
 		for name in names:
 			with self.archHandle.open(name) as tempFp:
 				name = name.replace("\\", "/")
@@ -144,6 +164,9 @@ class ArchiveReader(object):
 
 
 	def close(self):
-		self.archHandle.close()
+		# 7z files don't maintain their own file pointers
+		if self.archType != "7z":
+			self.archHandle.close()
+
 		if self.fp:
 			self.fp.close()

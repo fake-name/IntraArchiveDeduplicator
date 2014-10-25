@@ -9,6 +9,8 @@ import logging
 import hashFile
 import dbApi
 
+import sql.operators as sqlo
+
 import pyximport
 print("Have Cython")
 pyximport.install()
@@ -91,6 +93,7 @@ class ArchChecker(object):
 		self.log.info("It does not contain any unique files.")
 		return False
 
+
 	# Do phash checking against self.archPath, but load all local (e.g. in the same dir) phashes into a BK tree,
 	# and use that for proper distance searching.
 	# This is a stop-gap measure prior to proper PostgreSQL hamming distance searching.
@@ -102,14 +105,9 @@ class ArchChecker(object):
 
 		self.db.deleteBasePath(self.archPath)
 
-		self.log.info("Scanning for phash duplicates within directory '%s'", dirPath)
-		items = self.db.getLikeBasePath(dirPath)
-		self.log.info("Found %s items in dir. Building tree", len(items))
+		tree = TreeRoot()
+		tree.loadTree(dirPath)
 
-		tree = hamDb.BkHammingTree()
-		for row in [row for row in items if row[3]]:
-			pHash = int(row[3], 2)
-			tree.insert(pHash, row)
 
 		self.log.info("Done. Searching")
 
@@ -205,6 +203,143 @@ class ArchChecker(object):
 		archIterator.close()
 
 		self.log.info("File hashing complete.")
+
+class TreeRoot(hamDb.BkHammingTree):
+
+	def __init__(self):
+		self.db       = dbApi.DbApi()
+		self.log      = logging.getLogger("Main.Tree")
+		super().__init__()
+
+	def loadTree(self, treeRootPath):
+
+
+		self.log.info("Loading contents of '%s' into BK tree", treeRootPath)
+		items = self.db.getLikeBasePath(treeRootPath)
+		self.log.info("Found %s items in dir. Building tree", len(items))
+
+
+		for row in [row for row in items if row[3]]:
+			pHash = int(row[3], 2)
+			self.insert(pHash, row)
+
+		self.log.info("Tree loaded!")
+
+
+
+class TreeProcessor(object):
+
+	def __init__(self, matchDir, removeDir, distanceThresh):
+		self.log      = logging.getLogger("Main.Processor")
+
+		print("Loading treestructure for path '%s'" % matchDir)
+		self.root = TreeRoot()
+		self.matchDir = matchDir
+
+		# This doesn't seem to fit too well as a class attribute here, but I cannot
+		# Think of anywhere else to put it.
+		self.distance = distanceThresh
+
+		# Items are moved to removeDir for manual deletion
+		self.delProxyDir = removeDir
+		self.root.loadTree(matchDir)
+
+
+	def convertToPath(self, inId):
+		return self.root.db.getItems(wantCols=['fsPath'], dbId=inId).pop()[0]
+
+	def getMatches(self, item):
+
+		# If the item doesn't have a phash (not an image?), check for binary duplicates
+		if not item['pHash']:
+
+			where = (sqlo.Like(self.root.db.table.fspath, self.matchDir+'%') & (self.root.db.table.itemhash == item['itemHash']))
+			matches = self.root.db.getItems(wantCols=["dbId"], where=where)
+
+			return matches
+
+		# For items where we have a phash, look it up.
+		matches = self.root.getWithinDistance(int(item['pHash'], 2), self.distance)
+		# print(matches)
+		matches = [match[0] for match in matches if match[0] != item['fsPath']]
+
+		# print("phash matches", matches)
+		return matches
+
+
+	def processFile(self, filePath, fileItems):
+		# print("Processing file", filePath)
+		matches = {}
+
+		# Only look at files where there are phashes contained
+		if not any([item['pHash'] != None for item in fileItems]):
+			return False
+
+		# There should only be one item with no internal path (the containing archive)
+		# Check this to be sure
+		if len([item for item in fileItems if not item['internalPath']]) != 1:
+			self.log.error("Multiple no-path items?")
+			return False
+
+		for item in [item for item in fileItems if item['internalPath']]:
+			fMatches = self.getMatches(item)
+			if not fMatches:
+				# print("Matching failed. Exiting!", fMatches, item)
+				return
+			for match in fMatches:
+				if match not in matches:
+					matches[match] = 1
+				else:
+					matches[match] += 1
+
+
+
+
+		# matches = self.convertToPaths(matches)
+
+		print("Item is NOT unique", len(fileItems), filePath)
+		for match, quantity in matches.items():
+			if quantity <= (0.25 * len(fileItems)):
+				continue
+			print("	Match: ", quantity, len(fileItems), match)
+		print()
+
+
+
+	def trimFiles(self, targetDir, removeDir, distance):
+		self.log.info("Trimming files on path '%s'", targetDir)
+		delItems = self.root.db.getFileDictLikeBasePath(targetDir)
+		self.log.info("Have %s items", len(delItems))
+
+
+		processed = 0
+		for filePath in delItems.keys():
+			self.processFile(filePath, delItems[filePath])
+
+			processed += 1
+			if processed % 100 == 0:
+				print("Loop ", processed)
+
+
+	@classmethod
+	def phashScan(cls, args):
+
+		import logSetup
+		logSetup.initLogging()
+
+		print("Scan settings:")
+		print("targetDir    =", args.targetDir)
+		print("removeDir    =", args.removeDir)
+		print("scanEnv      =", args.scanEnv)
+		print("compDistance =", args.compDistance)
+
+		tree = cls(args.scanEnv, args.removeDir, args.compDistance)
+		tree.trimFiles(args.targetDir, args.removeDir, args.compDistance)
+
+
+def phashScan(args):
+	TreeProcessor.phashScan(args)
+
 
 def go():
 

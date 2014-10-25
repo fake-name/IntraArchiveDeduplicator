@@ -89,7 +89,9 @@ class DedupScanTool(object):
 		if cmdArgs.purge:
 			self.log.warning("Purging all extant scan results on specified path")
 			if os.path.isdir(targetDir):
-				self.hashEngine.dbApi.deleteLikeBasePath(targetDir+"/")
+				if not targetDir.endswith("/"):
+					targetDir += "/"
+				self.hashEngine.dbApi.deleteLikeBasePath(targetDir)
 			else:
 				self.hashEngine.dbApi.deleteBasePath(targetDir)
 			self.log.warning("Purge complete.")

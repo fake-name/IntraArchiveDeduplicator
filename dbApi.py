@@ -44,19 +44,26 @@ class DbApi():
 
 
 
-		self.conn = psycopg2.connect(host=settings.PSQL_IP,
-									dbname=settings.PSQL_DB_NAME,
-									user=settings.PSQL_USER,
-									password=settings.PSQL_PASS)
+		try:
+			self.conn = psycopg2.connect(dbname=settings.PSQL_DB_NAME,
+										user=settings.PSQL_USER,
+										password=settings.PSQL_PASS)
+
+		except psycopg2.OperationalError:
+			self.conn = psycopg2.connect(host=settings.PSQL_IP,
+										dbname=settings.PSQL_DB_NAME,
+										user=settings.PSQL_USER,
+										password=settings.PSQL_PASS)
 		# self.conn.autocommit = True
 		with self.transaction() as cur:
 
 			# print("DB opened.")
-			cur.execute("SELECT * FROM information_schema.tables WHERE table_name=%s", ('dedupitems',))
+			cur.execute("SELECT * FROM information_schema.tables WHERE table_name=%s", (self.tableName,))
 			# print("table exists = ", cur.rowcount)
 			tableExists = bool(cur.rowcount)
 			if not tableExists:
-				cur.execute('''CREATE TABLE IF NOT EXISTS dedupitems (
+				self.log.info("Need to create table!")
+				cur.execute('''CREATE TABLE IF NOT EXISTS {table} (
 													dbId            SERIAL PRIMARY KEY,
 
 													fsPath          text NOT NULL,
@@ -70,14 +77,14 @@ class DbApi():
 													imgx            INTEGER,
 													imgy            INTEGER
 
-													);''')
+													);'''.format(table=self.tableName))
 
-				print("Checking indexes exist")
-				cur.execute('''CREATE UNIQUE INDEX name_index  ON dedupitems(fsPath, internalPath);''')
-				cur.execute('''CREATE        INDEX path_index  ON dedupitems(fsPath text_pattern_ops);''')
-				cur.execute('''CREATE        INDEX ihash_index ON dedupitems(itemHash);''')
-				cur.execute('''CREATE        INDEX phash_index ON dedupitems(pHash);''')
-				cur.execute('''CREATE        INDEX dhash_index ON dedupitems(dHash);''')
+				self.log.info("Checking indexes exist")
+				cur.execute('''CREATE UNIQUE INDEX {table}_name_index  ON {table}(fsPath, internalPath);'''.format(table=self.tableName))
+				cur.execute('''CREATE        INDEX {table}_path_index  ON {table}(fsPath text_pattern_ops);'''.format(table=self.tableName))
+				cur.execute('''CREATE        INDEX {table}_ihash_index ON {table}(itemHash);'''.format(table=self.tableName))
+				cur.execute('''CREATE        INDEX {table}_phash_index ON {table}(pHash);'''.format(table=self.tableName))
+				cur.execute('''CREATE        INDEX {table}_dhash_index ON {table}(dHash);'''.format(table=self.tableName))
 
 
 		self.table = sql.Table(self.tableName.lower())
@@ -160,6 +167,10 @@ class DbApi():
 	def sqlBuildConditional(self, **kwargs):
 		operators = []
 
+		# Short circuit and return none (so the resulting where clause is all items) if no kwargs are passed.
+		if not kwargs:
+			return None
+
 		for key, val in kwargs.items():
 			key = key.lower()
 			operators.append((self.colMap[key] == val))
@@ -233,6 +244,8 @@ class DbApi():
 
 		if not where:
 			where = self.sqlBuildConditional(**kwargs)
+
+
 
 		query = self.table.select(*cols, where=where)
 
@@ -308,16 +321,17 @@ class DbApi():
 		cur = self.conn.cursor()
 
 		cur.execute(''' SELECT pHash, dHash, dbId, fsPath, internalPath
-						FROM dedupitems
+						FROM {table}
 						WHERE pHash IN
 						(
 							SELECT pHash
-							FROM dedupitems
-							WHERE fsPath LIKE %s
+							FROM {table}
+							WHERE fsPath LIKE %s AND
+							pHash != ''
 							GROUP BY pHash
 							HAVING COUNT(*) > 1
 						)
-						ORDER BY pHash''', (basePath+"%", ))
+						ORDER BY pHash'''.format(table=self.tableName), (basePath+"%", ))
 		ret = cur.fetchall()
 		self.conn.commit()
 		return ret
@@ -327,15 +341,15 @@ class DbApi():
 		cur = self.conn.cursor()
 
 		cur.execute(''' SELECT DISTINCT(fsPath)
-						FROM dedupitems
+						FROM {table}
 						WHERE itemHash IN
 						(
 							SELECT itemHash
-							FROM dedupitems
+							FROM {table}
 							WHERE fsPath LIKE %s
 							GROUP BY itemHash
 							HAVING COUNT(*) > 1
-						)''', (basePath+"%", ))
+						)'''.format(table=self.tableName), (basePath+"%", ))
 		ret = cur.fetchall()
 		self.conn.commit()
 		return [item[0] for item in ret]
@@ -344,21 +358,20 @@ class DbApi():
 		cur = self.conn.cursor()
 
 		cur.execute(''' SELECT fsPath, itemHash
-						FROM dedupitems
+						FROM {table}
 						WHERE itemHash IN
 						(
 							SELECT itemHash
-							FROM dedupitems
+							FROM {table}
 							WHERE internalPath=%s
 							GROUP BY itemHash
 							HAVING COUNT(*) > 1
 						)
 						AND internalPath=%s
-						AND fsPath LIKE %s''', ("", "", basePath+"%"))
+						AND fsPath LIKE %s'''.format(table=self.tableName), ("", "", basePath+"%"))
 
 		ret = cur.fetchall()
 		self.conn.commit()
-		print("Ret = ", ret[0])
 		ret = [(item[0], item[1]) for item in ret]
 		return set(ret)
 
@@ -495,10 +508,10 @@ class DbApi():
 		# rather then completing the query and returning them as a lump item (which blocks)
 		cur = self.conn.cursor("hash_fetcher")
 		if not limit:
-			cur.execute("SELECT dbId, dHash FROM dedupitems WHERE dHash IS NOT NULL;")
+			cur.execute("SELECT dbId, dHash FROM {table} WHERE dHash IS NOT NULL;".format(table=self.tableName))
 		else:
 			limit = int(limit)
-			cur.execute("SELECT dbId, dHash FROM dedupitems WHERE dHash IS NOT NULL LIMIT %s;", (limit, ))
+			cur.execute("SELECT dbId, dHash FROM {table} WHERE dHash IS NOT NULL LIMIT %s;".format(table=self.tableName), (limit, ))
 
 		return cur
 
@@ -507,14 +520,14 @@ class DbApi():
 	# TODO: Refactor to use kwargs
 	def updateItem(self, basePath, internalPath, itemHash=None, pHash=None, dHash=None, imgX=None, imgY=None):
 		cur = self.conn.cursor()
-		cur.execute("UPDATE dedupitems SET itemhash=%s, pHash=%s, dHash=%s, imgx=%s, imgy=%s WHERE fsPath=%s AND internalPath=%s;",
+		cur.execute("UPDATE {table} SET itemhash=%s, pHash=%s, dHash=%s, imgx=%s, imgy=%s WHERE fsPath=%s AND internalPath=%s;".format(table=self.tableName),
 			(itemHash, pHash, dHash, imgX, imgY, basePath, internalPath))
 
 
 	def deleteLikeBasePath(self, basePath):
 		self.log.info("Deleting all items with base-path '%s'", basePath)
 		cur = self.conn.cursor()
-		cur.execute("DELETE FROM dedupitems WHERE fsPath LIKE %s;", (basePath+"%", ))
+		cur.execute("DELETE FROM {table} WHERE fsPath LIKE %s;".format(table=self.tableName), (basePath+"%", ))
 		if cur.rowcount == 0:
 			self.log.warn("Deleted {num} items!".format(num=cur.rowcount))
 		else:
@@ -524,7 +537,7 @@ class DbApi():
 
 	def deleteBasePath(self, basePath):
 		with self.transaction() as cur:
-			cur.execute("DELETE FROM dedupitems WHERE fsPath=%s;", (basePath, ))
+			cur.execute("DELETE FROM {table} WHERE fsPath=%s;".format(table=self.tableName), (basePath, ))
 			if cur.rowcount == 0:
 				pass
 			else:
@@ -532,7 +545,7 @@ class DbApi():
 
 	def getItemsOnBasePath(self, basePath):
 		cur = self.conn.cursor()
-		cur.execute("SELECT fsPath,internalPath,itemhash,pHash,dbId FROM dedupitems WHERE fsPath=%s;", (basePath, ))
+		cur.execute("SELECT fsPath,internalPath,itemhash,pHash,dbId FROM {table} WHERE fsPath=%s;".format(table=self.tableName), (basePath, ))
 
 		ret = cur.fetchall()
 		self.conn.commit()
@@ -540,7 +553,7 @@ class DbApi():
 
 	def getItemsOnBasePathInternalPath(self, basePath, internalPath):
 		cur = self.conn.cursor()
-		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE fsPath=%s AND internalPath=%s;", (basePath, internalPath))
+		cur.execute("SELECT fsPath,internalPath,itemhash FROM {table} WHERE fsPath=%s AND internalPath=%s;".format(table=self.tableName), (basePath, internalPath))
 
 		ret = cur.fetchall()
 		self.conn.commit()
@@ -548,7 +561,7 @@ class DbApi():
 
 	def getItemNumberOnBasePath(self, basePath):
 		cur = self.conn.cursor()
-		cur.execute("SELECT COUNT(*) FROM dedupitems WHERE fsPath=%s;", (basePath, ))
+		cur.execute("SELECT COUNT(*) FROM {table} WHERE fsPath=%s;".format(table=self.tableName), (basePath, ))
 
 		ret = cur.fetchall()
 		self.conn.commit()
@@ -556,7 +569,7 @@ class DbApi():
 
 	def getInternalItemsOnBasePath(self, basePath):
 		cur = self.conn.cursor()
-		cur.execute("SELECT fsPath,internalPath,itemhash FROM dedupitems WHERE fsPath=%s AND internalPath IS NOT NULL;", (basePath, ))
+		cur.execute("SELECT fsPath,internalPath,itemhash FROM {table} WHERE fsPath=%s AND internalPath IS NOT NULL;".format(table=self.tableName), (basePath, ))
 		ret = cur.fetchall()
 		self.conn.commit()
 		return ret
@@ -575,7 +588,7 @@ class DbApi():
 
 	def insertAggregate(self):
 		cur = self.conn.cursor()
-		cur.execute("INSERT INTO dedupitems (fsPath, internalPath, itemhash) VALUES %s;" % ",".join(self.insertStr), self.insertList)
+		cur.execute("INSERT INTO {table} (fsPath, internalPath, itemhash) VALUES {vals};".format(table=self.tableName, vals=",".join(self.insertStr)), self.insertList)
 
 		self.conn.commit()
 		self.insertStr = []
@@ -585,7 +598,7 @@ class DbApi():
 	def getUniqueOnBasePath(self, basePath):
 
 		cur = self.conn.cursor()
-		cur.execute("SELECT DISTINCT(fsPath) FROM dedupitems WHERE fsPath LIKE %s;", (basePath+"%", ))
+		cur.execute("SELECT DISTINCT(fsPath) FROM {table} WHERE fsPath LIKE %s;".format(table=self.tableName), (basePath+"%", ))
 
 		return cur
 
@@ -594,12 +607,12 @@ class DbApi():
 
 	def getAllItems(self):
 		cur = self.conn.cursor()
-		cur.execute("SELECT fsPath, internalPath, itemHash FROM dedupitems;")
+		cur.execute("SELECT fsPath, internalPath, itemHash FROM {table};".format(table=self.tableName))
 		return cur
 
 	def getItemNum(self):
 		cur = self.conn.cursor()
-		cur.execute("SELECT count(*) FROM dedupitems;")
+		cur.execute("SELECT count(*) FROM {table};".format(table=self.tableName))
 		ret = cur.fetchone()
 		self.conn.commit()
 		return ret
@@ -607,7 +620,7 @@ class DbApi():
 	def getHashes(self, fsPath, internalPath):
 
 		cur = self.conn.cursor()
-		cur.execute("SELECT itemHash,pHash,dHash FROM dedupitems WHERE fsPath=%s AND internalPath=%s;", (fsPath, internalPath))
+		cur.execute("SELECT itemHash,pHash,dHash FROM {table} WHERE fsPath=%s AND internalPath=%s;".format(table=self.tableName), (fsPath, internalPath))
 		ret = cur.fetchone()
 
 		self.conn.commit()

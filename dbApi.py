@@ -145,17 +145,19 @@ class DbApi():
 	# Generic SQL tooling
 	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+	def keyToCol(self, key):
+		key = key.lower()
+		if not key in self.colMap:
+			raise ValueError("Invalid column name '%s'" % key)
+		return self.colMap[key]
+
 	def sqlBuildInsertArgs(self, **kwargs):
 
 		cols = []
 		vals = []
 
 		for key, val in kwargs.items():
-			key = key.lower()
-
-			if key not in self.colMap:
-				raise ValueError("Invalid column name for insert! '%s'" % key)
-			cols.append(self.colMap[key])
+			cols.append(self.keyToCol(key))
 			vals.append(val)
 
 		query = self.table.insert(columns=cols, values=[vals])
@@ -172,8 +174,7 @@ class DbApi():
 			return None
 
 		for key, val in kwargs.items():
-			key = key.lower()
-			operators.append((self.colMap[key] == val))
+			operators.append((self.keyToCol(key) == val))
 
 		# This is ugly as hell, but it functionally returns x & y & z ... for an array of [x, y, z]
 		# And allows variable length arrays.
@@ -210,10 +211,7 @@ class DbApi():
 		vals = []
 
 		for key, val in kwargs.items():
-			key = key.lower()
-			if key not in self.colMap:
-				raise ValueError("Invalid column name for insert! '%s'" % key)
-			cols.append(self.colMap[key])
+			cols.append(self.keyToCol(key))
 			vals.append(val)
 
 		query = self.table.update(columns=cols, values=vals, where=where)
@@ -238,7 +236,7 @@ class DbApi():
 		cols = []
 		if wantCols:
 			for colName in wantCols:
-				cols.append(self.colMap[colName.lower()])
+				cols.append(self.keyToCol(colName))
 		else:
 			cols = self.cols
 
@@ -267,7 +265,7 @@ class DbApi():
 		cols = []
 		if wantCols:
 			for colName in wantCols:
-				cols.append(self.colMap[colName])
+				cols.append(self.keyToCol(colName))
 		else:
 			cols = self.cols
 
@@ -426,9 +424,12 @@ class DbApi():
 		where = (self.table.phash != None)
 		return self.getStreamingCursor(["dbId", "pHash"], where=where, limit=limit)
 
+	def getLike(self, likeCol, colVal, wantCols=None):
+		where = (sqlo.Like(self.keyToCol(likeCol), colVal+'%'))
+		return self.getItems(wantCols=wantCols, where=where)
+
 
 	def getLikeBasePath(self, basePath):
-		where = (sqlo.Like(self.table.fspath, basePath+'%'))
 		wantCols = [
 			"fspath",
 			"internalpath",
@@ -438,27 +439,31 @@ class DbApi():
 			"imgx",
 			"imgy"
 		]
-		return self.getItems(wantCols=wantCols, where=where)
+		return self.getLike('fsPath', basePath, wantCols=wantCols)
 
 
 	def getFileDictLikeBasePath(self, basePath):
-		items = self.getLikeBasePath(basePath)
+		wantCols = [
+			"dbId",
+			"fsPath",
+			"internalPath",
+			"itemHash",
+			"pHash",
+			"dHash",
+			"imgx",
+			"imgy"
+		]
+
+		items = self.getLike('fsPath', basePath, wantCols=wantCols)
 
 		ret = {}
-		for fsPath, internalPath, itemHash, pHash, dHash, imgx, imgy in items:
-			item = {
-				"fsPath"       : fsPath,
-				"internalPath" : internalPath,
-				"itemHash"     : itemHash,
-				"pHash"        : pHash,
-				"dHash"        : dHash,
-				"imgx"         : imgx,
-				"imgy"         : imgy
-			}
-			if fsPath in ret:
-				ret[fsPath].append(item)
+		for item in items:
+			item = dict(zip(wantCols, item))
+
+			if item["fsPath"] in ret:
+				ret[item["fsPath"]].append(item)
 			else:
-				ret[fsPath] = [item]
+				ret[item["fsPath"]] = [item]
 
 		return ret
 
@@ -491,7 +496,7 @@ class DbApi():
 
 	def insertItem(self, *args, **kwargs):
 		if args:
-			raise ValueError("All values passed to inseetItem must be keyworded. Passed positional arguments: '%s'" % args)
+			raise ValueError("All values passed to insertItem must be keyworded. Passed positional arguments: '%s'" % args)
 		print("FIX ME INDIRECT CALL!!!!")
 		self.insertIntoDb(**kwargs)
 

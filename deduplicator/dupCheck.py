@@ -8,7 +8,8 @@ import logging
 
 import hashFile
 import dbApi
-
+import shutil
+import traceback
 import sql.operators as sqlo
 
 import pyximport
@@ -16,193 +17,9 @@ print("Have Cython")
 pyximport.install()
 
 import deduplicator.cyHamDb as hamDb
-print("Using cythoned hamming database system")
-
-# Checks an archive (`archPath`) against the contents of the database
-# accessible via the `settings.dedupApiFile` python file, which
-# uses the absolute-import tool in the current directory.
-
-# isBinaryUnique() returns True if the archive contains any unique items,
-# false if it does not.
-
-# isPhashUnique() returns True if the archive contains any phashes, False otherwise.
-# The threhold for uniqueness is specified in PHASH_DISTANCE_THRESHOLD,
-# which specifies the allowable hamming edit-distance between phash
-# values that are still classified as identical. 1-3 are reasonable.
-# 0 causes the call to behave very similarly to isBinaryUnique(),
-# possibly allowing for extremely minor resave changes.
-
-# deleteArch() deletes the archive which has path archPath,
-# and also does the necessary database manipulation to reflect the fact that
-# the archive has been deleted.
-
 
 PHASH_DISTANCE_THRESHOLD = 2
 
-class ArchChecker(object):
-	def __init__(self, archPath):
-		self.archPath = archPath
-		self.arch     = UniversalArchiveReader.ArchiveReader(archPath)
-		self.db       = dbApi.DbApi()
-		self.log      = logging.getLogger("Main.Deduper")
-
-	def isBinaryUnique(self):
-		self.log.info("Checking if %s contains any unique files.", self.archPath)
-
-		for dummy_fileN, fileCtnt in self.arch:
-			hexHash = hashFile.getMd5Hash(fileCtnt.read())
-
-			dupsIn = self.db.getOtherHashes(hexHash, fsMaskPath=self.archPath)
-			dups = []
-			for fsPath, internalPath, dummy_itemhash in dupsIn:
-				if os.path.exists(fsPath):
-					dups.append((fsPath, internalPath, dummy_itemhash))
-				else:
-					self.log.info("Item '%s' no longer exists - Removing from database!", fsPath)
-					self.db.deleteBasePath(fsPath)
-
-			# Short circuit on unique item, since we are only checking if ANY item is unique
-			if not dups:
-				self.log.info("It contains at least one unique files.")
-				return True
-
-		self.log.info("It does not contain any unique files.")
-		return False
-
-	def simplePhashCheck(self):
-		self.log.info("Checking if %s contains any unique files.", self.archPath)
-
-		for fileN, fileCtnt in self.arch:
-			dummy_fName, dummy_hexHash, pHash, dHash, imX, imY = hashFile.hashFile(self.archPath, fileN, fileCtnt.read())
-			# print("Hashes", pHash, dHash, hexHash)
-			dupsIn = self.db.getOtherDPHashes(dHash, pHash, fsMaskPath="LOLWATTTTTTTTT")
-			dups = []
-			for fsPath, internalPath, itemhash in dupsIn:
-				if os.path.exists(fsPath):
-					dups.append((fsPath, internalPath, itemhash))
-				else:
-					self.log.info("Item '%s' no longer exists - Removing from database!", fsPath)
-					self.db.deleteBasePath(fsPath)
-
-
-			# Short circuit on unique item, since we are only checking if ANY item is unique
-			if not dups:
-				self.log.info("It contains at least one unique files.")
-				return True
-
-		self.log.info("It does not contain any unique files.")
-		return False
-
-
-	# Do phash checking against self.archPath, but load all local (e.g. in the same dir) phashes into a BK tree,
-	# and use that for proper distance searching.
-	# This is a stop-gap measure prior to proper PostgreSQL hamming distance searching.
-	# Basically, it's a keyhole optimization that exploits the fact that I can be
-	# *generally* confident that any duplicates will be in the same directory, which
-	# MASSIVELY reduces the problem space, and means that the set of hashes to search is no longer
-	# prohibitive to query for on a per-scanned-archive basis
-	def localBKPhash(self, dirPath):
-
-		self.db.deleteBasePath(self.archPath)
-
-		tree = TreeRoot()
-		tree.loadTree(dirPath)
-
-
-		self.log.info("Done. Searching")
-
-
-		for fileN, fileCtnt in self.arch:
-			dummy_fName, dummy_hexHash, pHash, dummy_dHash, dummy_imX, dummy_imY = hashFile.hashFile(self.archPath, fileN, fileCtnt.read())
-			pHash = int(pHash, 2)
-			matches = tree.getWithinDistance(pHash, PHASH_DISTANCE_THRESHOLD)
-
-
-			dups = []
-			for fsPath, internalPath, itemhash, pHash, dHash, imX, imY in matches:
-				if os.path.exists(fsPath):
-					dups.append((fsPath, internalPath, itemhash))
-				else:
-					self.log.info("Item '%s' no longer exists - Removing from database!", fsPath)
-					self.db.deleteBasePath(fsPath)
-
-			# Short circuit on unique item, since we are only checking if ANY item is unique
-			if not dups:
-				self.log.info("Archive contains at least one unique file(s).")
-				return True
-
-
-		self.log.info("Archive does not contain any unique file(s).")
-		return False
-
-
-	def isPhashUnique(self):
-		dirPath = os.path.split(self.archPath)[0]
-
-		if os.path.isdir(dirPath) and len(os.listdir(dirPath)) < 500:
-			return self.localBKPhash(dirPath)
-		else:
-			return self.simplePhashCheck()
-
-
-
-	def getHashes(self, shouldPhash=True):
-
-
-		self.log.info("Getting item hashes for %s.", self.archPath)
-		ret = []
-		for fileN, fileCtnt in self.arch:
-			ret.append(hashFile.hashFile(self.archPath, fileN, fileCtnt.read(), shouldPhash=shouldPhash))
-
-
-		self.log.info("%s Fully hashed.", self.archPath)
-		return ret
-
-	def deleteArch(self):
-
-		self.log.warning("Deleting archive '%s'", self.archPath)
-
-		self.db.deleteBasePath(self.archPath)
-		os.remove(self.archPath)
-
-	def addNewArch(self, shouldPhash=True):
-
-		self.log.info("Hashing file %s" % self.archPath)
-
-		self.db.deleteBasePath(self.archPath)
-
-		# Do overall hash of archive:
-		with open(self.archPath, "rb") as fp:
-			hexHash = hashFile.getMd5Hash(fp.read())
-		self.db.insertIntoDb(fspath=self.archPath, internalpath="", itemhash=hexHash)
-
-
-		# Next, hash the file contents.
-		archIterator = UniversalArchiveReader.ArchiveReader(self.archPath)
-		for fName, fp in archIterator:
-
-			fCont = fp.read()
-			try:
-				fName, hexHash, pHash, dHash, imX, imY = hashFile.hashFile(self.archPath, fName, fCont, shouldPhash=shouldPhash)
-
-				baseHash, oldPHash, oldDHash = self.db.getHashes(self.archPath, fName)
-				if all((baseHash, oldPHash, oldDHash)):
-					self.log.warn("Item is not duplicate?")
-					self.log.warn("%s, %s, %s, %s, %s", self.archPath, fName, hexHash, pHash, dHash)
-
-				if baseHash:
-					self.db.updateItem(basePath=self.archPath, internalPath=fName, itemHash=hexHash, pHash=pHash, dHash=dHash)
-				else:
-					self.db.insertIntoDb(fspath=self.archPath, internalpath=fName, itemHash=hexHash, pHash=pHash, dHash=dHash)
-			except IOError as e:
-				self.log.error("Invalid/damaged image file in archive!")
-				self.log.error("Archive '%s', file '%s'", self.archPath, fName)
-				self.log.error("Error '%s'", e)
-
-
-		archIterator.close()
-
-		self.log.info("File hashing complete.")
 
 class TreeRoot(hamDb.BkHammingTree):
 
@@ -215,21 +32,38 @@ class TreeRoot(hamDb.BkHammingTree):
 
 
 		self.log.info("Loading contents of '%s' into BK tree", treeRootPath)
-		items = self.db.getLikeBasePath(treeRootPath)
+		items = self.db.getLike('fsPath', treeRootPath, wantCols=['dbId', 'pHash'])
 		self.log.info("Found %s items in dir. Building tree", len(items))
 
 
-		for row in [row for row in items if row[3]]:
-			pHash = int(row[3], 2)
-			self.insert(pHash, row)
+		for dbId, pHash in items:
+			if not pHash:
+				continue
+			pHash = int(pHash, 2)
+			self.insert(pHash, dbId)
+
+		self.rootPath = treeRootPath
 
 		self.log.info("Tree loaded!")
+
+	# We have to be careful, because if we try to remove a item outside the tree's
+	# envelope, we'll get a KeyError. Therefore, we intercept calls to remove, require an
+	# additional parameter (the path of the file containing the item we're removing),
+	# and verify that the item that is being removed is valid to remove.
+	# I'm doing this rather then just blindly catching KeyError because I want
+	# any attempts to remove a key that /should/ be in the dict to still error.
+	def remove(self, filePath, nodeHash, nodeData):
+		if filePath.startswith(self.rootPath):
+			super().remove(nodeHash, nodeData)
+
+
+
 
 
 
 class TreeProcessor(object):
 
-	def __init__(self, matchDir, removeDir, distanceThresh):
+	def __init__(self, matchDir, removeDir, distanceThresh, callBack=None):
 		self.log      = logging.getLogger("Main.Processor")
 
 		print("Loading treestructure for path '%s'" % matchDir)
@@ -244,6 +78,7 @@ class TreeProcessor(object):
 		self.delProxyDir = removeDir
 		self.root.loadTree(matchDir)
 
+		self.callBack = callBack
 
 	def convertToPath(self, inId):
 		return self.root.db.getItems(wantCols=['fsPath'], dbId=inId).pop()[0]
@@ -260,53 +95,117 @@ class TreeProcessor(object):
 
 		# For items where we have a phash, look it up.
 		matches = self.root.getWithinDistance(int(item['pHash'], 2), self.distance)
-		# print(matches)
-		matches = [match[0] for match in matches if match[0] != item['fsPath']]
+		if item['dbId'] in matches:
+			matches.remove(item['dbId'])
+
+		ret = []
+		for match in matches:
+			itemPath = self.convertToPath(match)
+			if itemPath != item["fsPath"]:
+				if not os.path.exists(itemPath):
+					self.log.warn("Item no longer exists!")
+					continue
+				ret.append(match)
 
 		# print("phash matches", matches)
 		return matches
 
 
+	def trimTree(self, fileItems):
+		for item in fileItems:
+			self.root.remove(item['fsPath'], int(item['pHash'], 2), item['dbId'])
+
+
+	# Called once for each distinct file on scanned path.
+	# Fileitems are the contained files within the scanned file, if any
 	def processFile(self, filePath, fileItems):
-		# print("Processing file", filePath)
-		matches = {}
+		self.log.info("Processing file '%s'", filePath)
+
+		if not os.path.exists(filePath):
+			self.log.error("Item no longer exists = '%s'", filePath)
+			return
 
 		# Only look at files where there are phashes contained
 		if not any([item['pHash'] != None for item in fileItems]):
-			return False
+			return
 
 		# There should only be one item with no internal path (the containing archive)
 		# Check this to be sure
 		if len([item for item in fileItems if not item['internalPath']]) != 1:
 			self.log.error("Multiple no-path items?")
-			return False
+			return
 
-		for item in [item for item in fileItems if item['internalPath']]:
+		internalItems = [item for item in fileItems if item['internalPath']]
+
+		pathMatches = {}
+		seen = [0] * len(internalItems)
+		offset = 0
+		for item in internalItems:
 			fMatches = self.getMatches(item)
 			if not fMatches:
-				# print("Matching failed. Exiting!", fMatches, item)
+				self.log.info("Not duplicate: '%s'", item['fsPath'])
 				return
 			for match in fMatches:
-				if match not in matches:
-					matches[match] = 1
+				seen[offset] += 1
+
+				itemPath = self.convertToPath(match)
+				if not os.path.exists(itemPath):
+					self.log.error("Item has been deleted. Skipping match.")
+					return
+
+				if itemPath not in pathMatches:
+					pathMatches[itemPath] = 1
 				else:
-					matches[match] += 1
+					pathMatches[itemPath] += 1
 
-
+			offset += 1
+		if not all(seen):
+			self.log.error("Wat? Not all items seen and yet loop is complete?")
+			raise ValueError("Wat? Not all items seen and yet loop is complete?")
 
 
 		# matches = self.convertToPaths(matches)
 
-		print("Item is NOT unique", len(fileItems), filePath)
-		for match, quantity in matches.items():
-			if quantity <= (0.25 * len(fileItems)):
+		self.log.info("Item is NOT unique '%s', '%s'", len(internalItems), filePath)
+		pathMatches = [(quantity, match) for match, quantity in pathMatches.items()]
+		pathMatches.sort(reverse=True)
+		pathMatches = pathMatches[:5]
+		for quantity, match in pathMatches:
+			if quantity <= (0.25 * len(internalItems)):
 				continue
-			print("	Match: ", quantity, len(fileItems), match)
-		print()
+			self.log.info("	Match: '%s', '%s', '%s'", quantity, len(internalItems), match)
+
+
+		self.trimTree(internalItems)
+		self.handleDuplicate(filePath, pathMatches[0][-1])
+
+	def handleDuplicate(self, deletedFile, bestMatch):
+
+		# When we have a callback, call the callback so it can do whatever it need to
+		# with the information about the duplicate.
+		if self.callBack:
+			self.callBack(deletedFile, bestMatch)
+
+
+		return
+
+		dst = deletedFile.replace("/", ";")
+		dst = os.path.join(self.delProxyDir, dst)
+		self.log.info("Moving item from '%s'", deletedFile)
+		self.log.info("	to '%s'", dst)
+		try:
+			shutil.move(deletedFile, dst)
+		except KeyboardInterrupt:
+			raise
+		except OSError:
+			self.log.error("ERROR - Could not move file!")
+			self.log.error(traceback.format_exc())
 
 
 
-	def trimFiles(self, targetDir, removeDir, distance):
+
+
+	def trimFiles(self, targetDir):
 		self.log.info("Trimming files on path '%s'", targetDir)
 		delItems = self.root.db.getFileDictLikeBasePath(targetDir)
 		self.log.info("Have %s items", len(delItems))
@@ -333,8 +232,14 @@ class TreeProcessor(object):
 		print("scanEnv      =", args.scanEnv)
 		print("compDistance =", args.compDistance)
 
-		tree = cls(args.scanEnv, args.removeDir, args.compDistance)
-		tree.trimFiles(args.targetDir, args.removeDir, args.compDistance)
+		callback = None
+		if 'callback' in args:
+			callback = args['callback']
+
+
+
+		tree = cls(args.scanEnv, args.removeDir, args.compDistance, callBack=callback)
+		tree.trimFiles(args.targetDir)
 
 
 def phashScan(args):

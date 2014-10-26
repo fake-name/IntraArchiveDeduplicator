@@ -292,8 +292,11 @@ class DbApi():
 		cur.execute(query, params)
 		return cur
 
-	def itemInDB(self, **kwargs):
-		where = self.sqlBuildConditional(**kwargs)
+
+	def getNumberOfRows(self, where=None, **kwargs):
+		if not where:
+			where = self.sqlBuildConditional(**kwargs)
+
 		query = self.table.select(sqla.Count(sql.Literal(1)), where=where)
 
 		query, params = tuple(query)
@@ -307,7 +310,15 @@ class DbApi():
 			cur.execute(query, params)
 			ret = cur.fetchone()
 
-		return ret
+		return ret[0]
+
+	def getNumberOfPhashes(self, **kwargs):
+		where = self.sqlBuildConditional(**kwargs)
+		where = where & (self.keyToCol('pHash') != '')
+		return self.getNumberOfRows(where=where)
+
+	def itemInDB(self, **kwargs):
+		return bool(self.getNumberOfRows(**kwargs))
 
 
 	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

@@ -130,6 +130,11 @@ class BkHammingTree(object):
 		self.nodes = 0
 
 	def insert(self, nodeHash, nodeData):
+		try:
+			nodeHash = int(nodeHash, 2)
+		except TypeError:
+			pass
+
 		if not self.root:
 			self.root = BkHammingNode(nodeHash, nodeData)
 		else:
@@ -141,6 +146,11 @@ class BkHammingTree(object):
 	def remove(self, nodeHash, nodeData):
 		if not self.root:
 			raise ValueError("No tree built to remove from!")
+
+		try:
+			nodeHash = int(nodeHash, 2)
+		except TypeError:
+			pass
 
 		rootless, deleted, moved = self.root.remove(nodeHash, nodeData)
 
@@ -162,6 +172,12 @@ class BkHammingTree(object):
 		if not self.root:
 			print("WARNING: NO TREE BUILT!")
 			return set()
+
+
+		try:
+			baseHash = int(baseHash, 2)
+		except TypeError:
+			pass
 
 		ret, touched = self.root.getWithinDistance(baseHash, distance)
 		# print("Touched %s tree nodes, or %1.3f%%" % (touched, touched/self.nodes * 100))

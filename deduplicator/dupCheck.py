@@ -39,7 +39,7 @@ class TreeRoot(hamDb.BkHammingTree):
 		for dbId, pHash in items:
 			if not pHash:
 				continue
-			pHash = int(pHash, 2)
+			pHash = pHash
 			self.insert(pHash, dbId)
 
 		self.rootPath = treeRootPath
@@ -81,7 +81,7 @@ class TreeProcessor(object):
 		self.callBack = callBack
 
 	def convertToPath(self, inId):
-		return self.root.db.getItems(wantCols=['fsPath'], dbId=inId).pop()[0]
+		return self.root.db.getItems(wantCols=['fsPath', "internalPath"], dbId=inId).pop()
 
 	def getMatches(self, item):
 
@@ -94,13 +94,13 @@ class TreeProcessor(object):
 			return matches
 
 		# For items where we have a phash, look it up.
-		matches = self.root.getWithinDistance(int(item['pHash'], 2), self.distance)
+		matches = self.root.getWithinDistance(item['pHash'], self.distance)
 		if item['dbId'] in matches:
 			matches.remove(item['dbId'])
 
 		ret = []
 		for match in matches:
-			itemPath = self.convertToPath(match)
+			itemPath, dummy_intpath = self.convertToPath(match)
 			if itemPath != item["fsPath"]:
 				if not os.path.exists(itemPath):
 					self.log.warn("Item no longer exists!")
@@ -113,7 +113,66 @@ class TreeProcessor(object):
 
 	def trimTree(self, fileItems):
 		for item in fileItems:
-			self.root.remove(item['fsPath'], int(item['pHash'], 2), item['dbId'])
+			self.root.remove(item['fsPath'], item['pHash'], item['dbId'])
+
+
+	def scanItems(self, internalItems):
+
+		pathMatches = {}
+		seen = [0] * len(internalItems)
+		offset = 0
+		for item in internalItems:
+			fMatches = self.getMatches(item)
+			if not fMatches:
+				self.log.info("Not duplicate: '%s'", item['fsPath'])
+				return False
+			for match in fMatches:
+				seen[offset] += 1
+
+				itemPath, intPath = self.convertToPath(match)
+				if not os.path.exists(itemPath):
+					self.log.error("Item has been deleted. Skipping match.")
+					return False
+
+				if itemPath not in pathMatches:
+					pathMatches[itemPath] = set()
+
+				pathMatches[itemPath].add(intPath)
+
+			offset += 1
+		if not all(seen):
+			self.log.error("Wat? Not all items seen and yet loop is complete?")
+			raise ValueError("Wat? Not all items seen and yet loop is complete?")
+
+		return pathMatches
+
+	# So this is rather confusing. We want to determine the "best" match, but we have
+	# a lot of spurious matches.
+	# As such, we count the number of distinct matches, then the total number of items in
+	# the matching file, and sort using those parameters, and chose the one with the most distinct
+	# matches, using the file quantities as the tie-breaker.
+	# I have some ideas for using multiple
+	def processMatches(self, filePath, pathMatches):
+
+		items = []
+		for archPath, intItemSet in pathMatches.items():
+
+			# Build compound query so we can get only items where pHash is not NULL
+
+			itemNum = self.root.db.getNumberOfPhashes(fsPath=archPath)
+
+			items.append((len(intItemSet), itemNum, archPath))
+			# print("archPath, intItemSet", archPath, len(intItemSet), itemNum)
+
+		# Do the actual sort
+		items.sort(reverse=True)
+		baseItemNum = self.root.db.getNumberOfPhashes(fsPath=filePath)
+		for commonSet, matchSize, matchFilePath in items[:5]:
+			self.log.info("	Match: '%s', '%s', %s', '%s'", baseItemNum, commonSet, matchSize, matchFilePath)
+
+
+		items.sort(reverse=True)
+		return items[0][-1]
 
 
 	# Called once for each distinct file on scanned path.
@@ -137,54 +196,23 @@ class TreeProcessor(object):
 
 		internalItems = [item for item in fileItems if item['internalPath']]
 
-		pathMatches = {}
-		seen = [0] * len(internalItems)
-		offset = 0
-		for item in internalItems:
-			fMatches = self.getMatches(item)
-			if not fMatches:
-				self.log.info("Not duplicate: '%s'", item['fsPath'])
-				return
-			for match in fMatches:
-				seen[offset] += 1
-
-				itemPath = self.convertToPath(match)
-				if not os.path.exists(itemPath):
-					self.log.error("Item has been deleted. Skipping match.")
-					return
-
-				if itemPath not in pathMatches:
-					pathMatches[itemPath] = 1
-				else:
-					pathMatches[itemPath] += 1
-
-			offset += 1
-		if not all(seen):
-			self.log.error("Wat? Not all items seen and yet loop is complete?")
-			raise ValueError("Wat? Not all items seen and yet loop is complete?")
-
-
-		# matches = self.convertToPaths(matches)
-
-		self.log.info("Item is NOT unique '%s', '%s'", len(internalItems), filePath)
-		pathMatches = [(quantity, match) for match, quantity in pathMatches.items()]
-		pathMatches.sort(reverse=True)
-		pathMatches = pathMatches[:5]
-		for quantity, match in pathMatches:
-			if quantity <= (0.25 * len(internalItems)):
-				continue
-			self.log.info("	Match: '%s', '%s', '%s'", quantity, len(internalItems), match)
-
+		pathMatches = self.scanItems(internalItems)
+		if not pathMatches:
+			return
 
 		self.trimTree(internalItems)
-		self.handleDuplicate(filePath, pathMatches[0][-1])
+
+		self.log.info("Item is NOT unique '%s'", filePath)
+		bestMatch = self.processMatches(filePath, pathMatches)
+
+		if self.callBack:
+			self.callBack(filePath, bestMatch)
+		# self.handleDuplicate(filePath, bestMatch)
 
 	def handleDuplicate(self, deletedFile, bestMatch):
 
 		# When we have a callback, call the callback so it can do whatever it need to
 		# with the information about the duplicate.
-		if self.callBack:
-			self.callBack(deletedFile, bestMatch)
 
 
 		return

@@ -207,15 +207,13 @@ class TreeProcessor(object):
 
 		if self.callBack:
 			self.callBack(filePath, bestMatch)
-		# self.handleDuplicate(filePath, bestMatch)
+		self.handleDuplicate(filePath, bestMatch)
 
 	def handleDuplicate(self, deletedFile, bestMatch):
 
 		# When we have a callback, call the callback so it can do whatever it need to
 		# with the information about the duplicate.
 
-
-		return
 
 		dst = deletedFile.replace("/", ";")
 		dst = os.path.join(self.delProxyDir, dst)
@@ -239,8 +237,16 @@ class TreeProcessor(object):
 		self.log.info("Have %s items", len(delItems))
 
 
+
+		# We want to scan items from the item with the least contained items to the item with the most contained items
+		# Therefore, we convert the key array to a list of ({itemLen}, {itemKey}) 2-tuples, sort on that, and then use
+		# that list for iterating
+		items = list([(len(delItems[key]), key) for key in delItems.keys()])
+		items.sort()
+
+
 		processed = 0
-		for filePath in delItems.keys():
+		for dummy_len, filePath in items:
 			self.processFile(filePath, delItems[filePath])
 
 			processed += 1

@@ -56,7 +56,12 @@ cdef class BkHammingNode(object):
 		if nodeHash == self.nodeHash:
 
 			# Remove the node data associated with the hash we want to remove
-			self.nodeData.remove(nodeData)
+			try:
+				self.nodeData.remove(nodeData)
+			except KeyError:
+				print("ERROR: Key '%s' not in node!" % nodeData)
+				print("ERROR: Node keys: '%s'" % self.nodeData)
+				raise
 
 			# If we've emptied out the node of data, return all our children so the parent can
 			# graft the children into the tree in the appropriate place
@@ -125,11 +130,17 @@ cdef class BkHammingNode(object):
 
 class BkHammingTree(object):
 	root = None
+	nodes = 0
 
 	def __init__(self):
-		self.nodes = 0
+		pass
 
 	def insert(self, nodeHash, nodeData):
+
+		if not isinstance(nodeData, int):
+			raise ValueError("Node data must be an integer row ID")
+
+
 		try:
 			nodeHash = int(nodeHash, 2)
 		except TypeError:

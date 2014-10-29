@@ -461,12 +461,13 @@ class ArchChecker(DbBase):
 				else:
 					self.db.insertIntoDb(fspath=self.archPath, internalpath=fName, itemHash=hexHash, pHash=pHash, dHash=dHash)
 
-				ids = self.db.getItems(wantCols=["dbId"], fspath=self.archPath, internalpath=fName)
-				if len(ids) != 1:
-					self.log.error("More then one item inserted? Wat?")
+				if pHash:
+					ids = self.db.getItems(wantCols=["dbId"], fspath=self.archPath, internalpath=fName)
+					if len(ids) != 1:
+						self.log.error("More then one item inserted? Wat?")
 
-				hashId = ids[0][0]
-				server.tree.tree.insert(pHash, hashId)
+					hashId = ids[0][0]
+					server.tree.tree.insert(pHash, hashId)
 
 
 

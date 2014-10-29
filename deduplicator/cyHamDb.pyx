@@ -140,11 +140,13 @@ class BkHammingTree(object):
 		if not isinstance(nodeData, int):
 			raise ValueError("Node data must be an integer row ID")
 
+		if not isinstance(nodeHash, int):
+			try:
+				nodeHash = int(nodeHash, 2)
+			except TypeError:
+				raise ValueError("Node hash must be an integer or string encoded binary")
 
-		try:
-			nodeHash = int(nodeHash, 2)
-		except TypeError:
-			pass
+
 
 		if not self.root:
 			self.root = BkHammingNode(nodeHash, nodeData)

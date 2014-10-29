@@ -2,23 +2,22 @@
 
 import rpyc
 from rpyc.utils.server import ThreadedServer
-import dbApi
+import logging
 import deduplicator.dupCheck
 import logSetup
+import settings
 
 import server.tree
 
+#TODO: A much cleaner message-passing interface here would be quite nice
+
 class DbInterfaceServer(rpyc.Service):
 
-	# def __init__(self, *args, **kwargs):
-	# 	print("Init called!")
-	# 	super(self).__init__(self, *args, **kwargs)
-
 	def on_connect(self):
-		print("Connection established!")
+		print("Client Connection established!")
 
 	def on_disconnect(self):
-		print("Disconnected!")
+		print("Client Disconnected!")
 
 	def exposed_loadTree(self, *args, **kwargs):
 		print(server.tree.tree)
@@ -50,7 +49,8 @@ class DbInterfaceServer(rpyc.Service):
 
 def run_server():
 	print("Started.")
-	server = ThreadedServer(DbInterfaceServer, port = 12345)
+	serverLog = logging.getLogger("Main.RPyCServer")
+	server = ThreadedServer(service=DbInterfaceServer, port = 12345, hostname='localhost', logger=serverLog)
 	server.start()
 
 
@@ -69,6 +69,15 @@ import server_reloader
 def main():
 	logSetup.initLogging()
 	before_reload()
+
+	print("Preloading cache directories")
+	for dirPath in settings.PRELOAD_DIRECTORIES:
+		server.tree.tree.loadTree(dirPath)
+	print("Loaded %s items" % server.tree.tree.nodeQuantity)
+	print("Starting RPC server")
+
+
+
 	run_server()
 	# server_reloader.main(
 	# 	run_server,

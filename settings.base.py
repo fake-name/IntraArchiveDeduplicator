@@ -8,3 +8,6 @@ PSQL_PASS    = "password"
 
 PSQL_USER    = "deduper"
 PSQL_DB_NAME = "deduper_db"
+
+# Directories to preload the hashes for in the BK tree.
+PRELOAD_DIRECTORIES = []

@@ -27,7 +27,7 @@ class TreeRoot(hamDb.BkHammingTree):
 	# Make it a borg class (all instances share state)
 	_shared_state = {}
 	rootPaths = []
-
+	nodeQuantity = 0
 	def __init__(self):
 
 		self.__dict__ = self._shared_state
@@ -67,10 +67,12 @@ class TreeRoot(hamDb.BkHammingTree):
 
 	def remove(self, *args, **kwargs):
 		with self.updateLock:
+			self.nodeQuantity -= 1
 			super().remove(*args, **kwargs)
 
 	def insert(self, *args, **kwargs):
 		with self.updateLock:
+			self.nodeQuantity += 1
 			super().insert(*args, **kwargs)
 
 
@@ -329,6 +331,7 @@ class ArchChecker(DbBase):
 
 
 		self.log = logging.getLogger("Main.Deduper")
+		self.log.info("ArchChecker Instantiated")
 
 	def isBinaryUnique(self):
 		self.log.info("Checking if %s contains any unique files.", self.archPath)
@@ -462,7 +465,7 @@ class ArchChecker(DbBase):
 				if len(ids) != 1:
 					self.log.error("More then one item inserted? Wat?")
 
-				hashId = ids[0]
+				hashId = ids[0][0]
 				server.tree.tree.insert(pHash, hashId)
 
 

@@ -28,7 +28,7 @@ class TreeRoot(hamDb.BkHammingTree):
 	_shared_state = {}
 	rootPaths = []
 	nodeQuantity = 0
-	def __init__(self):
+	def __init__(self, preloadDirs=[]):
 
 		self.__dict__ = self._shared_state
 
@@ -38,19 +38,19 @@ class TreeRoot(hamDb.BkHammingTree):
 
 		self.db       = dbApi.DbApi()
 		self.log      = logging.getLogger("Main.Tree")
-
+		self.preloadDirs = preloadDirs
 
 		super().__init__()
 
-	def loadTree(self, treeRootPath):
+	def loadTree(self, dirToLoad):
 
-		if any([path in treeRootPath for path in self.rootPaths]):
-			# print(self.rootPaths, treeRootPath)
-			self.log.info("Path already loaded: '%s'", treeRootPath)
+		if any([path in dirToLoad for path in self.rootPaths]):
+			# print(self.rootPaths, dirToLoad)
+			self.log.info("Path already loaded: '%s'", dirToLoad)
 			return
 
-		self.log.info("Querying contents of '%s' for loading.", treeRootPath)
-		items = self.db.getLike('fsPath', treeRootPath, wantCols=['dbId', 'pHash'])
+		self.log.info("Querying contents of '%s' for loading.", dirToLoad)
+		items = self.db.getLike('fsPath', dirToLoad, wantCols=['dbId', 'pHash'])
 		self.log.info("Found %s items in dir. Building tree", len(items))
 
 
@@ -61,9 +61,21 @@ class TreeRoot(hamDb.BkHammingTree):
 				if not isinstance(dbId, int):
 					raise ValueError("Node data must be an integer row ID")
 				self.insert(pHash, dbId)
-			self.rootPaths.append(treeRootPath)
+			self.rootPaths.append(dirToLoad)
 
 		self.log.info("Directory loaded!")
+
+
+	def reloadTree(self):
+
+		with self.updateLock:
+			if self.root:
+				self.root = None
+				self.nodeQuantity = 0
+
+			for dirPath in self.preloadDirs:
+				self.loadTree(dirPath)
+
 
 	def remove(self, *args, **kwargs):
 		with self.updateLock:

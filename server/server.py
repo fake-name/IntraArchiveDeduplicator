@@ -23,6 +23,11 @@ class DbInterfaceServer(rpyc.Service):
 		print(server.tree.tree)
 		server.tree.tree.loadTree(*args, **kwargs)
 
+	def exposed_reloadTree(self, *args, **kwargs):
+		print(server.tree.tree)
+		server.tree.tree.reloadTree(*args, **kwargs)
+
+
 	class exposed_ArchChecker(deduplicator.dupCheck.ArchChecker):
 		def exposed_isBinaryUnique(self, *args, **kwargs):
 			return super().isBinaryUnique(*args, **kwargs)
@@ -54,11 +59,6 @@ def run_server():
 	server.start()
 
 
-def before_reload():
-	if not server.tree.tree:
-		print("Need to create tree")
-		server.tree.tree = deduplicator.dupCheck.TreeRoot()
-	print("Loading")
 
 def before_exit():
 	print("Caught exit! Exiting")
@@ -68,12 +68,14 @@ import server_reloader
 
 def main():
 	logSetup.initLogging()
-	before_reload()
+
+	server.tree.tree = deduplicator.dupCheck.TreeRoot(settings.PRELOAD_DIRECTORIES)
 
 	print("Preloading cache directories")
-	for dirPath in settings.PRELOAD_DIRECTORIES:
-		server.tree.tree.loadTree(dirPath)
+	server.tree.tree.reloadTree()
 	print("Loaded %s items" % server.tree.tree.nodeQuantity)
+	print("Testing reload")
+	server.tree.tree.reloadTree()
 	print("Starting RPC server")
 
 

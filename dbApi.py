@@ -70,8 +70,8 @@ class DbApi():
 													internalPath    text NOT NULL,
 
 													itemHash        text,
-													pHash           text,
-													dHash           text,
+													pHash           bigint,
+													dHash           bigint,
 													itemKind        text,
 
 													imgx            INTEGER,
@@ -98,7 +98,10 @@ class DbApi():
 				self.table.dhash,
 				self.table.itemkind,
 				self.table.imgx,
-				self.table.imgy
+				self.table.imgy,
+
+				self.table.phash_text,
+				self.table.dhash_text
 			)
 
 
@@ -111,7 +114,12 @@ class DbApi():
 				"dhash"         : self.table.dhash,
 				"itemkind"      : self.table.itemkind,
 				"imgx"          : self.table.imgx,
-				"imgy"          : self.table.imgy
+				"imgy"          : self.table.imgy,
+
+
+				"phash_text"    : self.table.phash_text,
+				"dhash_text"    : self.table.dhash_text
+
 			}
 
 

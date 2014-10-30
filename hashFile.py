@@ -59,9 +59,25 @@ class ImageHash(object):
 	def __iter__(self):
 		return numpy.nditer(self.hash, order='C')  # Specify memory order, so we're (theoretically) platform agnostic
 
-	# Convert hash to a binary string representation (e.g. literal "10110101..."). Useful for things like database storage, etc...
-	def as_binary_string_repr(self):
-		return "".join(["1" if val else "0" for val in self ])
+	def __len__(self):
+		return self.hash.size
+
+	def __int__(self):
+		ret = 0
+		mask = 1 << len(self) - 1
+		for bit in numpy.nditer(self.hash, order='C'):  # Specify memory order, so we're (theoretically) platform agnostic
+			if bit:
+				ret |= mask
+			mask >>= 1
+
+		# Convert to signed representation
+		VALSIZE = 64
+		if ret >= 2**(VALSIZE-1):
+			ret = ret - 2**VALSIZE
+		return ret
+
+
+
 
 def hex_to_hash(hexstr):
 	l = []
@@ -157,8 +173,9 @@ def hashFile(basePath, fname, fContents, shouldPhash=True):
 		im = Image.open(io.BytesIO(fContents))
 		pHashArr, im = phash(im)
 		dHashArr     = dhash(im)
-		pHash = "".join(["1" if val else "0" for val in pHashArr ])
-		dHash = "".join(["1" if val else "0" for val in dHashArr ])
+
+		pHash = int(pHashArr)
+		dHash = int(dHashArr)
 
 		imX, imY = im.size
 
@@ -172,4 +189,19 @@ def getMd5Hash(fContents):
 	hexHash = fMD5.hexdigest()
 	return hexHash
 
+def test():
+	import sys
+	print(sys.argv)
+	if len(sys.argv) < 2:
+		print("Need path to image as command line param")
+		return
+	imPath = sys.argv[1]
+	with open(imPath, "rb") as fp:
+		cont = fp.read()
+		hashes = hashFile(imPath, "", cont)
+		print(hashes)
+
+
+if __name__ == "__main__":
+	test()
 

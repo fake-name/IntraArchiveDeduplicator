@@ -139,6 +139,7 @@ def initLogging(logLevel=logging.INFO):
 
 	if not checkInit():
 		print("Logger already initialized")
+		return
 	else:
 
 		ch = ColourHandler()

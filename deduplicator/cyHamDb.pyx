@@ -1,12 +1,16 @@
 
 
 from libc.stdint cimport uint64_t
+from libc.stdint cimport int64_t
+
+# TODO: Convert sets to cset v
+# from libcpp.set cimport set as cset
 
 # Compute number of bits that are not common between `a` and `b`.
 # return value is a plain integer
-cdef uint64_t hamming(uint64_t a, uint64_t b):
+cdef uint64_t hamming(int64_t a, int64_t b):
 
-	cdef uint64_t x
+	cdef int64_t x
 	cdef int tot
 
 	tot = 0
@@ -19,17 +23,17 @@ cdef uint64_t hamming(uint64_t a, uint64_t b):
 
 cdef class BkHammingNode(object):
 
-	cdef uint64_t nodeHash
+	cdef int64_t nodeHash
 	cdef set nodeData
 	cdef dict children
 
-	def __init__(self, nodeHash, nodeData):
+	def __init__(self, int64_t nodeHash, uint64_t nodeData):
 		self.nodeData = set((nodeData, ))
 		self.children = {}
 		self.nodeHash = nodeHash
 
 	# Insert phash `nodeHash` into tree, with the associated data `nodeData`
-	cpdef insert(self, uint64_t nodeHash, nodeData):
+	cpdef insert(self, int64_t nodeHash, uint64_t nodeData):
 
 		# If the current node has the same has as the data we're inserting,
 		# add the data to the current node's data set
@@ -48,7 +52,7 @@ cdef class BkHammingNode(object):
 	# Remove node with hash `nodeHash` and accompanying data `nodeData` from the tree.
 	# Returns list of children that must be re-inserted (or false if no children need to be updated),
 	# number of nodes deleted, and number of nodes that were moved as a 3-tuple.
-	cpdef remove(self, uint64_t nodeHash, nodeData):
+	cpdef remove(self, int64_t nodeHash, uint64_t nodeData):
 		cdef uint64_t deleted = 0
 		cdef uint64_t moved = 0
 
@@ -100,7 +104,7 @@ cdef class BkHammingNode(object):
 	# returns a set containing the data of each matching node, and a integer representing
 	# the number of nodes that were touched in the scan.
 	# Return value is a 2-tuple
-	cpdef getWithinDistance(self, uint64_t baseHash, int distance):
+	cpdef getWithinDistance(self, int64_t baseHash, int distance):
 		cdef uint64_t selfDist
 
 		selfDist = hamming(self.nodeHash, baseHash)

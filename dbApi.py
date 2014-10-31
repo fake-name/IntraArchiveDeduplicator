@@ -100,8 +100,8 @@ class DbApi():
 				self.table.imgx,
 				self.table.imgy,
 
-				self.table.phash_text,
-				self.table.dhash_text
+				# self.table.phash_text,
+				# self.table.dhash_text
 			)
 
 
@@ -117,8 +117,8 @@ class DbApi():
 				"imgy"          : self.table.imgy,
 
 
-				"phash_text"    : self.table.phash_text,
-				"dhash_text"    : self.table.dhash_text
+				# "phash_text"    : self.table.phash_text,
+				# "dhash_text"    : self.table.dhash_text
 
 			}
 
@@ -334,26 +334,6 @@ class DbApi():
 	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
-	def getDuplicatePhashes(self, basePath):
-		cur = self.conn.cursor()
-
-		cur.execute(''' SELECT pHash, dHash, dbId, fsPath, internalPath
-						FROM {table}
-						WHERE pHash IN
-						(
-							SELECT pHash
-							FROM {table}
-							WHERE fsPath LIKE %s AND
-							pHash != ''
-							GROUP BY pHash
-							HAVING COUNT(*) > 1
-						)
-						ORDER BY pHash'''.format(table=self.tableName), (basePath+"%", ))
-		ret = cur.fetchall()
-		self.conn.commit()
-		return ret
-
-
 	def getDuplicateImages(self, basePath):
 		cur = self.conn.cursor()
 
@@ -411,18 +391,6 @@ class DbApi():
 
 	def getOtherHashes(self, itemHash, fsMaskPath):
 		where = (self.table.itemhash == itemHash) & (self.table.fspath != fsMaskPath)
-		return self.getItems(wantCols=["fsPath","internalPath","itemHash"], where=where)
-
-	def getOtherDPHashes(self, dHash, pHash, fsMaskPath):
-		where = ((self.table.dhash == dHash) & (self.table.phash == pHash)) & (self.table.fspath != fsMaskPath)
-		return self.getItems(wantCols=["fsPath","internalPath","itemHash"], where=where)
-
-	def getOtherDHashes(self, dHash, fsMaskPath):
-		where = ((self.table.dhash == dHash)) & (self.table.fspath != fsMaskPath)
-		return self.getItems(wantCols=["fsPath","internalPath","itemHash"], where=where)
-
-	def getOtherPHashes(self, pHash, fsMaskPath):
-		where = ((self.table.phash == pHash)) & (self.table.fspath != fsMaskPath)
 		return self.getItems(wantCols=["fsPath","internalPath","itemHash"], where=where)
 
 
@@ -485,10 +453,6 @@ class DbApi():
 				ret[item["fsPath"]] = [item]
 
 		return ret
-
-
-
-
 
 
 	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

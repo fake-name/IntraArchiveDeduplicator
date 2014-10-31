@@ -207,8 +207,8 @@ class BkHammingTree(object):
 			pass
 
 		ret, touched = self.root.getWithinDistance(baseHash, distance)
-		print("Touched %s tree nodes, or %1.3f%%" % (touched, touched/self.nodes * 100))
-		print("Discovered %s match(es)" % len(ret))
+		print("Touched %s tree nodes, or %1.3f%%. Discovered %s match(es)" % (touched, touched/self.nodes * 100, len(ret)))
+
 		return ret
 
 	def __iter__(self):

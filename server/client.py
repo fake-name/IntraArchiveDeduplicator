@@ -6,7 +6,7 @@ def go():
 	print(dir(conn.root))
 
 	conn.root.loadTree('/media/Storage/MP/Absolute Duo [+++]/')
-	x = conn.root.ArchChecker('/media/Storage/MP/Absolute Duo [+++]/Absolute Duo - - (1) - Copy.zip')
+	x = conn.root.ArchChecker('/media/Storage/MP/Absolute Duo [+++]/Absolute Duo - - (1).zip')
 	print("Binary Unique = ", x.isBinaryUnique())
 	print("pHash  Unique = ", x.isPhashUnique())
 	print(x)
@@ -14,7 +14,7 @@ def go():
 
 	conn.root.reloadTree()
 	print("Binary Unique = ", x.isBinaryUnique())
-	print("pHash  Unique = ", x.isPhashUnique(searchDistance=8))
+	print("pHash  Unique = ", x.isPhashUnique())
 	print(x)
 	print("exiting")
 

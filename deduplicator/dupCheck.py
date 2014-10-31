@@ -70,6 +70,10 @@ class TreeRoot(hamDb.BkHammingTree):
 
 		with self.updateLock:
 			if self.root:
+				del self.root
+				del self.nodeQuantity
+				del self.rootPaths
+
 				self.root = None
 				self.nodeQuantity = 0
 				self.rootPaths = []

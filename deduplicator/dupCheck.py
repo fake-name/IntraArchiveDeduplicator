@@ -72,6 +72,7 @@ class TreeRoot(hamDb.BkHammingTree):
 			if self.root:
 				self.root = None
 				self.nodeQuantity = 0
+				self.rootPaths = []
 
 			for dirPath in self.preloadDirs:
 				self.loadTree(dirPath)
@@ -373,26 +374,23 @@ class ArchChecker(DbBase):
 
 		self.db.deleteBasePath(self.archPath)
 
-		self.log.info("Scanning for phash duplicates.")
 
 		# TreeRoot will share state with all other instances of treeRoot, so
 		# the tree structure will therefore persist.
 		if not server.tree.tree:
-			self.log.info("Tree not instantiated. Creating")
-			server.tree.tree = TreeRoot()
-
-		tree = server.tree.tree
+			raise ValueError("Tree not instantiated!")
 
 
-		self.log.info("Done. Searching")
 
+
+		self.log.info("Scanning for phash duplicates.")
 
 		for fileN, fileCtnt in self.arch:
 			dummy_fName, dummy_hexHash, pHash, dummy_dHash, dummy_imX, dummy_imY = hashFile.hashFile(self.archPath, fileN, fileCtnt.read())
-			pHash = int(pHash, 2)
 
-			matches = tree.getWithinDistance(pHash, searchDistance)
-			# print(matches)
+
+			matches = server.tree.tree.getWithinDistance(pHash, searchDistance)
+			self.log.info("File: '%s', '%s'. Matches '%s'", self.archPath, fileN, len(matches))
 
 			dups = []
 			for dbId in matches:

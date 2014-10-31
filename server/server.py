@@ -27,6 +27,9 @@ class DbInterfaceServer(rpyc.Service):
 		print(server.tree.tree)
 		server.tree.tree.reloadTree(*args, **kwargs)
 
+	def exposed_nodeCount(self):
+		return server.tree.tree.nodes
+
 
 	class exposed_ArchChecker(deduplicator.dupCheck.ArchChecker):
 		def exposed_isBinaryUnique(self, *args, **kwargs):
@@ -74,9 +77,9 @@ def main():
 	print("Preloading cache directories")
 	server.tree.tree.reloadTree()
 	print("Loaded %s items" % server.tree.tree.nodeQuantity)
-	print("Testing reload")
-	server.tree.tree.reloadTree()
-	print("Starting RPC server")
+	# print("Testing reload")
+	# server.tree.tree.reloadTree()
+	# print("Starting RPC server")
 
 
 

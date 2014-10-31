@@ -107,6 +107,9 @@ cdef class BkHammingNode(object):
 	cpdef getWithinDistance(self, int64_t baseHash, int distance):
 		cdef uint64_t selfDist
 
+		cdef int postDelta
+		cdef int negDelta
+
 		selfDist = hamming(self.nodeHash, baseHash)
 
 		ret = set()
@@ -118,7 +121,14 @@ cdef class BkHammingNode(object):
 
 
 		for key in self.children.keys():
-			if key <= selfDist+distance and key >= selfDist-distance:
+
+			# need to use signed intermediate values to avoid wrap-around issues
+			# when the value of `selfDist` < the value of `distance`, negDelta would
+			# wrap if if were unsigned, leading to a false-negative comparison.
+			postDelta = selfDist + distance
+			negDelta  = selfDist - distance
+
+			if key <= postDelta and key >= negDelta:
 				new, tmpTouch = self.children[key].getWithinDistance(baseHash, distance)
 				touched += tmpTouch
 				ret |= new
@@ -197,8 +207,8 @@ class BkHammingTree(object):
 			pass
 
 		ret, touched = self.root.getWithinDistance(baseHash, distance)
-		# print("Touched %s tree nodes, or %1.3f%%" % (touched, touched/self.nodes * 100))
-		# print("Discovered %s match(es)" % len(ret))
+		print("Touched %s tree nodes, or %1.3f%%" % (touched, touched/self.nodes * 100))
+		print("Discovered %s match(es)" % len(ret))
 		return ret
 
 	def __iter__(self):

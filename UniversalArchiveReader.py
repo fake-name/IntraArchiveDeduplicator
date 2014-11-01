@@ -170,3 +170,20 @@ class ArchiveReader(object):
 
 		if self.fp:
 			self.fp.close()
+
+	def open(self, internalPath):
+		if self.archType != '7z':
+			return self.archHandle.open(internalPath)
+		else:
+			return self.archHandle.getmember(internalPath)
+
+	def read(self, internalPath):
+		if self.archType != '7z':
+			return self.archHandle.read(internalPath)
+		else:
+			fp = self.archHandle.getmember(internalPath)
+			content = fp.read()
+			fp.close()
+			return content
+
+

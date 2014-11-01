@@ -195,9 +195,8 @@ class DbApi():
 	def insertIntoDb(self, commit=True, **kwargs):
 		query, queryArguments = self.sqlBuildInsertArgs(**kwargs)
 
-		if self.QUERY_DEBUG:
-			print("Query = ", query)
-			print("Args = ", queryArguments)
+		self.log.debug("Query = '%s'", query)
+		self.log.debug("Args = '%s'", queryArguments)
 
 		with self.transaction(commit=commit) as cur:
 			cur.execute(query, queryArguments)
@@ -209,10 +208,11 @@ class DbApi():
 			if "dbId" in kwargs:
 				where = (self.table.dbid == kwargs.pop('dbId'))
 			elif "fsPath" in kwargs and "internalPath" in kwargs:
-				where = (self.table.fsPath == kwargs.pop('fsPath')) & (self.table.internalPath == kwargs.pop('internalPath'))
+				where = (self.table.fspath == kwargs.pop('fsPath')) & (self.table.internalpath == kwargs.pop('internalPath'))
 			elif "fsPath" in kwargs:
-				where = (self.table.fsPath == kwargs.pop('fsPath'))
+				where = (self.table.fspath == kwargs.pop('fsPath'))
 			else:
+				self.log.error("Passed kwargs = '%s'", kwargs)
 				raise ValueError("updateDbEntryKey must be passed a single unique column identifier (either dbId, fsPath, or fsPath & internalPath)")
 
 		cols = []
@@ -231,13 +231,14 @@ class DbApi():
 
 		query, queryArguments = self.generateUpdateQuery(**kwargs)
 
-		if self.QUERY_DEBUG:
-			print("Query = ", query)
-			print("Args = ", queryArguments)
+
+		self.log.debug("Query = '%s'", query)
+		self.log.debug("Args = '%s'", queryArguments)
 
 
 		with self.transaction(commit=commit) as cur:
 			cur.execute(query, queryArguments)
+
 
 
 	def getItems(self, wantCols=None, where=None, **kwargs):
@@ -258,9 +259,9 @@ class DbApi():
 
 		query, params = tuple(query)
 
-		if self.QUERY_DEBUG:
-			print("Query = ", query)
-			print("Args = ", params)
+
+		self.log.debug("Query = '%s'", query)
+		self.log.debug("Args = '%s'", params)
 
 
 		with self.transaction() as cur:
@@ -288,9 +289,9 @@ class DbApi():
 
 		query, params = tuple(query)
 
-		if self.QUERY_DEBUG:
-			print("Query = ", query)
-			print("Args = ", params)
+
+		self.log.debug("Query = '%s'", query)
+		self.log.debug("Args = '%s'", params)
 
 		# Specifying a name for the cursor causes it to run server-side, making is stream results,
 		# rather then completing the query and returning them as a lump item (which blocks)
@@ -309,9 +310,9 @@ class DbApi():
 
 		query, params = tuple(query)
 
-		if self.QUERY_DEBUG:
-			print("Query = ", query)
-			print("Args = ", params)
+
+		self.log.debug("Query = '%s'", query)
+		self.log.debug("Args = '%s'", params)
 
 
 		with self.transaction() as cur:
@@ -469,7 +470,7 @@ class DbApi():
 		cur = self.conn.cursor()
 		cur.execute("ROLLBACK;")
 		self.inLargeTransaction = False
-		self.log.warn("Block failed. Rolling back changes to DB.")
+		self.log.warning("Block failed. Rolling back changes to DB.")
 
 	def begin(self):
 		self.log.info("Beginning block transaction.")
@@ -507,9 +508,24 @@ class DbApi():
 
 	# TODO: Refactor to use kwargs
 	def updateItem(self, basePath, internalPath, itemHash=None, pHash=None, dHash=None, imgX=None, imgY=None):
-		cur = self.conn.cursor()
-		cur.execute("UPDATE {table} SET itemhash=%s, pHash=%s, dHash=%s, imgx=%s, imgy=%s WHERE fsPath=%s AND internalPath=%s;".format(table=self.tableName),
-			(itemHash, pHash, dHash, imgX, imgY, basePath, internalPath))
+
+		kwargs = {}
+		if itemHash:
+			kwargs['itemHash'] = itemHash
+		if pHash:
+			kwargs['pHash'] = pHash
+		if dHash:
+			kwargs['dHash'] = dHash
+		if imgX:
+			kwargs['imgX'] = imgX
+		if imgY:
+			kwargs['imgY'] = imgY
+
+		self.updateDbEntry(fsPath=basePath, internalPath=internalPath, **kwargs)
+
+		# cur = self.conn.cursor()
+		# cur.execute("UPDATE {table} SET itemhash=%s, pHash=%s, dHash=%s, imgx=%s, imgy=%s WHERE fsPath=%s AND internalPath=%s;".format(table=self.tableName),
+		# 	(itemHash, pHash, dHash, imgX, imgY, basePath, internalPath))
 
 
 	def deleteLikeBasePath(self, basePath):
@@ -517,7 +533,7 @@ class DbApi():
 		cur = self.conn.cursor()
 		cur.execute("DELETE FROM {table} WHERE fsPath LIKE %s;".format(table=self.tableName), (basePath+"%", ))
 		if cur.rowcount == 0:
-			self.log.warn("Deleted {num} items!".format(num=cur.rowcount))
+			self.log.warning("Deleted {num} items!".format(num=cur.rowcount))
 		else:
 			self.log.info("Deleted {num} items on path '{path}'!".format(num=cur.rowcount, path=basePath))
 		self.conn.commit()
@@ -551,9 +567,9 @@ class DbApi():
 		cur = self.conn.cursor()
 		cur.execute("SELECT COUNT(*) FROM {table} WHERE fsPath=%s;".format(table=self.tableName), (basePath, ))
 
-		ret = cur.fetchall()
+		ret = cur.fetchone()
 		self.conn.commit()
-		return ret
+		return ret[0]
 
 	def getInternalItemsOnBasePath(self, basePath):
 		cur = self.conn.cursor()
@@ -562,36 +578,12 @@ class DbApi():
 		self.conn.commit()
 		return ret
 
-	def aggregateItems(self, basePath, internalPath, itemHash):
-		if not hasattr(self, "insertStr"):
-			self.insertStr = []
-		if not hasattr(self, "insertList"):
-			self.insertList = []
-
-		self.insertStr.append("(%s,%s,%s)")
-		self.insertList.append(basePath)
-		self.insertList.append(internalPath)
-		self.insertList.append(itemHash)
-
-
-	def insertAggregate(self):
-		cur = self.conn.cursor()
-		cur.execute("INSERT INTO {table} (fsPath, internalPath, itemhash) VALUES {vals};".format(table=self.tableName, vals=",".join(self.insertStr)), self.insertList)
-
-		self.conn.commit()
-		self.insertStr = []
-		self.insertList = []
-
-
 	def getUniqueOnBasePath(self, basePath):
 
 		cur = self.conn.cursor()
 		cur.execute("SELECT DISTINCT(fsPath) FROM {table} WHERE fsPath LIKE %s;".format(table=self.tableName), (basePath+"%", ))
 
 		return cur
-
-
-
 
 	def getAllItems(self):
 		cur = self.conn.cursor()

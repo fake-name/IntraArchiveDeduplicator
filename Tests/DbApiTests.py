@@ -2,6 +2,7 @@
 import dbApi
 import unittest
 import logSetup
+import psycopg2
 
 class TestDb(dbApi.DbApi):
 	tableName = 'testitems'
@@ -34,7 +35,9 @@ TEST_DATA = [
 	{"fspath" : '/test/dir2',       "internalpath" : '',      "itemhash" : '4607', "phash" : None,     "dhash" : None,     "itemkind" : 'N/A', "imgx" : 50, "imgy" : 50},
 	{"fspath" : '/test/dir5',       "internalpath" : '',      "itemhash" : '4607', "phash" : None,     "dhash" : None,     "itemkind" : 'N/A', "imgx" : 50, "imgy" : 50},
 	{"fspath" : '/lol/test1/WAT',   "internalpath" : 'LOL',   "itemhash" : '6666', "phash" : None,     "dhash" : None,     "itemkind" : 'N/A', "imgx" : 50, "imgy" : 50},
-	{"fspath" : '/lol/test1/HERP',  "internalpath" : 'LOL',   "itemhash" : '5555', "phash" : None,     "dhash" : None,     "itemkind" : 'N/A', "imgx" : 50, "imgy" : 50}
+	{"fspath" : '/lol/test1/WAT',   "internalpath" : 'DURR',  "itemhash" : '6666', "phash" : 90,       "dhash" : 946,      "itemkind" : 'N/A', "imgx" : 50, "imgy" : 50},
+	{"fspath" : '/lol/test1/HERP',  "internalpath" : 'LOL',   "itemhash" : '5555', "phash" : None,     "dhash" : None,     "itemkind" : 'N/A', "imgx" : 50, "imgy" : 50},
+	{"fspath" : '/lol/test1/HERP',  "internalpath" : '',      "itemhash" : '5555', "phash" : None,     "dhash" : None,     "itemkind" : 'N/A', "imgx" : 50, "imgy" : 50}
 ]
 
 KEY_ORDER = ["fspath", "internalpath", "itemhash", "phash", "dhash", "itemkind", "imgx", "imgy"]
@@ -88,7 +91,8 @@ class TestSequenceFunctions(unittest.TestCase):
 	def test_getItems3(self):
 		ret = [(7, '/test/dir1', '', '1234', None, None, 'N/A', 50, 50),
 				(8, '/test/dir2', '', '4607', None, None, 'N/A', 50, 50),
-				(9, '/test/dir5', '', '4607', None, None, 'N/A', 50, 50)]
+				(9, '/test/dir5', '', '4607', None, None, 'N/A', 50, 50),
+				(13, '/lol/test1/HERP', '', '5555', None, None, 'N/A', 50, 50)]
 
 		self.assertEqual(self.db.getItems(internalpath=''), ret)
 
@@ -135,11 +139,11 @@ class TestSequenceFunctions(unittest.TestCase):
 
 	def test_deleteBasePath(self):
 		self.db.deleteBasePath('/test/dir1')
-		self.assertEqual(self.db.getItemNum(), (6,))
+		self.assertEqual(self.db.getItemNum(), (8,))
 		self.db.deleteBasePath('/test/')
-		self.assertEqual(self.db.getItemNum(), (6,))
+		self.assertEqual(self.db.getItemNum(), (8,))
 		self.db.deleteLikeBasePath('/test/')
-		self.assertEqual(self.db.getItemNum(), (2,))
+		self.assertEqual(self.db.getItemNum(), (4,))
 
 
 	# As far as I can tell, these calls are unused (and kind of hard to use, actually). Testing for completeness only.
@@ -163,80 +167,297 @@ class TestSequenceFunctions(unittest.TestCase):
 	def test_getLikeBasePath(self):
 		# def getLikeBasePath(self, basePath):
 		# This is bad, and I should feel bad.
-		ret1 = tuple([item for item in [tuple([row[key] for key in KEY_ORDER if key != 'itemkind']) for row in TEST_DATA] if "/test" in item[0]])
-		ret2 = tuple([item for item in [tuple([row[key] for key in KEY_ORDER if key != 'itemkind']) for row in TEST_DATA] if "/lol"  in item[0]])
+		paths = ['/test', '/lol']
 
-		self.assertEqual(self.db.getLikeBasePath("/test"), ret1)
-		self.assertEqual(self.db.getLikeBasePath("/lol"),  ret2)
-
-		pass
+		for testPath in paths:
+			ret = [item for item in [tuple([row[key] for key in KEY_ORDER if key != 'itemkind']) for row in TEST_DATA] if item[0].startswith(testPath)]
+			self.assertEqual(self.db.getLikeBasePath(testPath), ret)
 
 	def test_moveItem(self):
 		# def moveItem(self, oldPath, newPath):
-		print("IMPLEMENT ME!")
-		pass
+
+		testPath = '/test/dir4'
+		ret = [item for item in [tuple([row[key] for key in KEY_ORDER if key != 'itemkind']) for row in TEST_DATA] if item[0].startswith(testPath)]
+		self.assertEqual(self.db.getLikeBasePath(testPath), ret)
+
+		testPath2 = '/test/dir90'
+		self.db.moveItem(testPath, testPath2)
+		self.assertEqual(self.db.getLikeBasePath(testPath), [])
+
+		ret = [(testPath2, ) + item[1:] for item in ret]
+		self.assertEqual(self.db.getLikeBasePath(testPath2), ret)
+
+
 
 	def test_getPhashLikeBasePath(self):
 		# def getPhashLikeBasePath(self, basePath):
-		print("IMPLEMENT ME!")
-		pass
+		testPath = '/test/dir1'
+
+		dbRet = self.db.getPhashLikeBasePath(testPath)
+		self.assertEqual(dbRet,[(1, 12), (2, 6), (3, 2), (4, 7)])
+
+		testPath = '/test'
+		dbRet = self.db.getPhashLikeBasePath(testPath)
+		self.assertEqual(dbRet,[(1, 12), (2, 6), (3, 2), (4, 7), (5, 7), (6, 7)])
+
+
 	def test_getPHashes(self):
 		# def getPHashes(self, limit=None):
-		print("IMPLEMENT ME!")
-		pass
+		cur = self.db.getPHashes()
+		dbHashes = cur.fetchall()
+		cur.close()
+
+		hashes = [(1, 12), (2, 6), (3, 2), (4, 7), (5, 7), (6, 7), (11, 90)]
+
+		self.assertEqual(hashes, dbHashes)
+
 	def test_getFileDictLikeBasePath(self):
 		# def getFileDictLikeBasePath(self, basePath):
-		print("IMPLEMENT ME!")
-		pass
+		expected = {'/test/dir1':
+			[{'dbId': 1, 'pHash': 12, 'internalPath': 'item1', 'imgy': 50, 'itemHash': 'DEAD', 'fsPath': '/test/dir1', 'dHash': 10, 'imgx': 50},
+			 {'dbId': 2, 'pHash': 6, 'internalPath': 'item2', 'imgy': 50, 'itemHash': 'BEEF', 'fsPath': '/test/dir1', 'dHash': 10, 'imgx': 50},
+			 {'dbId': 3, 'pHash': 2, 'internalPath': 'item3', 'imgy': 50, 'itemHash': 'CAFE', 'fsPath': '/test/dir1', 'dHash': 10, 'imgx': 50},
+			 {'dbId': 4, 'pHash': 7, 'internalPath': 'item4', 'imgy': 50, 'itemHash': 'BABE', 'fsPath': '/test/dir1', 'dHash': 10, 'imgx': 50},
+			 {'dbId': 7, 'pHash': None, 'internalPath': '', 'imgy': 50, 'itemHash': '1234', 'fsPath': '/test/dir1', 'dHash': None, 'imgx': 50}]}
+
+		self.assertEqual(self.db.getFileDictLikeBasePath('/test/dir1'), expected)
+
+		expected = {
+			'/lol/test1/HERP': [
+				{'fsPath': '/lol/test1/HERP', 'itemHash': '5555', 'dHash': None, 'imgx': 50, 'pHash': None, 'dbId': 12, 'imgy': 50, 'internalPath': 'LOL'},
+				{'fsPath': '/lol/test1/HERP', 'itemHash': '5555', 'dHash': None, 'imgx': 50, 'pHash': None, 'dbId': 13, 'imgy': 50, 'internalPath': ''}
+			],
+			'/lol/test1/WAT': [
+				{'fsPath': '/lol/test1/WAT', 'itemHash': '6666', 'dHash': None, 'imgx': 50, 'pHash': None, 'dbId': 10, 'imgy': 50, 'internalPath': 'LOL'},
+				{'fsPath': '/lol/test1/WAT', 'itemHash': '6666', 'dHash': 946, 'imgx': 50, 'pHash': 90, 'dbId': 11, 'imgy': 50, 'internalPath': 'DURR'}
+			]
+		}
+
+
+		self.assertEqual(self.db.getFileDictLikeBasePath('/lol/test1/'), expected)
+
 
 	def test_getDHashes(self):
 		# def getDHashes(self, limit=None):
-		print("IMPLEMENT ME!")
-		pass
-	def test_updateItem(self):
-		# def updateItem(self, basePath, internalPath, itemHash=None, pHash=None, dHash=None, imgX=None, imgY=None):
-		print("IMPLEMENT ME!")
-		pass
+		cur = self.db.getDHashes()
+		dbHashes = cur.fetchall()
+		cur.close()
+
+		hashes = [(1, 10), (2, 10), (3, 10), (4, 10), (5, 10), (6, 10), (11, 946)]
+		self.assertEqual(hashes, dbHashes)
+
+
+		cur = self.db.getDHashes(limit=3)
+		dbHashes = cur.fetchall()
+		cur.close()
+
+		hashes = [(1, 10), (2, 10), (3, 10)]
+		self.assertEqual(hashes, dbHashes)
+
+	def test_getHashes(self):
+		# def getHashes(self, fsPath, internalPath):
+		self.assertEqual(self.db.getHashes('/lol/test1/WAT', ''), (False, False, False))
+		self.assertEqual(self.db.getHashes('DERPPPP', ''), (False, False, False))
+		self.assertEqual(self.db.getHashes('/lol/test1/WAT', 'DURR'), ('6666', 90, 946))
 
 
 	def test_getItemsOnBasePath(self):
 		# def getItemsOnBasePath(self, basePath):
-		print("IMPLEMENT ME!")
-		pass
+
+		ret = self.db.getItemsOnBasePath('/lol/test1')
+		self.assertEqual(ret, [])
+
+		ret = self.db.getItemsOnBasePath('/lol/test1/WAT')
+		match = [
+					('/lol/test1/WAT', 'LOL', '6666', None, 10),
+					('/lol/test1/WAT', 'DURR', '6666', 90, 11)
+				]
+		self.assertEqual(ret, match)
+
+		ret = self.db.getItemsOnBasePath('/test/dir1')
+		match = [
+					('/test/dir1', 'item1', 'DEAD', 12, 1),
+					('/test/dir1', 'item2', 'BEEF', 6, 2),
+					('/test/dir1', 'item3', 'CAFE', 2, 3),
+					('/test/dir1', 'item4', 'BABE', 7, 4),
+					('/test/dir1', '', '1234', None, 7)
+					]
+
+		self.assertEqual(ret, match)
+
 	def test_getItemsOnBasePathInternalPath(self):
 		# def getItemsOnBasePathInternalPath(self, basePath, internalPath):
-		print("IMPLEMENT ME!")
-		pass
+
+		ret = self.db.getItemsOnBasePathInternalPath('/test/dir1', '')
+		self.assertEqual(ret, [('/test/dir1', '', '1234')])
+
+		ret = self.db.getItemsOnBasePathInternalPath('/test/dir1', 'item2')
+		self.assertEqual(ret, [('/test/dir1', 'item2', 'BEEF')])
+
+		ret = self.db.getItemsOnBasePathInternalPath('/lol/test1/WAT', 'LOL')
+		self.assertEqual(ret, [('/lol/test1/WAT', 'LOL', '6666')])
+
+
 	def test_getItemNumberOnBasePath(self):
 		# def getItemNumberOnBasePath(self, basePath):
-		print("IMPLEMENT ME!")
-		pass
-	def test_aggregateItems(self):
-		# def aggregateItems(self, basePath, internalPath, itemHash):
-		print("IMPLEMENT ME!")
-		pass
-	def test_insertAggregate(self):
-		# def insertAggregate(self):
-		print("IMPLEMENT ME!")
-		pass
+
+		self.assertEqual(self.db.getItemNumberOnBasePath('/test/dir1'), 5)
+		self.assertEqual(self.db.getItemNumberOnBasePath('/lol/test1/WAT'), 2)
+		self.assertEqual(self.db.getItemNumberOnBasePath('/HERPADOODLE'), 0)
+
 	def test_getUniqueOnBasePath(self):
 		# def getUniqueOnBasePath(self, basePath):
-		print("IMPLEMENT ME!")
-		pass
+		cur = self.db.getUniqueOnBasePath('/test/')
+		ret = cur.fetchall()
+		cur.close()
+		expect = [
+			('/test/dir4',),
+			('/test/dir2',),
+			('/test/dir5',),
+			('/test/dir1',),
+			('/test/dir3',)
+		]
+
+		self.assertEqual(ret, expect)
+
+		cur = self.db.getUniqueOnBasePath('/lol/')
+		ret = cur.fetchall()
+		cur.close()
+
+		expect = [
+			('/lol/test1/WAT',),
+			('/lol/test1/HERP',)
+		]
+		self.assertEqual(ret, expect)
+
+		cur = self.db.getUniqueOnBasePath('/DERPADOODLE/')
+		ret = cur.fetchall()
+		cur.close()
+
+		expect = []
+		self.assertEqual(ret, expect)
+
 	def test_getAllItems(self):
 		# def getAllItems(self):
-		print("IMPLEMENT ME!")
-		pass
+		cur = self.db.getAllItems()
+		ret = cur.fetchall()
+		cur.close()
+
+		expect = [
+			('/test/dir1', 'item1', 'DEAD'),
+			('/test/dir1', 'item2', 'BEEF'),
+			('/test/dir1', 'item3', 'CAFE'),
+			('/test/dir1', 'item4', 'BABE'),
+			('/test/dir3', 'item0', 'BABE'),
+			('/test/dir4', 'item0', 'BABC'),
+			('/test/dir1', '', '1234'),
+			('/test/dir2', '', '4607'),
+			('/test/dir5', '', '4607'),
+			('/lol/test1/WAT', 'LOL', '6666'),
+			('/lol/test1/WAT', 'DURR', '6666'),
+			('/lol/test1/HERP', 'LOL', '5555'),
+			('/lol/test1/HERP', '', '5555')
+		]
+
+		self.assertEqual(ret, expect)
+
+
 	def test_getItemNum(self):
 		# def getItemNum(self):
-		print("IMPLEMENT ME!")
-		pass
-	def test_getHashes(self):
-		# def getHashes(self, fsPath, internalPath):
-		print("IMPLEMENT ME!")
-		pass
+		self.assertEqual(self.db.getItemNum(), (len(TEST_DATA),))
 
-# Hard to test:
-# def getById(self, dbId):
-# def getStreamingCursor(self, wantCols=None, where=None, limit=None, **kwargs):
+
+	def test_updateItem1(self):
+		# def updateDbEntry(self, commit=True, **kwargs)
+
+		expect = [(1, '/test/dir1', 'item1', 'DEAD', 12, 10, 'N/A', 50, 50)]
+		ret = self.db.getItems(dbId=1)
+		self.assertEqual(ret, expect)
+
+		self.db.updateDbEntry(dbId=1, itemHash='LOLL')
+
+
+		expect = [(1, '/test/dir1', 'item1', 'LOLL', 12, 10, 'N/A', 50, 50)]
+		ret = self.db.getItems(dbId=1)
+		self.assertEqual(ret, expect)
+
+	def test_updateItem2(self):
+		# def updateDbEntry(self, commit=True, **kwargs)
+
+		expect = [(1, '/test/dir1', 'item1', 'DEAD', 12, 10, 'N/A', 50, 50)]
+		ret = self.db.getItems(dbId=1)
+		self.assertEqual(ret, expect)
+
+		self.db.updateItem('/test/dir1', 'item1', itemHash='LOLL')
+
+		expect = [(1, '/test/dir1', 'item1', 'LOLL', 12, 10, 'N/A', 50, 50)]
+		ret = self.db.getItems(dbId=1)
+		self.assertEqual(ret, expect)
+
+	def test_updateItem3(self):
+		# def updateDbEntry(self, commit=True, **kwargs)
+
+
+		expect = [(1, '/test/dir1', 'item1', 'DEAD', 12, 10, 'N/A', 50, 50)]
+		ret = self.db.getItems(dbId=1)
+		self.assertEqual(ret, expect)
+
+		self.db.updateDbEntry(fsPath='/test/dir1', itemHash='LOLL')
+
+		expect = [(1, '/test/dir1', 'item1', 'LOLL', 12, 10, 'N/A', 50, 50)]
+		ret = self.db.getItems(dbId=1)
+		self.assertEqual(ret, expect)
+
+
+	def test_transactionCalls(self):
+		# def commit(self):
+		# def rollback(self):
+		# def begin(self):
+		# def insertItem(self, *args, **kwargs):
+
+		self.db.begin()
+		self.db.commit()
+
+		self.db.begin()
+		self.db.rollback()
+
+		with self.db.transaction() as cur:
+			pass
+		with self.db.transaction(commit=False) as cur:
+			pass
+
+
+		self.db.begin()
+
+		with self.db.transaction() as cur:
+			pass
+		with self.db.transaction(commit=False) as cur:
+			pass
+
+		self.db.commit()
+
+		self.assertRaises(psycopg2.ProgrammingError, self.transactionException)
+
+	def transactionException(self):
+		with self.db.transaction() as cur:
+			cur.execute("WAT WAT?")
+
+	def test_colmapExceptions(self):
+		self.assertRaises(ValueError, self.db.keyToCol, "wat")
+
+
+
+	# Hard to test:
+	def test_getById(self):
+		expect = [('/test/dir1', 'item1', 'DEAD')]
+		ret = self.db.getById(1)
+		self.assertEqual(ret, expect)
+
+	def test_getStreamingCursor(self):
+		# def getStreamingCursor(self, wantCols=None, where=None, limit=None, **kwargs):
+		print("IMPLEMENT ME!")
+
+	def test_updateItem(self):
+		# def updateItem(self, basePath, internalPath, itemHash=None, pHash=None, dHash=None, imgX=None, imgY=None):
+		print("IMPLEMENT ME!")
 

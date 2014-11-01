@@ -1,3 +1,5 @@
 #!/bin/bash
 
-python3 -m unittest Tests.DbApiTests
+coverage run --source=./dbApi.py -m unittest Tests.DbApiTests
+coverage report
+coverage report --show-missing

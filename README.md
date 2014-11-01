@@ -3,15 +3,24 @@ IntraArchiveDeduplicator
 
 Tool for managing data-deduplication within extant compressed archive files, with a heavy focus on Manga/Comic-book archive files.
 
-This is a rather exotic tool that is intended to allow fairly fast duplicate detection for files *within* compressed archives. 
+This is a rather exotic tool that is intended to allow fairly fast duplicate detection for files *within* compressed archives.
 
-It maintains a database of hashes for all files it scans, and actually recurses into compressed archives to 
+It maintains a database of hashes for all files it scans, and actually recurses into compressed archives to
 scan the files within the archives, which should allow detection of archives with duplicate contents, even
 if the archives are compressed using different compression algorithms.
 
-There are also preliminary components for further deduplication using perceptual-hashing of image files within the archives. 
+There are also facilities for searching by image similarity, using a custom tree system.
 
-Right now, the scanning and DB maintenance functionality is largely functional, but the logic to actually do deduplication is not
-yet implemented. However, my [MangaCMS](https://github.com/fake-name/MangaCMS/) project [already has some support](https://github.com/fake-name/MangaCMS/tree/master/deduplicator) for detecting 
-when a newly downloaded file has entirely duplicated content, and the automatic removal of the new file to prevent further
-introduction of duplcates.
+The image similarity system runs as a server on top of an existing PostgreSQL server, as it is implemented in
+python (actually Cython, but basically python). It's fairly memory hungry. Currently, ~9M hashes takes about 5 GB
+of RAM, or ~1Kbyte/hash. There is some room for optimization here.
+
+Theoretically, each hash should take 64\*8 + 8 + (8 \* number of IDs at each node) (+ a few housekeeping) bytes. Hoever,
+right now, a number of the node attributes are stored as hashtables (the child-links, for example), so they
+do not take as much space as they theoretically will if every child pointer pointed to a actual valid node.
+
+Right now, the scanning and DB maintenance functionality is largely functional, but the logic to actually do
+deduplication is very preliminary. My [MangaCMS](https://github.com/fake-name/MangaCMS/) project 
+[already has some support](https://github.com/fake-name/MangaCMS/tree/master/deduplicator) for detecting when a 
+newly downloaded file has entirely duplicated content, and the automatic removal of the new file to prevent further
+introduction of duplicates.  

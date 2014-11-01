@@ -60,6 +60,13 @@ class ArchiveReader(object):
 			print("Returned MIME Type for file = ", self.fType )
 			raise ValueError("Tried to create ArchiveReader on a non-archive file")
 
+	# something somewhere isn't closing properly, making shit leak all over the place (I think?)
+	# Probably the shitty 7z library again (SO MANY ISSUES)
+	def __del__(self):
+		try:
+			self.close()
+		except:
+			pass
 
 	def getZipFileList(self):
 		names = self.archHandle.namelist()
@@ -181,9 +188,8 @@ class ArchiveReader(object):
 		if self.archType != '7z':
 			return self.archHandle.read(internalPath)
 		else:
-			fp = self.archHandle.getmember(internalPath)
-			content = fp.read()
-			fp.close()
+			with self.archHandle.getmember(internalPath) as fp:
+				content = fp.read()
 			return content
 
 

@@ -17,6 +17,7 @@ from contextlib import contextmanager
 import sql
 import sql.aggregate as sqla
 import sql.operators as sqlo
+import sql.functions as sqlf
 
 import multiprocessing
 import functools
@@ -159,6 +160,12 @@ class DbApi():
 			raise ValueError("Invalid column name '%s'" % key)
 		return self.colMap[key]
 
+	def keysToCols(self, inKeyList):
+		cols = []
+		for colName in inKeyList:
+			cols.append(self.keyToCol(colName))
+		return cols
+
 	def sqlBuildInsertArgs(self, **kwargs):
 
 		cols = []
@@ -244,8 +251,7 @@ class DbApi():
 	def getItems(self, wantCols=None, where=None, **kwargs):
 		cols = []
 		if wantCols:
-			for colName in wantCols:
-				cols.append(self.keyToCol(colName))
+			cols = self.keysToCols(wantCols)
 		else:
 			cols = self.cols
 
@@ -609,10 +615,55 @@ class DbApi():
 		return False, False, False
 
 
+	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+	# Oddball utilities primarily for testing
+	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+	def getIdExtents(self):
+
+		query = self.table.select(sqla.Min(self.keyToCol('dbId')), sqla.Max(self.keyToCol('dbId')))
+
+		query, params = tuple(query)
+
+
+		with self.transaction() as cur:
+			cur.execute(query, params)
+			ret = cur.fetchone()
+
+		return ret
+
+
+
+	def getRandomRow(self):
+		wantCols = [
+			"fspath",
+			"internalpath",
+			"itemhash",
+			"phash",
+			"dhash",
+			"imgx",
+			"imgy"
+		]
+		cols = self.keysToCols(wantCols)
+
+		minId, maxId = self.getIdExtents()
+
+
+		ret = None
+		while not ret:
+			dbId = random.randint(minId, maxId+1)
+			query = self.table.select(*cols, where=(self.table.dbid == dbId))
+
+			query, params = tuple(query)
+			with self.transaction() as cur:
+				cur.execute(query, params)
+				ret = cur.fetchone()
+
+		return ret
+
 def test():
 	ind = DbApi()
-	ind.QUERY_DEBUG = True
-	cond = ind.getPHashes(limit=200)
+	print(ind.getRandomRow())
 
 if __name__ == "__main__":
 

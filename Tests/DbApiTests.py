@@ -262,28 +262,18 @@ class TestSequenceFunctions(unittest.TestCase):
 
 
 	def test_getItemsOnBasePath(self):
-		# def getItemsOnBasePath(self, basePath):
 
-		ret = self.db.getItemsOnBasePath('/lol/test1')
-		self.assertEqual(ret, [])
+		keyStrs = ['/test/dir1', '/lol/test1/WAT', '/lol/test1']
+		for keyStr in keyStrs:
 
-		ret = self.db.getItemsOnBasePath('/lol/test1/WAT')
-		match = [
-					('/lol/test1/WAT', 'LOL', '6666', None, 10),
-					('/lol/test1/WAT', 'DURR', '6666', 90, 11)
-				]
-		self.assertEqual(ret, match)
+			expect = []
+			for indice, row in enumerate(TEST_DATA):
+				if keyStr == row['fspath']:
+					expect.append((row["fspath"], row["internalpath"], row["itemhash"], row['phash'], indice+1))
 
-		ret = self.db.getItemsOnBasePath('/test/dir1')
-		match = [
-					('/test/dir1', 'item1', 'DEAD', 12, 1),
-					('/test/dir1', 'item2', 'BEEF', 6, 2),
-					('/test/dir1', 'item3', 'CAFE', 2, 3),
-					('/test/dir1', 'item4', 'BABE', 7, 4),
-					('/test/dir1', '', '1234', None, 7)
-					]
+			ret = self.db.getItemsOnBasePath(keyStr)
+			self.assertEqual(ret, expect)
 
-		self.assertEqual(ret, match)
 
 	def test_getItemsOnBasePathInternalPath(self):
 		# def getItemsOnBasePathInternalPath(self, basePath, internalPath):
@@ -343,21 +333,9 @@ class TestSequenceFunctions(unittest.TestCase):
 		ret = cur.fetchall()
 		cur.close()
 
-		expect = [
-			('/test/dir1', 'item1', 'DEAD'),
-			('/test/dir1', 'item2', 'BEEF'),
-			('/test/dir1', 'item3', 'CAFE'),
-			('/test/dir1', 'item4', 'BABE'),
-			('/test/dir3', 'item0', 'BABE'),
-			('/test/dir4', 'item0', 'BABC'),
-			('/test/dir1', '', '1234'),
-			('/test/dir2', '', '4607'),
-			('/test/dir5', '', '4607'),
-			('/lol/test1/WAT', 'LOL', '6666'),
-			('/lol/test1/WAT', 'DURR', '6666'),
-			('/lol/test1/HERP', 'LOL', '5555'),
-			('/lol/test1/HERP', '', '5555')
-		]
+		expect = []
+		for row in TEST_DATA:
+			expect.append((row["fspath"], row["internalpath"], row["itemhash"]))
 
 		self.assertEqual(ret, expect)
 
@@ -445,14 +423,28 @@ class TestSequenceFunctions(unittest.TestCase):
 	def test_colmapExceptions(self):
 		self.assertRaises(ValueError, self.db.keyToCol, "wat")
 
+	def test_getExtents(self):
+		minId, maxId = self.db.getIdExtents()
+		self.assertEqual(minId, 1)
+		self.assertEqual(maxId, len(TEST_DATA))
+
+	def test_getRandom(self):
+		ret = self.db.getRandomRow()
+
+		rows = []
+		for row in TEST_DATA:
+			rows.append((row["fspath"], row["internalpath"], row["itemhash"], row["phash"], row["dhash"], row["imgx"], row["imgy"] ))
+
+		self.assertIn(ret, rows)
 
 
-	# Hard to test:
+
 	def test_getById(self):
 		expect = [('/test/dir1', 'item1', 'DEAD')]
 		ret = self.db.getById(1)
 		self.assertEqual(ret, expect)
 
+	# Hard to test:
 	def test_getStreamingCursor(self):
 		# def getStreamingCursor(self, wantCols=None, where=None, limit=None, **kwargs):
 		print("IMPLEMENT ME!")

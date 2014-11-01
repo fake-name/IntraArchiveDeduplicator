@@ -15,7 +15,7 @@ The image similarity system runs as a server on top of an existing PostgreSQL se
 python (actually Cython, but basically python). It's fairly memory hungry. Currently, ~9M hashes takes about 5 GB
 of RAM, or ~1Kbyte/hash. There is some room for optimization here.
 
-Theoretically, each hash should take 64\*8 + 8 + (8 \* number of IDs at each node) (+ a few housekeeping) bytes. Hoever,
+Theoretically, each hash should take 64\*8 + 8 + (8 \* number of IDs at each node) (+ a few housekeeping) bytes. However,
 right now, a number of the node attributes are stored as hashtables (the child-links, for example), so they
 do not take as much space as they theoretically will if every child pointer pointed to a actual valid node.
 
@@ -24,3 +24,24 @@ deduplication is very preliminary. My [MangaCMS](https://github.com/fake-name/Ma
 [already has some support](https://github.com/fake-name/MangaCMS/tree/master/deduplicator) for detecting when a 
 newly downloaded file has entirely duplicated content, and the automatic removal of the new file to prevent further
 introduction of duplicates.  
+
+
+Dependencies:  
+
+ - PostgreSQL >= 9.3 (Possibly any >9.0?)
+ - Psycopg2
+ - Cython
+ - RPyC
+ - Colorama
+ - python-sql
+
+For PHashing:  
+
+ - Numpy
+ - Scipy
+ - Pillow
+
+For Unit testing:
+
+ - Coverage.py
+ - Bitstring

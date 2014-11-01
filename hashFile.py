@@ -5,7 +5,7 @@ import io
 import hashlib
 
 
-
+import unitConverters
 
 from PIL import Image
 import numpy
@@ -23,12 +23,9 @@ def binary_array_to_hex(arr):
 	return "".join(s)
 
 # Probably not functional on a 32-bit arch?
-def binary_array_to_int(arr):
-	tot_sum = 0
-	for i,v in enumerate(arr.flatten()):
-		if v:
-			tot_sum += 1 << i
-	return tot_sum
+
+
+
 
 """
 Hash encapsulation. Can be used for dictionary keys and comparisons.
@@ -54,7 +51,7 @@ class ImageHash(object):
 		return not numpy.array_equal(self.hash, other.hash)
 
 	def __hash__(self):
-		return binary_array_to_int(self.hash)
+		return unitConverters.binary_array_to_int(self.hash)
 
 	def __iter__(self):
 		return numpy.nditer(self.hash, order='C')  # Specify memory order, so we're (theoretically) platform agnostic

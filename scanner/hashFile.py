@@ -72,23 +72,6 @@ class ImageHash(object):
 
 
 
-
-
-"""
-Average Hash computation
-
-Implementation follows http://www.hackerfactor.com/blog/index.php?/archives/432-Looks-Like-It.html
-
-@image must be a PIL instance.
-"""
-def average_hash(image, hash_size=8):
-	image = image.convert("L").resize((hash_size, hash_size), Image.ANTIALIAS)
-	pixels = numpy.array(image.getdata()).reshape((hash_size, hash_size))
-	avg = pixels.mean()
-	diff = pixels > avg
-	# make a hash
-	return ImageHash(diff), image
-
 """
 Perceptual Hash computation.
 
@@ -121,7 +104,7 @@ def dhash(image, hash_size=8):
 
 
 
-__dir__ = [average_hash, phash, ImageHash]
+__dir__ = [phash, ImageHash]
 
 
 
@@ -153,13 +136,16 @@ def hashFile(basePath, fname, fContents, shouldPhash=True):
 
 
 		im = Image.open(io.BytesIO(fContents))
+
+		# The later calls permute the image size, so we need to save it now
+		imX, imY = im.size
+
 		pHashArr, im = phash(im)
 		dHashArr     = dhash(im)
 
 		pHash = int(pHashArr)
 		dHash = int(dHashArr)
 
-		imX, imY = im.size
 
 
 	return fname, hexHash, pHash, dHash, imX, imY
@@ -170,20 +156,3 @@ def getMd5Hash(fContents):
 	fMD5.update(fContents)
 	hexHash = fMD5.hexdigest()
 	return hexHash
-
-def test():
-	import sys
-	print(sys.argv)
-	if len(sys.argv) < 2:
-		print("Need path to image as command line param")
-		return
-	imPath = sys.argv[1]
-	with open(imPath, "rb") as fp:
-		cont = fp.read()
-		hashes = hashFile(imPath, "", cont)
-		print(hashes)
-
-
-if __name__ == "__main__":
-	test()
-

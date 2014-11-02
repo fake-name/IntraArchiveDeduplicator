@@ -15,5 +15,5 @@
 # coverage erase
 
 
-python3 $(which nosetests) --with-coverage --exe --cover-package=dbApi
+python3 $(which nosetests) --with-coverage --exe --cover-package=dbApi --cover-package=scanner.hashFile
 

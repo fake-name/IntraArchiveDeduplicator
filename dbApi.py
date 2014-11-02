@@ -257,13 +257,9 @@ class DbApi():
 		if not where:
 			where = self.sqlBuildConditional(**kwargs)
 
-
-
 		query = self.table.select(*cols, where=where)
 
-
 		query, params = tuple(query)
-
 
 		self.log.debug("Query = '%s'", query)
 		self.log.debug("Args = '%s'", params)
@@ -273,6 +269,15 @@ class DbApi():
 			cur.execute(query, params)
 			ret = cur.fetchall()
 
+		return ret
+
+	def getItem(self, **kwargs):
+		ret = self.getItems(**kwargs)
+		if len(ret) > 1:
+			raise ValueError("GetItem can only fetch a single item.")
+
+		if ret:
+			return ret[0]
 		return ret
 
 	def getStreamingCursor(self, wantCols=None, where=None, limit=None, **kwargs):
@@ -467,6 +472,26 @@ class DbApi():
 		return ret
 
 
+	def deleteDbRows(self, commit=True, where=None, **kwargs):
+
+		if not where:
+			where = self.sqlBuildConditional(**kwargs)
+
+		if not where:
+			raise ValueError("Trying to delete the whole table?")
+
+		query = self.table.delete(where=where)
+
+		query, params = tuple(query)
+
+		self.log.info("Query = '%s'", query)
+		self.log.info("Args = '%s'", params)
+
+
+		with self.transaction() as cur:
+			cur.execute(query, params)
+
+
 	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 	# Block-transaction methods
 	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -492,8 +517,13 @@ class DbApi():
 	def insertItem(self, *args, **kwargs):
 		if args:
 			raise ValueError("All values passed to insertItem must be keyworded. Passed positional arguments: '%s'" % args)
-		print("FIX ME INDIRECT CALL!!!!")
+		print("FIX ME INDIRECT CALL TWO!!!!")
 		self.insertIntoDb(**kwargs)
+
+
+	def updateItem(self, basePath, internalPath, **kwargs):
+		print("FIX ME INDIRECT CALL ONE!!!!")
+		self.updateDbEntry(fsPath=basePath, internalPath=internalPath, **kwargs)
 
 
 	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -514,29 +544,6 @@ class DbApi():
 			cur.execute("SELECT dbId, dHash FROM {table} WHERE dHash IS NOT NULL LIMIT %s;".format(table=self.tableName), (limit, ))
 
 		return cur
-
-
-
-	# TODO: Refactor to use kwargs
-	def updateItem(self, basePath, internalPath, itemHash=None, pHash=None, dHash=None, imgX=None, imgY=None):
-
-		kwargs = {}
-		if itemHash:
-			kwargs['itemHash'] = itemHash
-		if pHash:
-			kwargs['pHash'] = pHash
-		if dHash:
-			kwargs['dHash'] = dHash
-		if imgX:
-			kwargs['imgX'] = imgX
-		if imgY:
-			kwargs['imgY'] = imgY
-
-		self.updateDbEntry(fsPath=basePath, internalPath=internalPath, **kwargs)
-
-		# cur = self.conn.cursor()
-		# cur.execute("UPDATE {table} SET itemhash=%s, pHash=%s, dHash=%s, imgx=%s, imgy=%s WHERE fsPath=%s AND internalPath=%s;".format(table=self.tableName),
-		# 	(itemHash, pHash, dHash, imgX, imgY, basePath, internalPath))
 
 
 	def deleteLikeBasePath(self, basePath):

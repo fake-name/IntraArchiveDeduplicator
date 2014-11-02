@@ -119,8 +119,13 @@ class TestSequenceFunctions(unittest.TestCase):
 
 	def test_insert(self):
 		key = len(TEST_DATA) + 1
+		self.tree.insert(b2i('0000000000000000000000000000000000000001111111111111111000000001'), key)
 
-		# tgtHash
+	def test_insertErr(self):
+		key = len(TEST_DATA) + 2
+		self.assertRaises(ValueError, self.tree.insert, 'wat', 1)
+
+
 
 
 	def test_distance(self):

@@ -49,12 +49,15 @@ class TestSequenceFunctions(unittest.TestCase):
 		logSetup.initLogging()
 		super().__init__(*args, **kwargs)
 
+	# Exists solely so I can override it in other test classes
+	def getDb(self):
+		return TestDb()
+
 	def setUp(self):
 
 		self.addCleanup(self.dropDatabase)
 
-
-		self.db = TestDb()
+		self.db = self.getDb()
 		for testRow in TEST_DATA:
 			self.db.insertIntoDb(**testRow)
 
@@ -100,6 +103,19 @@ class TestSequenceFunctions(unittest.TestCase):
 
 		ret = [(row['fspath'], row['internalpath'], row['itemhash']) for row in TEST_DATA]
 		self.assertEqual(self.db.getItems(wantCols=["fspath", "internalpath", "itemhash"]), ret)
+
+	def test_getItem1(self):
+		item = self.db.getItem(fspath='/test/dir1', internalpath='item1')
+		expect = (1, '/test/dir1', 'item1', 'DEAD', 12, 10, 'N/A', 50, 50)
+		self.assertEqual(item, expect)
+
+	def test_getItem2(self):
+		item = self.db.getItem(fspath='/test/dir1asasddddddd', internalpath='item1WAT')
+		expect = []
+		self.assertEqual(item, expect)
+
+	def test_getItem3(self):
+		self.assertRaises(ValueError, self.db.getItem, fspath='/test/dir1')
 
 	def test_itemInDB(self):
 		self.assertEqual(self.db.itemInDB(),                                                True)
@@ -390,12 +406,27 @@ class TestSequenceFunctions(unittest.TestCase):
 		ret = self.db.getItems(dbId=1)
 		self.assertEqual(ret, expect)
 
+	def test_insertItem(self):
+
+
+		# def insertItem(self, *args, **kwargs):
+		ret = self.db.getItems(fspath='/durr/wat', internalpath='lolercoaster')
+		self.assertEqual(ret, [])
+
+		row = {'pHash': None, 'internalPath': 'lolercoaster', 'imgy': 50, 'itemHash': '1234', 'fsPath': '/durr/wat', 'dHash': None, 'imgx': 50}
+		self.db.insertItem(**row)
+
+		ret = self.db.getItems(fspath='/durr/wat', internalpath='lolercoaster')
+
+		expect = [(14, '/durr/wat', 'lolercoaster', '1234', None, None, None, 50, 50)]
+		self.assertEqual(ret, expect)
+
+
 
 	def test_transactionCalls(self):
 		# def commit(self):
 		# def rollback(self):
 		# def begin(self):
-		# def insertItem(self, *args, **kwargs):
 
 		self.db.begin()
 		self.db.commit()
@@ -420,6 +451,7 @@ class TestSequenceFunctions(unittest.TestCase):
 
 		self.assertRaises(psycopg2.ProgrammingError, self.transactionException)
 
+
 	def transactionException(self):
 		with self.db.transaction() as cur:
 			cur.execute("WAT WAT?")
@@ -441,19 +473,24 @@ class TestSequenceFunctions(unittest.TestCase):
 
 		self.assertIn(ret, rows)
 
-
-
 	def test_getById(self):
 		expect = [('/test/dir1', 'item1', 'DEAD')]
 		ret = self.db.getById(1)
 		self.assertEqual(ret, expect)
 
+
+	def test_deleteRows1(self):
+
+		self.assertEqual(self.db.getItemNumberOnBasePath('/test/dir1'), 5)
+		self.db.deleteDbRows(fspath='/test/dir1', internalpath='item1')
+		self.assertEqual(self.db.getItemNumberOnBasePath('/test/dir1'), 4)
+		self.db.deleteDbRows(fspath='/test/dir1')
+		self.assertEqual(self.db.getItemNumberOnBasePath('/test/dir1'), 0)
+
+		self.assertRaises(ValueError, self.db.deleteDbRows)
+
 	# Hard to test:
 	def test_getStreamingCursor(self):
 		# def getStreamingCursor(self, wantCols=None, where=None, limit=None, **kwargs):
-		print("IMPLEMENT ME!")
-
-	def test_updateItem(self):
-		# def updateItem(self, basePath, internalPath, itemHash=None, pHash=None, dHash=None, imgX=None, imgY=None):
 		print("IMPLEMENT ME!")
 

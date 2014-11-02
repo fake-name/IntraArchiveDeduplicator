@@ -5,6 +5,10 @@ import scanner.logSetup as logSetup
 import psycopg2
 from scanner.unitConverters import binStrToInt as b2i
 
+import pyximport
+pyximport.install()
+import deduplicator.cyHamDb as hamDb
+
 class TestDb(dbPhashApi.PhashDbApi):
 	tableName = 'testitems'
 
@@ -77,6 +81,9 @@ class TestSequenceFunctions(unittest.TestCase):
 
 	def dropDatabase(self):
 		self.db.tearDown()
+
+	def test_treeExists(self):
+		self.assertIsInstance(self.db.tree, hamDb.BkHammingTree)
 
 
 	def test_getItemsSimple(self):

@@ -5,7 +5,7 @@ import io
 import hashlib
 
 
-import unitConverters
+import scanner.unitConverters
 
 from PIL import Image
 import numpy
@@ -48,7 +48,7 @@ class ImageHash(object):
 		return not numpy.array_equal(self.hash, other.hash)
 
 	def __hash__(self):
-		return unitConverters.binary_array_to_int(self.hash)
+		return scanner.unitConverters.binary_array_to_int(self.hash)
 
 	def __iter__(self):
 		return numpy.nditer(self.hash, order='C')  # Specify memory order, so we're (theoretically) platform agnostic

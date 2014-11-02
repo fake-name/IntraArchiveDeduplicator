@@ -8,7 +8,6 @@ import random
 random.seed()
 
 import psycopg2
-import logSetup
 
 import settings
 
@@ -329,7 +328,13 @@ class DbApi():
 
 	def getNumberOfPhashes(self, **kwargs):
 		where = self.sqlBuildConditional(**kwargs)
-		where = where & (self.keyToCol('pHash') != '')
+		havePHash = (self.keyToCol('pHash') != None)
+
+		if where:
+			where = where & havePHash
+		else:
+			where = havePHash
+
 		return self.getNumberOfRows(where=where)
 
 	def itemInDB(self, **kwargs):
@@ -667,6 +672,7 @@ def test():
 
 if __name__ == "__main__":
 
-	logSetup.initLogging()
+	import scanner.logSetup
+	scanner.logSetup.initLogging()
 	test()
 

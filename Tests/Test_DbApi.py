@@ -1,7 +1,7 @@
 
 import dbApi
 import unittest
-import logSetup
+import scanner.logSetup as logSetup
 import psycopg2
 
 class TestDb(dbApi.DbApi):
@@ -294,6 +294,10 @@ class TestSequenceFunctions(unittest.TestCase):
 		self.assertEqual(self.db.getItemNumberOnBasePath('/test/dir1'), 5)
 		self.assertEqual(self.db.getItemNumberOnBasePath('/lol/test1/WAT'), 2)
 		self.assertEqual(self.db.getItemNumberOnBasePath('/HERPADOODLE'), 0)
+
+	def test_getNumberOfPhashes(self):
+		self.assertEqual(self.db.getNumberOfPhashes(), 7)
+		self.assertEqual(self.db.getNumberOfPhashes(fspath='/test/dir1'), 4)
 
 	def test_getUniqueOnBasePath(self):
 		# def getUniqueOnBasePath(self, basePath):

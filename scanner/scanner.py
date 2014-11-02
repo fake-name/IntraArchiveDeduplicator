@@ -4,10 +4,10 @@
 import os
 import os.path
 import sys
-import logSetup
+import scanner.logSetup
 
 import multiprocessing
-import runState
+import scanner.runState
 
 import logging
 
@@ -15,17 +15,17 @@ import random
 random.seed()
 
 import signal
-import uiFrontend
-import fileHasher
-import time
-import types
+import scanner.uiFrontend
+import scanner.fileHasher
+
+
 
 
 class DedupScanTool(object):
 	def __init__(self, scanConf):
 
 
-		logSetup.initLogging()
+		scanner.logSetup.initLogging()
 		self.log = logging.getLogger("Main.Scanner")
 
 		try:
@@ -47,14 +47,14 @@ class DedupScanTool(object):
 
 		self.toProcessQueue = multiprocessing.Queue()
 		self.processedHashQueue = multiprocessing.Queue()
-		self.readout = uiFrontend.UiReadout(self.processedHashQueue, self.toProcessQueue)
+		self.readout = scanner.uiFrontend.UiReadout(self.processedHashQueue, self.toProcessQueue)
 		self.readout.startThread()
 
 
 
 
 		self.log.info("Initializing %s scanning threads.", self.threads)
-		self.hashEngine = fileHasher.HashEngine(self.toProcessQueue, self.processedHashQueue, self.threads, self.doPhash, integrity=self.checkIntegrity)
+		self.hashEngine = scanner.fileHasher.HashEngine(self.toProcessQueue, self.processedHashQueue, self.threads, self.doPhash, integrity=self.checkIntegrity)
 		self.hashEngine.runThreads()
 		self.log.info("File scanning threads running.")
 
@@ -108,7 +108,7 @@ class DedupScanTool(object):
 			self.log.info("Not verifying archive checksums.")
 
 
-		if not runState.run:
+		if not scanner.runState.run:
 			return
 
 		self.log.info("Starting scan.")
@@ -153,10 +153,10 @@ class DedupScanTool(object):
 		self.log.info("Complete. Exiting.")
 
 	def sigIntHandler(self, dummy_signal, dummy_frame):
-		if runState.run:
+		if scanner.runState.run:
 			print("")
 			print("SIGINT Received: Telling threads to stop")
-			runState.run = False
+			scanner.runState.run = False
 			self.hashEngine.haltEarly()
 
 		else:
@@ -180,4 +180,4 @@ def doScan(scanConf):
 	ddT.waitComplete()
 
 	print("Scan Complete")
-	runState.run = False
+	scanner.runState.run = False

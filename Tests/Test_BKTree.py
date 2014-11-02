@@ -1,6 +1,6 @@
 
 import unittest
-import logSetup
+import scanner.logSetup as logSetup
 from bitstring import Bits
 
 import pyximport

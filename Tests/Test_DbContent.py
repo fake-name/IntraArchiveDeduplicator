@@ -1,9 +1,9 @@
 
 import dbApi
 import unittest
-import logSetup
+import scanner.logSetup as logSetup
 import os.path
-import hashFile
+import scanner.hashFile as hashFile
 import UniversalArchiveReader as uar
 import sys
 
@@ -70,7 +70,7 @@ class TestSequenceFunctions(unittest.TestCase):
 
 	def test_getItemsSimple(self):
 		x = 0
-		while x < 1500:
+		while x < 10:
 			ret = self.singleRowTest()
 			if ret:
 				x += 1

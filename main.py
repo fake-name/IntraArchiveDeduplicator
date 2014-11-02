@@ -1,13 +1,12 @@
 
 import argparse
-import scanner
-import proc
+import scanner.scanner
+
 import sys
 
-import runState
-import signal
 
-import deduplicator.dupCheck
+
+
 
 if __name__ == "__main__":
 	# signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -27,42 +26,12 @@ if __name__ == "__main__":
 	parserDirScan.add_argument('-s', '--nophash',     required=False, dest="noPhash", action='store_true')
 	parserDirScan.add_argument('-c', '--noIntegrity', required=False, dest="noIntegrityCheck", action='store_true')
 
-	parserDirScan.set_defaults(func=scanner.doScan)
+	parserDirScan.set_defaults(func=scanner.scanner.doScan)
 
-	# # --------------- Processing ----------------------
-
-	parserDirScan = subparsers.add_parser('dir-clean', help="Load set of cached hashes, and move all duplicate zips therein")
-	parserDirScan.add_argument('-i', '--in-folder', required=True, dest="targetDir")
-
-	# parserDirScan.add_argument('--move', required=False, dest="movePath")
-	# parserDirScan.add_argument('--move-go', required=False, dest="doMove", action='store_true')
-
-	# match-externals means chose and delete the files *outside* of the target path that are duplicates of the files *in* the target path
-	parserDirScan.add_argument("-e", '--match-externals', required=False, dest="externals", action='store_true')
-
-	# parserDirRestore = subparsers.add_parser('restore', help="Load set of cached hashes, and move all duplicate zips therein")
-	# parserDirRestore.add_argument('-i', '--in-folder', required=False, dest="filterPath")
-
-	parserDirScan.set_defaults(func=proc.Deduper.dedupe)
-	# parserDirRestore.set_defaults(func=procDdTool.restoreFiles)
-
-	# # --------------- phash stuff ----------------------
-
-
-
-	parserDirScan = subparsers.add_parser('phash-clean', help="Load phashes from scan-base, delete matching phashes within distance ")
-	parserDirScan.add_argument('-i', '--in-folder',    required=True, dest="targetDir")
-	parserDirScan.add_argument("-m", '--move-to-dir', required=True, dest="removeDir")
-	parserDirScan.add_argument("-s", '--scan-base',    required=True, dest="scanEnv")
-	parserDirScan.add_argument("-d", '--distance',     default=2,     dest="compDistance", type=int,)
-
-
-	parserDirScan.set_defaults(func=deduplicator.dupCheck.phashScan)
-	# parserDirRestore.set_defaults(func=procDdTool.restoreFiles)
 
 
 	argsParsed = parser.parse_args()
 	if len(sys.argv) > 1:
 		argsParsed.func(argsParsed)
 	else:
-		print("You must specify the operating mode. 'dir-scan', 'dir-clean' or 'phash-clean'")
+		print("You must specify the operating mode. 'dir-scan' is the only supported mode currently")

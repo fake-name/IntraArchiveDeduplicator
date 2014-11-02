@@ -1,6 +1,6 @@
 
 import dbApi
-import runState
+import scanner.runState
 import logging
 import os.path
 import queue
@@ -59,7 +59,7 @@ class UiReadout(object):
 
 	def run(self):
 		commits = 0
-		while runState.run:
+		while scanner.runState.run:
 
 			try:
 				item = self.hashQueue.get(timeout=0.1)

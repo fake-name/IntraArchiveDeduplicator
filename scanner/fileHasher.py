@@ -3,7 +3,7 @@
 
 
 import queue
-import runState
+import scanner.runState
 
 import UniversalArchiveReader
 
@@ -19,7 +19,7 @@ import os.path
 import random
 random.seed()
 
-import hashFile as hasher
+import scanner.hashFile as hasher
 
 import traceback
 
@@ -83,7 +83,7 @@ class HashEngine(object):
 		for item in itemsCursor:
 			retItems += 1
 			items.append(item[0])
-			if not runState.run:
+			if not scanner.runState.run:
 				print("Breaking due to exit flag")
 				return
 
@@ -98,7 +98,7 @@ class HashEngine(object):
 				self.log.info("Item %s does not exist. Should delete from DB", itemPath)
 				self.dbApi.deleteBasePath(itemPath)
 
-			if not runState.run:
+			if not scanner.runState.run:
 				print("Breaking due to exit flag")
 				return
 
@@ -203,7 +203,7 @@ class HashThread(object):
 
 				self.dbApi.insertIntoDb(**insertArgs)
 				self.outQ.put("processed")
-				if not runState.run:
+				if not scanner.runState.run:
 					break
 		except:
 			self.dbApi.rollback()

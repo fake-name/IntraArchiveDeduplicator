@@ -119,7 +119,7 @@ class DbBase(object):
 
 class TreeProcessor(DbBase):
 
-	def __init__(self, matchDir, removeDir, distanceThresh, callBack=None):
+	def __init__(self, removeDir, distanceThresh, matchDir=None, callBack=None):
 		super().__init__()
 		self.log      = logging.getLogger("Main.Processor")
 
@@ -133,7 +133,8 @@ class TreeProcessor(DbBase):
 
 		# Items are moved to removeDir for manual deletion
 		self.delProxyDir = removeDir
-		self.root.loadTree(matchDir)
+		if matchDir:
+			self.root.loadTree(matchDir)
 
 		self.callBack = callBack
 
@@ -143,7 +144,10 @@ class TreeProcessor(DbBase):
 		# If the item doesn't have a phash (not an image?), check for binary duplicates
 		if not item['pHash']:
 
-			where = (sqlo.Like(self.root.db.table.fspath, self.matchDir+'%') & (self.root.db.table.itemhash == item['itemHash']))
+
+			where = (self.root.db.table.itemhash == item['itemHash'])
+			if self.matchDir:
+				where = (where & sqlo.Like(self.root.db.table.fspath, self.matchDir+'%'))
 			matches = self.root.db.getItems(wantCols=["dbId"], where=where)
 
 			return matches
@@ -226,6 +230,11 @@ class TreeProcessor(DbBase):
 		items.sort(reverse=True)
 		baseItemNum = self.root.db.getNumberOfPhashes(fsPath=filePath)
 		for commonSet, matchSize, matchFilePath in items[:5]:
+
+			# If the item is less then a 25% match, skip printing it.
+			if commonSet / baseItemNum < 0.25:
+				continue
+
 			self.log.info("	Match: '%s', '%s', %s', '%s'", baseItemNum, commonSet, matchSize, matchFilePath)
 
 
@@ -313,7 +322,6 @@ class TreeProcessor(DbBase):
 		items = self.root.db.getItemsOnBasePath(itemPath)
 		for fsPath, dummy_internalPath, dummy_itemhash, pHash, dbId in items:
 			if pHash:
-				pHash = int(pHash, 2)
 				self.root.remove(fsPath, pHash, dbId)
 
 	@classmethod

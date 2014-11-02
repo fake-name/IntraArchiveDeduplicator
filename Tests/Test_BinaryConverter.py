@@ -1,14 +1,14 @@
 
 import unittest
-import logSetup
+import scanner.logSetup as logSetup
 from bitstring import Bits
 
 import numpy as np
 import random
 random.seed()
 
-import hashFile
-import unitConverters
+import scanner.hashFile as hashFile
+import scanner.unitConverters as unitConverters
 
 
 def b2i(binaryStringIn):

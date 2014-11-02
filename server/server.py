@@ -1,17 +1,22 @@
 
 
 import rpyc
+import dbApi
 from rpyc.utils.server import ThreadedServer
 import logging
 import deduplicator.dupCheck
 import logSetup
 import settings
-
+import server.decorators
 import server.tree
 
 #TODO: A much cleaner message-passing interface here would be quite nice
 
+
+
 class DbInterfaceServer(rpyc.Service):
+
+
 
 	def on_connect(self):
 		print("Client Connection established!")
@@ -31,28 +36,17 @@ class DbInterfaceServer(rpyc.Service):
 		return server.tree.tree.nodes
 
 
+	@server.decorators.exposify
 	class exposed_ArchChecker(deduplicator.dupCheck.ArchChecker):
-		def exposed_isBinaryUnique(self, *args, **kwargs):
-			return super().isBinaryUnique(*args, **kwargs)
-		def exposed_isPhashUnique(self, *args, **kwargs):
-			return super().isPhashUnique(*args, **kwargs)
-		def exposed_getHashes(self, *args, **kwargs):
-			return super().getHashes(*args, **kwargs)
-		def exposed_deleteArch(self, *args, **kwargs):
-			return super().deleteArch(*args, **kwargs)
-		def exposed_addNewArch(self, *args, **kwargs):
-			return super().addNewArch(*args, **kwargs)
+		pass
 
-
+	@server.decorators.exposify
 	class exposed_TreeProcessor(deduplicator.dupCheck.TreeProcessor):
-		def exposed_trimTree(self, *args, **kwargs):
-			return super().trimTree(*args, **kwargs)
+		pass
 
-		def exposed_trimFiles(self, *args, **kwargs):
-			return super().trimFiles(*args, **kwargs)
-
-		def exposed_removeArchive(self, *args, **kwargs):
-			return super().removeArchive(*args, **kwargs)
+	@server.decorators.exposify
+	class exposed_DbApi(dbApi.DbApi):
+		pass
 
 
 def run_server():
@@ -81,13 +75,10 @@ def main():
 	# server.tree.tree.reloadTree()
 	# print("Starting RPC server")
 
-
-
 	run_server()
+
 	# server_reloader.main(
-	# 	run_server,
-	# 	before_reload=before_reload,
-	# 	before_exit=before_exit
+	# 	run_server
 	# )
 
 if __name__ == '__main__':

@@ -22,9 +22,6 @@ def binary_array_to_hex(arr):
 			h = 0
 	return "".join(s)
 
-# Probably not functional on a 32-bit arch?
-
-
 
 
 """
@@ -75,18 +72,6 @@ class ImageHash(object):
 
 
 
-
-def hex_to_hash(hexstr):
-	l = []
-	if len(hexstr) != 16:
-		print(hexstr)
-	for i in range(len(hexstr) / 2):
-		#for h in hexstr[::2]:
-		h = hexstr[i*2:i*2+2]
-		v = int("0x" + h, 16)
-		for i in range(8):
-			l.append(v & 2**i > 0)
-	return ImageHash(numpy.array(l))
 
 
 """

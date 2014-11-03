@@ -23,6 +23,9 @@ class TestDb(dbApi.DbApi):
 		cur.execute('DROP TABLE {table} CASCADE;'.format(table=self.tableName))
 		cur.execute("COMMIT;")
 
+		#And close the DB connection
+		self.conn.close()
+
 
 TEST_DATA = [
 	{"fspath" : '/test/dir1',       "internalpath" : 'item1', "itemhash" : 'DEAD', "phash" : 12,       "dhash" : 10,       "itemkind" : 'N/A', "imgx" : 50, "imgy" : 50},

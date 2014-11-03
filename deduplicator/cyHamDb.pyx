@@ -151,19 +151,45 @@ cdef class BkHammingNode(object):
 		for item in self.nodeData:
 			yield (self.nodeHash, item)
 
+
+# Expose the casting behaviour because I need to be
+# able to verify it's doing what it's supposed to.
+cdef uint64_t cExplicitUnsignCast(int64_t inVal):
+	cdef uint64_t a
+	a = <uint64_t>inVal
+	return a
+
+cdef int64_t cExplicitSignCast(uint64_t inVal):
+	cdef int64_t a
+	a = <int64_t>inVal
+	return a
+
+def explicitUnsignCast(inVal):
+	return cExplicitUnsignCast(inVal)
+
+def explicitSignCast(inVal):
+	return cExplicitSignCast(inVal)
+
 # Expose the hamming distance calculation
 # so I can test it with the unit tests.
 def hamming_dist(a, b):
 	return hamming(a, b)
 
 
+import threading
+
 class BkHammingTree(object):
 	root = None
 	nodes = 0
 
 	def __init__(self):
+		self.updateLock = threading.RLock()
 		pass
 
+	# TODO: Right now, this blindly increments the number of `self.nodes`
+	# on every call. This means if you insert the /same/ item repeatedly,
+	# it'll increase the value of `self.nodes`, despite not making any
+	# actual changes to the tree. Fix this, maybe?
 	def insert(self, nodeHash, nodeData):
 
 		if not isinstance(nodeData, int):
@@ -176,14 +202,12 @@ class BkHammingTree(object):
 				raise ValueError("Node hash must be an integer or string encoded binary")
 
 
-
-		if not self.root:
-			self.root = BkHammingNode(nodeHash, nodeData)
-		else:
-			self.root.insert(nodeHash, nodeData)
-
-
-		self.nodes += 1
+		with self.updateLock:
+			if not self.root:
+				self.root = BkHammingNode(nodeHash, nodeData)
+			else:
+				self.root.insert(nodeHash, nodeData)
+			self.nodes += 1
 
 	def remove(self, nodeHash, nodeData):
 		if not self.root:
@@ -192,19 +216,20 @@ class BkHammingTree(object):
 		if not isinstance(nodeHash, int):
 			raise ValueError("Hashes must be an integer!")
 
-		rootless, deleted, moved = self.root.remove(nodeHash, nodeData)
+		with self.updateLock:
+			rootless, deleted, moved = self.root.remove(nodeHash, nodeData)
 
-		# If the node we're deleting is the root node, we need to handle it properly
-		# if it is, overwrite the root node with one of the values returned, and then
-		# rebuild the entire tree by reinserting all the nodes
-		if rootless:
-			print("Tree root deleted! Rebuilding...")
-			rootHash, rootData = rootless.pop()
-			self.root = BkHammingNode(rootHash, rootData)
-			for childHash, childData in rootless:
-				self.root.insert(childHash, childData)
+			# If the node we're deleting is the root node, we need to handle it properly
+			# if it is, overwrite the root node with one of the values returned, and then
+			# rebuild the entire tree by reinserting all the nodes
+			if rootless:
+				print("Tree root deleted! Rebuilding...")
+				rootHash, rootData = rootless.pop()
+				self.root = BkHammingNode(rootHash, rootData)
+				for childHash, childData in rootless:
+					self.root.insert(childHash, childData)
 
-		self.nodes -= deleted
+			self.nodes -= deleted
 
 		return deleted, moved
 
@@ -217,10 +242,16 @@ class BkHammingTree(object):
 		if not isinstance(baseHash, int):
 			raise ValueError("Hashes must be an integer!")
 
+
 		ret, touched = self.root.getWithinDistance(baseHash, distance)
-		# print("Touched %s tree nodes, or %1.3f%%. Discovered %s match(es)" % (touched, touched/self.nodes * 100, len(ret)))
+		print("Search for '%s', distance '%s', Touched %s tree nodes, or %1.3f%%. Discovered %s match(es)" % (baseHash, distance, touched, touched/self.nodes * 100, len(ret)))
 
 		return ret
+
+	# Explicitly dump all the tree items.
+	def dropTree(self):
+		self.root = None
+		self.nodes = 0
 
 	def __iter__(self):
 		for value in self.root:

@@ -1,18 +1,15 @@
 
 
 import rpyc
-import dbApi
+import dbPhashApi
 from rpyc.utils.server import ThreadedServer
 import logging
-import deduplicator.dupCheck
-import logSetup
-import settings
+import scanner.logSetup
 import server.decorators
-import server.tree
+
+import scanner.hashFile
 
 #TODO: A much cleaner message-passing interface here would be quite nice
-
-
 
 class DbInterfaceServer(rpyc.Service):
 
@@ -24,29 +21,38 @@ class DbInterfaceServer(rpyc.Service):
 	def on_disconnect(self):
 		print("Client Disconnected!")
 
-	def exposed_loadTree(self, *args, **kwargs):
-		print(server.tree.tree)
-		server.tree.tree.loadTree(*args, **kwargs)
+	# def exposed_loadTree(self, *args, **kwargs):
+	# 	print(server.tree.tree)
+	# 	server.tree.tree.loadTree(*args, **kwargs)
 
-	def exposed_reloadTree(self, *args, **kwargs):
-		print(server.tree.tree)
-		server.tree.tree.reloadTree(*args, **kwargs)
+	# def exposed_reloadTree(self, *args, **kwargs):
+	# 	print(server.tree.tree)
+	# 	server.tree.tree.reloadTree(*args, **kwargs)
 
-	def exposed_nodeCount(self):
-		return server.tree.tree.nodes
+	# def exposed_nodeCount(self):
+	# 	return server.tree.tree.nodes
+
+
+	# @server.decorators.exposify
+	# class exposed_ArchChecker(deduplicator.dupCheck.ArchChecker):
+	# 	pass
+
+	# @server.decorators.exposify
+	# class exposed_TreeProcessor(deduplicator.dupCheck.TreeProcessor):
+	# 	pass
+
+	def exposed_getMd5Hash(self, fCont):
+		return scanner.hashFile.getMd5Hash(fCont)
+
+	def exposed_hashFile(self, fsPath, intPath, fCont):
+		return scanner.hashFile.hashFile(fsPath, intPath, fCont)
 
 
 	@server.decorators.exposify
-	class exposed_ArchChecker(deduplicator.dupCheck.ArchChecker):
+	class exposed_DbApi(dbPhashApi.PhashDbApi):
 		pass
 
-	@server.decorators.exposify
-	class exposed_TreeProcessor(deduplicator.dupCheck.TreeProcessor):
-		pass
 
-	@server.decorators.exposify
-	class exposed_DbApi(dbApi.DbApi):
-		pass
 
 
 def run_server():
@@ -64,13 +70,11 @@ def before_exit():
 import server_reloader
 
 def main():
-	logSetup.initLogging()
-
-	server.tree.tree = deduplicator.dupCheck.TreeRoot(settings.PRELOAD_DIRECTORIES)
+	scanner.logSetup.initLogging()
 
 	print("Preloading cache directories")
-	server.tree.tree.reloadTree()
-	print("Loaded %s items" % server.tree.tree.nodeQuantity)
+
+	tree = dbPhashApi.PhashDbApi()
 	# print("Testing reload")
 	# server.tree.tree.reloadTree()
 	# print("Starting RPC server")

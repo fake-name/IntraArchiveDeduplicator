@@ -135,6 +135,7 @@ class TestSequenceFunctions(unittest.TestCase):
 		v3 = b2i("0000000000000000000000000000000000000001111111111111111000000000")
 		v4 = b2i("1000000000000000000000000000000000000000000000000000000000000000")
 		v5 = b2i("0000000000000000000000000000000000000000000000000000000000000001")
+		v6 = b2i("1100000000000000000000000000000000000000000000000000000000000000")
 		self.assertEqual(hamDb.hamming_dist(v1, v2), 64)
 		self.assertEqual(hamDb.hamming_dist(v3, v2), 48)
 
@@ -143,5 +144,6 @@ class TestSequenceFunctions(unittest.TestCase):
 
 		self.assertEqual(hamDb.hamming_dist(v1, v4), 1)
 		self.assertEqual(hamDb.hamming_dist(v1, v5), 1)
+		self.assertEqual(hamDb.hamming_dist(v1, v6), 2)
 
 

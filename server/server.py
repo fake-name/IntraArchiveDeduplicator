@@ -44,8 +44,8 @@ class DbInterfaceServer(rpyc.Service):
 	def exposed_getMd5Hash(self, fCont):
 		return scanner.hashFile.getMd5Hash(fCont)
 
-	def exposed_hashFile(self, fsPath, intPath, fCont):
-		return scanner.hashFile.hashFile(fsPath, intPath, fCont)
+	def exposed_hashFile(self, fsPath, intPath, fCont, shouldPhash=True):
+		return scanner.hashFile.hashFile(fsPath, intPath, fCont, shouldPhash)
 
 
 	@server.decorators.exposify

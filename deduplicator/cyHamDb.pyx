@@ -214,7 +214,7 @@ class BkHammingTree(object):
 			raise ValueError("No tree built to remove from!")
 
 		if not isinstance(nodeHash, int):
-			raise ValueError("Hashes must be an integer!")
+			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (nodeHash, type(nodeHash)))
 
 		with self.updateLock:
 			rootless, deleted, moved = self.root.remove(nodeHash, nodeData)
@@ -237,7 +237,6 @@ class BkHammingTree(object):
 		if not self.root:
 			print("WARNING: NO TREE BUILT!")
 			return set()
-
 
 		if not isinstance(baseHash, int):
 			raise ValueError("Hashes must be an integer!")

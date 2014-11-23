@@ -193,13 +193,11 @@ class BkHammingTree(object):
 	def insert(self, nodeHash, nodeData):
 
 		if not isinstance(nodeData, int):
-			raise ValueError("Node data must be an integer row ID")
+			raise ValueError("Data must be an integer! Passed value '%s', type '%s'" % (nodeData, type(nodeData)))
 
 		if not isinstance(nodeHash, int):
-			try:
-				nodeHash = int(nodeHash, 2)
-			except TypeError:
-				raise ValueError("Node hash must be an integer or string encoded binary")
+			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (nodeHash, type(nodeHash)))
+
 
 
 		with self.updateLock:
@@ -212,6 +210,9 @@ class BkHammingTree(object):
 	def remove(self, nodeHash, nodeData):
 		if not self.root:
 			raise ValueError("No tree built to remove from!")
+
+		if not isinstance(nodeData, int):
+			raise ValueError("Data must be an integer! Passed value '%s', type '%s'" % (nodeData, type(nodeData)))
 
 		if not isinstance(nodeHash, int):
 			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (nodeHash, type(nodeHash)))
@@ -239,7 +240,8 @@ class BkHammingTree(object):
 			return set()
 
 		if not isinstance(baseHash, int):
-			raise ValueError("Hashes must be an integer!")
+			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (baseHash, type(baseHash)))
+
 
 
 		ret, touched = self.root.getWithinDistance(baseHash, distance)

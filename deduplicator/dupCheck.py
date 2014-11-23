@@ -1,7 +1,7 @@
 
 
 
-import UniversalArchiveReader
+import UniversalArchiveInterface
 import os
 import os.path
 import logging
@@ -351,7 +351,7 @@ PHASH_DISTANCE_THRESHOLD = 2
 # 	def __init__(self, archPath):
 # 		super().__init__()
 # 		self.archPath    = archPath
-# 		self.arch        = UniversalArchiveReader.ArchiveReader(archPath)
+# 		self.arch        = UniversalArchiveInterface.ArchiveReader(archPath)
 
 
 # 		self.log = logging.getLogger("Main.Deduper")
@@ -465,7 +465,7 @@ PHASH_DISTANCE_THRESHOLD = 2
 
 
 # 		# Next, hash the file contents.
-# 		archIterator = UniversalArchiveReader.ArchiveReader(self.archPath)
+# 		archIterator = UniversalArchiveInterface.ArchiveReader(self.archPath)
 # 		for fName, fp in archIterator:
 
 # 			fCont = fp.read()

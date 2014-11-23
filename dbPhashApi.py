@@ -31,6 +31,9 @@ be prohibitive for memory reasons, and each connection would be extremely slow t
 Because any changes to the database are committed to Postgres immediately, and then the corresponding
 update is simply performed on the BK tree, the BK tree should always be fully up to date with the contents
 of the postgres database, so it /shouldn't/ need to be reloaded periodically or anything (we'll see).
+
+The tree reload facility is mostly intended for refreshing the tree when the db has been changed by
+external tools, such as the hash scanner.
 '''
 
 class PhashDbApi(dbApi.DbApi):
@@ -46,6 +49,14 @@ class PhashDbApi(dbApi.DbApi):
 		# Only load the tree if it's empty
 
 		self.doLoad(silent=True)
+
+
+	def forceReload(self):
+
+		with self.tree.updateLock:
+			self.log.warn("Forcing a reload of the tree from the database!")
+			self.tree.dropTree()
+			self.doLoad(silent=False)
 
 	def doLoad(self, silent=False):
 		if self.tree.nodes:
@@ -116,7 +127,15 @@ class PhashDbApi(dbApi.DbApi):
 		ids = self.tree.getWithinDistance(inPhash, distance)
 		ret = []
 		for itemId in ids:
-			ret.append(self.getItem(dbId=itemId, wantCols=wantCols))
+			itemRow = self.getItem(dbId=itemId, wantCols=wantCols)
+
+			# Sometimes a row has been deleted without being removed from the tree.
+			# If this has happened, getItem() will return an empty list.
+			# Don't return that, if it happens
+			if not itemRow:
+				print("WAT? DbId:", itemId)
+			else:
+				ret.append(itemRow)
 
 		return ret
 

@@ -5,7 +5,7 @@
 import queue
 import scanner.runState
 
-import UniversalArchiveReader
+import UniversalArchiveInterface
 
 import multiprocessing
 
@@ -161,10 +161,14 @@ class HashThread(object):
 						self.tlog.info("Hashing thread out of tasks. Exiting.")
 						break
 				# self.tlog.info("HashThread loopin! stopOnEmpty = %s, run = %s", self.runMgr.stopOnEmpty, self.runMgr.run)
+		except FileNotFoundError:
+			print("Multiprocessing manager shut down?")
+			print(traceback.format_exc())
 
 		except:
 			print("Exception in hash tool?")
 			traceback.print_exc()
+
 
 		if not self.runMgr.run:
 			self.tlog.info("Scanner exiting due to halt flag.")
@@ -181,7 +185,15 @@ class HashThread(object):
 	def scanArchive(self, archPath, archData):
 		# print("Scanning archive", archPath)
 
-		archIterator = UniversalArchiveReader.ArchiveReader(archPath, fileContents=archData)
+		archIterator = UniversalArchiveInterface.ArchiveReader(archPath, fileContents=archData)
+
+		fnames = [item[0] for item in archIterator]
+		fset = set(fnames)
+		if len(fnames) != len(fset):
+			print(fnames)
+			print(fset)
+			raise ValueError("Wat?")
+
 		self.dbApi.begin()
 
 		try:
@@ -201,11 +213,13 @@ class HashThread(object):
 							"imgY"         :imY
 						}
 
+
 				self.dbApi.insertIntoDb(**insertArgs)
 				self.outQ.put("processed")
 				if not scanner.runState.run:
 					break
 		except:
+			print(archPath)
 			self.dbApi.rollback()
 			raise
 

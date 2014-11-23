@@ -4,7 +4,7 @@ import unittest
 import scanner.logSetup as logSetup
 import os.path
 import scanner.hashFile as hashFile
-import UniversalArchiveReader as uar
+import UniversalArchiveInterface as uar
 import sys
 
 # Brute force random test n database values to ensure their

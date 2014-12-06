@@ -12,7 +12,7 @@ if the archives are compressed using different compression algorithms.
 There are also facilities for searching by image similarity, using a custom tree system.
 
 The image similarity system runs as a server on top of an existing PostgreSQL server, as it is implemented in
-python (actually Cython, but basically python). It's fairly memory hungry. Currently, ~9M hashes takes about 5 GB
+python (actually Cython, but basically python). It's fairly memory hungry. Currently, ~12M hashes takes about 5 GB
 of RAM, or ~1Kbyte/hash. There is some room for optimization here.
 
 Theoretically, each hash should take 64\*8 + 8 + (8 \* number of IDs at each node) (+ a few housekeeping) bytes. However,
@@ -45,3 +45,5 @@ For Unit testing:
 
  - Coverage.py
  - Bitstring
+
+There are fairly extensive unit tests for the DB API, as well as the BK-tree and the phashing systems. However, the great majority of the tests (all the DB API tests, which are 80%+ of them) require a local postgres instance, so they're not suitable for CI integration.

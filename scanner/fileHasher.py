@@ -5,7 +5,7 @@
 import queue
 import scanner.runState
 
-import UniversalArchiveInterface
+import UniversalArchiveInterface as uar
 
 import multiprocessing
 
@@ -98,9 +98,14 @@ class HashEngine(object):
 				self.log.info("Item %s does not exist. Should delete from DB", itemPath)
 				self.dbApi.deleteBasePath(itemPath)
 
-			if not scanner.runState.run:
-				print("Breaking due to exit flag")
+			try:
+				if not scanner.runState.run:
+					print("Breaking due to exit flag")
+					return
+			except BrokenPipeError:
+				self.log.error("Runstate thread exited? Halting")
 				return
+
 
 			self.outQ.put("clean")
 
@@ -185,7 +190,7 @@ class HashThread(object):
 	def scanArchive(self, archPath, archData):
 		# print("Scanning archive", archPath)
 
-		archIterator = UniversalArchiveInterface.ArchiveReader(archPath, fileContents=archData)
+		archIterator = uar.ArchiveReader(archPath, fileContents=archData)
 
 		fnames = [item[0] for item in archIterator]
 		fset = set(fnames)

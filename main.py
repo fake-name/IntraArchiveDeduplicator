@@ -28,6 +28,7 @@ if __name__ == "__main__":
 
 	parserDirScan.set_defaults(func=scanner.scanner.doScan)
 
+	print("Sys args: ", sys.argv)
 
 
 	argsParsed = parser.parse_args()

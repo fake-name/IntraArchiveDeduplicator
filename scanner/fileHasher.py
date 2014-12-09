@@ -168,21 +168,15 @@ class HashThread(object):
 				# self.tlog.info("HashThread loopin! stopOnEmpty = %s, run = %s", self.runMgr.stopOnEmpty, self.runMgr.run)
 		except FileNotFoundError:
 			print("Multiprocessing manager shut down?")
-			print(traceback.format_exc())
-
-		except:
-			print("Exception in hash tool?")
-			traceback.print_exc()
 
 
-		if not self.runMgr.run:
-			self.tlog.info("Scanner exiting due to halt flag.")
-		else:
-			self.inQ.close()
-			self.outQ.close()
+		self.tlog.info("Scanner exiting.")
 
-			self.inQ.join_thread()
-			self.outQ.join_thread()
+		self.inQ.close()
+		self.outQ.close()
+
+		self.inQ.join_thread()
+		self.outQ.join_thread()
 
 
 
@@ -296,11 +290,14 @@ class HashThread(object):
 
 
 	def processArchive(self, wholePath):
-
-
 		fType = "none"
 		fCont = None
 		archHash = self.dbApi.getItemsOnBasePathInternalPath(wholePath, "")
+
+		contHashes = self.dbApi.getItemsOnBasePath(wholePath)
+
+		haveImInfo = [(bool(item['imgx']) and bool(item['imgy'])) for item in contHashes if item['pHash']]
+
 		if not archHash:
 			self.dbApi.deleteBasePath(wholePath)
 			curHash, fCont = self.getFileMd5(wholePath)
@@ -313,18 +310,22 @@ class HashThread(object):
 			self.dbApi.insertIntoDb(**insertArgs)
 			self.outQ.put("processed")
 
+		elif not all(haveImInfo):
+			self.tlog.info("Missing image size information for archive %s. Rescanning.", wholePath)
+			self.dbApi.deleteLikeBasePath(wholePath)
+
 		elif len(archHash) != 1:
-			print("ArchHash", archHash)
+			# print("ArchHash", archHash)
 			raise ValueError("Multiple hashes for a single file? Wat?")
 		else:
+
 			if not self.archIntegrity:
-				# print("Skipped", wholePath)
 				self.outQ.put("skipped")
 				return
-			dummy_fPath, dummy_name, haveHash = archHash.pop()
+			item = archHash.pop()
 			curHash, fCont = self.getFileMd5(wholePath)
 
-			if curHash == haveHash:
+			if curHash == item['itemhash']:
 				# print("Skipped", wholePath)
 				self.outQ.put("hash_match")
 				return
@@ -380,7 +381,8 @@ class HashThread(object):
 
 			# Get list of all hashes for items on wholePath
 			extantItems = self.dbApi.getItemsOnBasePath(wholePath)
-			haveFileHashList = [item[2] != "" for item in extantItems]
+			haveFileHashList = [item['itemhash'] != "" for item in extantItems]
+
 
 			# print("Extant items = ", extantItems, wholePath)
 
@@ -396,7 +398,8 @@ class HashThread(object):
 				self.processImageFile(wholePath, wholePath)
 				# self.tlog.info("Skipping Image = %s", wholePath)
 
-			elif not any([item[2] and not item[1] for item in extantItems]):
+			# Rehash the overall archive if we don't have a hash-value for the archive with no internalpath.
+			elif not any([item['itemhash'] and not item['internalPath'] for item in extantItems]):
 				# print("File", wholePath)
 				try:
 					self.hashBareFile(wholePath, wholePath)

@@ -75,17 +75,21 @@ class DbApi():
 													itemKind        text,
 
 													imgx            INTEGER,
-													imgy            INTEGER
+													imgy            INTEGER,
+
+													scantime        DOUBLE PRECISION DEFAULT 0
 
 													);'''.format(table=self.tableName))
 
 				self.log.info("Checking indexes exist")
-				cur.execute('''CREATE UNIQUE INDEX {table}_name_index  ON {table}(fsPath, internalPath);'''.format(table=self.tableName))
-				cur.execute('''CREATE        INDEX {table}_path_index  ON {table}(fsPath text_pattern_ops);'''.format(table=self.tableName))
-				cur.execute('''CREATE        INDEX {table}_ihash_index ON {table}(itemHash);'''.format(table=self.tableName))
-				cur.execute('''CREATE        INDEX {table}_phash_index ON {table}(pHash);'''.format(table=self.tableName))
-				cur.execute('''CREATE        INDEX {table}_dhash_index ON {table}(dHash);'''.format(table=self.tableName))
+				cur.execute('''CREATE UNIQUE INDEX {table}_name_index     ON {table}(fsPath, internalPath);'''.format(table=self.tableName))
+				cur.execute('''CREATE        INDEX {table}_path_index     ON {table}(fsPath text_pattern_ops);'''.format(table=self.tableName))
+				cur.execute('''CREATE        INDEX {table}_ihash_index    ON {table}(itemHash);'''.format(table=self.tableName))
+				cur.execute('''CREATE        INDEX {table}_phash_index    ON {table}(pHash);'''.format(table=self.tableName))
+				cur.execute('''CREATE        INDEX {table}_dhash_index    ON {table}(dHash);'''.format(table=self.tableName))
+				cur.execute('''CREATE        INDEX {table}_scantime_index ON {table}(scantime);'''.format(table=self.tableName))
 
+				# CREATE        INDEX dedupitems_scantime_index ON dedupitems(scantime)
 
 		self.table = sql.Table(self.tableName.lower())
 
@@ -567,18 +571,30 @@ class DbApi():
 
 	def getItemsOnBasePath(self, basePath):
 		cur = self.conn.cursor()
-		cur.execute("SELECT fsPath,internalPath,itemhash,pHash,dbId FROM {table} WHERE fsPath=%s;".format(table=self.tableName), (basePath, ))
+		cur.execute("SELECT fsPath,internalPath,itemhash,pHash,imgx,imgy,dbId FROM {table} WHERE fsPath=%s;".format(table=self.tableName), (basePath, ))
 
-		ret = cur.fetchall()
+		rows = cur.fetchall()
 		self.conn.commit()
+
+		ret = []
+		cols = ['fsPath','internalPath','itemhash','pHash','imgx','imgy','dbId']
+		for row in rows:
+			ret.append(dict(zip(cols, row)))
 		return ret
 
 	def getItemsOnBasePathInternalPath(self, basePath, internalPath):
 		cur = self.conn.cursor()
-		cur.execute("SELECT fsPath,internalPath,itemhash FROM {table} WHERE fsPath=%s AND internalPath=%s;".format(table=self.tableName), (basePath, internalPath))
+		cur.execute("SELECT fsPath,internalPath,itemhash,pHash,imgx,imgy,dbId FROM {table} WHERE fsPath=%s AND internalPath=%s;".format(table=self.tableName), (basePath, internalPath))
 
-		ret = cur.fetchall()
+		rows = cur.fetchall()
 		self.conn.commit()
+
+		ret = []
+		cols = ['fsPath','internalPath','itemhash','pHash','imgx','imgy','dbId']
+		for row in rows:
+			ret.append(dict(zip(cols, row)))
+		return ret
+
 		return ret
 
 	def getItemNumberOnBasePath(self, basePath):

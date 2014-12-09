@@ -169,6 +169,9 @@ class HashThread(object):
 		except FileNotFoundError:
 			print("Multiprocessing manager shut down?")
 
+		except BrokenPipeError:
+			print("Multiprocessing manager shut down?")
+
 
 		self.tlog.info("Scanner exiting.")
 
@@ -299,6 +302,7 @@ class HashThread(object):
 		haveImInfo = [(bool(item['imgx']) and bool(item['imgy'])) for item in contHashes if item['pHash']]
 
 		if not archHash:
+			self.tlog.info("Missing whole archive hash! Rescanning!")
 			self.dbApi.deleteBasePath(wholePath)
 			curHash, fCont = self.getFileMd5(wholePath)
 
@@ -312,7 +316,7 @@ class HashThread(object):
 
 		elif not all(haveImInfo):
 			self.tlog.info("Missing image size information for archive %s. Rescanning.", wholePath)
-			self.dbApi.deleteLikeBasePath(wholePath)
+			self.dbApi.deleteBasePath(wholePath)
 
 		elif len(archHash) != 1:
 			# print("ArchHash", archHash)

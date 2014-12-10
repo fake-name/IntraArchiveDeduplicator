@@ -5,6 +5,7 @@ import dbPhashApi
 from rpyc.utils.server import ThreadedServer
 import logging
 import scanner.logSetup
+import scanner.fileHasher
 import server.decorators
 
 import scanner.hashFile
@@ -52,6 +53,34 @@ class DbInterfaceServer(rpyc.Service):
 	class exposed_DbApi(dbPhashApi.PhashDbApi):
 		pass
 
+	class exposed_RemoteHasher(RemoteHasher):
+
+		def exposed_scanArchive(self, *args, **kwargs):
+			self.scanArchive(*args, **kwargs)
+
+
+class RemoteHasher(scanner.fileHasher.HashThread):
+
+	loggerPath = "Main.HashEngine"
+
+	def __init__(self):
+
+		# If we're running as a multiprocessing thread, inject that into
+		# the logger path
+		threadName = multiprocessing.current_process().name
+		if threadName:
+			self.tlog = logging.getLogger("%s.%s" % (self.loggerPath, threadName))
+		else:
+			self.tlog = logging.getLogger(self.loggerPath)
+
+		# Verify archives
+		self.archIntegrity = True
+
+		self.dbApi = dbApi.DbApi()
+
+	# Nop the progress bar output
+	def putProgQueue(self, value):
+		pass
 
 
 

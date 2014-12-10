@@ -35,7 +35,6 @@ class HashEngine(object):
 		self.hashWorkers   = threads
 		self.inQ           = inputQueue
 		self.outQ          = outputQueue
-		self.doPhash       = pHash
 		self.archIntegrity = integrity
 
 		self.runStateMgr   = multiprocessing.Manager()
@@ -50,8 +49,6 @@ class HashEngine(object):
 		args = (self.inQ,
 			self.outQ,
 			self.manNamespace,
-			self.doPhash,
-			True,
 			self.archIntegrity)
 
 		self.pool = multiprocessing.pool.Pool(processes=self.hashWorkers, initializer=createHashThread, initargs=args )
@@ -114,11 +111,11 @@ class HashEngine(object):
 
 
 
-def createHashThread(inQueue, outQueue, runMgr, pHash, checkChecksumScannedArches, integrity):
+def createHashThread(inQueue, outQueue, runMgr, integrity):
 	# Make all the thread-pool threads ignore SIGINT, so they won't freak out on CTRL+C
 	signal.signal(signal.SIGINT, signal.SIG_IGN)
 
-	runner = HashThread(inQueue, outQueue, runMgr, pHash, checkChecksumScannedArches, integrity)
+	runner = HashThread(inQueue, outQueue, runMgr, integrity)
 	runner.run()
 
 class HashThread(object):
@@ -126,9 +123,7 @@ class HashThread(object):
 
 	loggerPath = "Main.HashEngine"
 
-	def __init__(self, inputQueue, outputQueue, runMgr, pHash, checkChecksumScannedArches=True, integrity=True):
-
-
+	def __init__(self, inputQueue, outputQueue, runMgr, integrity=True):
 
 		# If we're running as a multiprocessing thread, inject that into
 		# the logger path
@@ -141,18 +136,12 @@ class HashThread(object):
 		self.runMgr = runMgr
 		self.inQ = inputQueue
 		self.outQ = outputQueue
-		self.doPhash = pHash
 		self.archIntegrity = integrity
 
-		self.checkArchiveChanged = checkChecksumScannedArches
-
 		self.dbApi = dbApi.DbApi()
-		self.loops = 0
 
-		self.logger = None
-
-
-
+	def putProgQueue(self, value):
+		self.outQ.put(value)
 
 	def run(self):
 		try:
@@ -217,7 +206,7 @@ class HashThread(object):
 
 
 				self.dbApi.insertIntoDb(**insertArgs)
-				self.outQ.put("processed")
+				self.putProgQueue("processed")
 				if not scanner.runState.run:
 					break
 		except:
@@ -281,7 +270,7 @@ class HashThread(object):
 
 		self.dbApi.insertIntoDb(**insertArgs)
 
-		self.outQ.put("processed")
+		self.putProgQueue("processed")
 
 
 	def getFileMd5(self, wholePath):
@@ -312,7 +301,7 @@ class HashThread(object):
 						"itemHash"     :curHash
 					}
 			self.dbApi.insertIntoDb(**insertArgs)
-			self.outQ.put("processed")
+			self.putProgQueue("processed")
 
 		elif not all(haveImInfo):
 			self.tlog.info("Missing image size information for archive %s. Rescanning.", wholePath)
@@ -324,14 +313,14 @@ class HashThread(object):
 		else:
 
 			if not self.archIntegrity:
-				self.outQ.put("skipped")
+				self.putProgQueue("skipped")
 				return
 			item = archHash.pop()
 			curHash, fCont = self.getFileMd5(wholePath)
 
 			if curHash == item['itemhash']:
 				# print("Skipped", wholePath)
-				self.outQ.put("hash_match")
+				self.putProgQueue("hash_match")
 				return
 			else:
 				self.tlog.warn("Archive %s has changed! Rehashing!", wholePath)
@@ -395,7 +384,7 @@ class HashThread(object):
 
 			if all(haveFileHashList) and len(extantItems):
 
-				self.outQ.put("skipped")
+				self.putProgQueue("skipped")
 				return
 
 			elif wholePath.lower().endswith(IMAGE_EXTS):  # It looks like an image.
@@ -419,5 +408,5 @@ class HashThread(object):
 					self.tlog.error("%s", traceback.format_exc())
 
 			else:
-				self.outQ.put("skipped")
+				self.putProgQueue("skipped")
 				# self.tlog.info("Skipping file = %s", wholePath)

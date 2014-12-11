@@ -187,6 +187,7 @@ def hamming_dist(a, b):
 
 
 import threading
+import logging
 
 class BkHammingTree(object):
 	root = None
@@ -194,6 +195,8 @@ class BkHammingTree(object):
 
 	def __init__(self):
 		self.updateLock = threading.RLock()
+		cur = threading.current_thread().name
+		self.log = logging.getLogger("Main.Tree."+cur)
 		pass
 
 	# TODO: Right now, this blindly increments the number of `self.nodes`
@@ -234,7 +237,7 @@ class BkHammingTree(object):
 			# if it is, overwrite the root node with one of the values returned, and then
 			# rebuild the entire tree by reinserting all the nodes
 			if rootless:
-				print("Tree root deleted! Rebuilding...")
+				self.log.info("Tree root deleted! Rebuilding...")
 				rootHash, rootData = rootless.pop()
 				self.root = BkHammingNode(rootHash, rootData)
 				for childHash, childData in rootless:
@@ -246,7 +249,7 @@ class BkHammingTree(object):
 
 	def getWithinDistance(self, baseHash, distance):
 		if not self.root:
-			print("WARNING: NO TREE BUILT!")
+			self.log.info("WARNING: NO TREE BUILT!")
 			return set()
 
 		if not isinstance(baseHash, int):
@@ -255,7 +258,7 @@ class BkHammingTree(object):
 
 
 		ret, touched = self.root.getWithinDistance(baseHash, distance)
-		print("Search for '%s', distance '%s', Touched %s tree nodes, or %1.3f%%. Discovered %s match(es)" % (baseHash, distance, touched, touched/self.nodes * 100, len(ret)))
+		self.log.info("Search for '%s', distance '%s', Touched %s tree nodes, or %1.3f%%. Discovered %s match(es)" % (baseHash, distance, touched, touched/self.nodes * 100, len(ret)))
 
 		return ret
 

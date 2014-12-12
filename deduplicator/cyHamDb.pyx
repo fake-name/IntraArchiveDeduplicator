@@ -267,10 +267,10 @@ class BkHammingTree(object):
 		return ret
 
 	# Explicitly dump all the tree items.
+	# Note: Only ever called from within a lock-synchronized context.
 	def dropTree(self):
-		with self.updateLock.writer_context():
-			self.root = None
-			self.nodes = 0
+		self.root = None
+		self.nodes = 0
 
 	def __iter__(self):
 		for value in self.root:

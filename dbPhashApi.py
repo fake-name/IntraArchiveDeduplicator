@@ -48,12 +48,13 @@ class PhashDbApi(dbApi.DbApi):
 
 		# Only load the tree if it's empty
 
-		self.doLoad(silent=True)
+		with self.tree.updateLock.writer_context():
+			self.doLoad(silent=True)
 
 
 	def forceReload(self):
 
-		self.tree.updateLock.writer_context:
+		with self.tree.updateLock.writer_context():
 			self.log.warn("Forcing a reload of the tree from the database!")
 			self.log.warn("Dropping Tree")
 			self.tree.dropTree()
@@ -74,7 +75,7 @@ class PhashDbApi(dbApi.DbApi):
 		while rows:
 			for dbId, pHash in rows:
 				if pHash != None:
-					self.tree.insert(pHash, dbId)
+					self.tree.unlocked_insert(pHash, dbId)
 			loaded += len(rows)
 			self.log.info("Loaded %s phash data sets.", loaded)
 			rows = cur.fetchmany(self.streamChunkSize)

@@ -187,6 +187,7 @@ def hamming_dist(a, b):
 
 
 import threading
+import rwlock
 import logging
 
 class BkHammingTree(object):
@@ -194,7 +195,7 @@ class BkHammingTree(object):
 	nodes = 0
 
 	def __init__(self):
-		self.updateLock = threading.RLock()
+		self.updateLock = rwlock.RWLock()
 		cur = threading.current_thread().name
 		self.log = logging.getLogger("Main.Tree."+cur)
 		pass
@@ -203,7 +204,7 @@ class BkHammingTree(object):
 	# on every call. This means if you insert the /same/ item repeatedly,
 	# it'll increase the value of `self.nodes`, despite not making any
 	# actual changes to the tree. Fix this, maybe?
-	def insert(self, nodeHash, nodeData):
+	def unlocked_insert(self, nodeHash, nodeData):
 
 		if not isinstance(nodeData, int):
 			raise ValueError("Data must be an integer! Passed value '%s', type '%s'" % (nodeData, type(nodeData)))
@@ -212,13 +213,16 @@ class BkHammingTree(object):
 			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (nodeHash, type(nodeHash)))
 
 
+		if not self.root:
+			self.root = BkHammingNode(nodeHash, nodeData)
+		else:
+			self.root.insert(nodeHash, nodeData)
+		self.nodes += 1
 
-		with self.updateLock:
-			if not self.root:
-				self.root = BkHammingNode(nodeHash, nodeData)
-			else:
-				self.root.insert(nodeHash, nodeData)
-			self.nodes += 1
+	def insert(self, nodeHash, nodeData):
+
+		with self.updateLock.writer_context():
+			self.unlocked_insert(nodeHash, nodeData)
 
 	def remove(self, nodeHash, nodeData):
 		if not self.root:
@@ -230,7 +234,7 @@ class BkHammingTree(object):
 		if not isinstance(nodeHash, int):
 			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (nodeHash, type(nodeHash)))
 
-		with self.updateLock:
+		with self.updateLock.writer_context():
 			rootless, deleted, moved = self.root.remove(nodeHash, nodeData)
 
 			# If the node we're deleting is the root node, we need to handle it properly
@@ -248,24 +252,25 @@ class BkHammingTree(object):
 		return deleted, moved
 
 	def getWithinDistance(self, baseHash, distance):
-		if not self.root:
-			self.log.info("WARNING: NO TREE BUILT!")
-			return set()
 
 		if not isinstance(baseHash, int):
 			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (baseHash, type(baseHash)))
 
+		with self.updateLock.reader_context():
+			if not self.root:
+				self.log.info("WARNING: NO TREE BUILT!")
+				return set()
 
-
-		ret, touched = self.root.getWithinDistance(baseHash, distance)
-		self.log.info("Search for '%s', distance '%s', Touched %s tree nodes, or %1.3f%%. Discovered %s match(es)" % (baseHash, distance, touched, touched/self.nodes * 100, len(ret)))
+			ret, touched = self.root.getWithinDistance(baseHash, distance)
+			self.log.info("Search for '%s', distance '%s', Touched %s tree nodes, or %1.3f%%. Discovered %s match(es)" % (baseHash, distance, touched, touched/self.nodes * 100, len(ret)))
 
 		return ret
 
 	# Explicitly dump all the tree items.
 	def dropTree(self):
-		self.root = None
-		self.nodes = 0
+		with self.updateLock.writer_context():
+			self.root = None
+			self.nodes = 0
 
 	def __iter__(self):
 		for value in self.root:

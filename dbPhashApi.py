@@ -53,10 +53,13 @@ class PhashDbApi(dbApi.DbApi):
 
 	def forceReload(self):
 
-		with self.tree.updateLock:
+		self.tree.updateLock.writer_context:
 			self.log.warn("Forcing a reload of the tree from the database!")
+			self.log.warn("Dropping Tree")
 			self.tree.dropTree()
+			self.log.warn("Tree Dropped. Rebuilding")
 			self.doLoad(silent=False)
+			self.log.warn("Tree Rebuilt")
 
 	def doLoad(self, silent=False):
 		if self.tree.nodes:

@@ -24,7 +24,7 @@
 # python3 $(which nosetests) --exe -s Tests.Test_BKTree_Issue_1
 
 # Test ALL THE THINGS
-python3 $(which nosetests) --with-coverage --exe --cover-package=dbApi --cover-package=scanner.hashFile --cover-package=dbPhashApi
+python3 $(which nosetests) --with-coverage --exe --cover-package=dbApi --cover-package=scanner.hashFile --cover-package=dbPhashApi --cover-package=deduplicator.rwlock
 coverage report --show-missing
 
 coverage erase

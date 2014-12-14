@@ -17,3 +17,4 @@ python3 $(which nosetests) --with-coverage --exe --cover-package=dbApi --cover-p
 coverage report --show-missing
 
 coverage erase
+

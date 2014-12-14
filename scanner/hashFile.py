@@ -106,10 +106,6 @@ def dhash(image, hash_size=8):
 
 __dir__ = [phash, ImageHash]
 
-
-
-
-
 IMAGE_EXTS = ("bmp", "eps", "gif", "im", "jpeg", "jpg", "msp", "pcx", "png", "ppm", "spider", "tiff", "webp", "xbm")
 
 '''
@@ -149,6 +145,11 @@ def hashFile(basePath, fname, fContents, shouldPhash=True):
 
 
 	return fname, hexHash, pHash, dHash, imX, imY
+
+def getHashDict(fName, fContents):
+	dummy_fname, hexHash, pHash, dHash, imX, imY = hashFile('', fName, fContents)
+	retD = {'hexHash' : hexHash, 'pHash' : pHash, 'dHash' : dHash, 'imX' : imX, 'imY' : imY}
+	return retD
 
 
 def getMd5Hash(fContents):

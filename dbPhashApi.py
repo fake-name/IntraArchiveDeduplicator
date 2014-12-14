@@ -137,7 +137,7 @@ class PhashDbApi(dbApi.DbApi):
 			# If this has happened, getItem() will return an empty list.
 			# Don't return that, if it happens
 			if not itemRow:
-				print("WAT? DbId:", itemId)
+				self.log.info("Row deleted without updating tree")
 			else:
 				ret.append(itemRow)
 

@@ -10,6 +10,14 @@ class TestDb(dbApi.DbApi):
 
 
 	def __init__(self, tableName = None, *args, **kwargs):
+
+		# If the last run didn't complete, we will have dangling tables. Tear them down pre-emptively, so it doesn't
+		# error out this run.
+		try:
+			self.tearDown()
+		except:
+			pass
+
 		if tableName:
 			self.tableName = self.tableName+"_"+tableName
 		super().__init__(*args, **kwargs)

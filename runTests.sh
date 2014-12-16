@@ -14,6 +14,7 @@
 # Test ALL THE THINGS
 python3 $(which nosetests) --with-coverage --exe --cover-package=dbApi --cover-package=scanner.hashFile --cover-package=dbPhashApi --cover-package=deduplicator.rwlock
 # python3 $(which nosetests) --with-coverage --exe --cover-package=dbApi --cover-package=scanner.hashFile --cover-package=dbPhashApi --cover-package=deduplicator.rwlock deduplicator.rwlock
+# python3 $(which nosetests) --with-coverage --exe --cover-package=dbApi --cover-package=scanner.hashFile --cover-package=dbPhashApi --cover-package=deduplicator.rwlock Tests.Test_phashArch
 coverage report --show-missing
 
 coverage erase

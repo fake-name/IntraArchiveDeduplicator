@@ -41,10 +41,14 @@ class PhashDbApi(dbApi.DbApi):
 	# Read in phash/dbId values in chunks of 50K rows
 	streamChunkSize = 50000
 
-	def __init__(self):
+	def __init__(self, noglobal=False):
 		super().__init__()
 
-		self.tree = TreeProxy.Instance()
+		if noglobal:
+			self.tree = hamDb.BkHammingTree()
+		else:
+			self.tree = TreeProxy.Instance()
+
 
 		# Only load the tree if it's empty
 

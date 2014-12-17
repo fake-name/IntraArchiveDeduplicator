@@ -1,7 +1,6 @@
 
 
 
-
 import pArch
 import os
 import sys
@@ -16,34 +15,7 @@ import dbPhashApi as dbApi
 import multiprocessing
 import scanner.fileHasher
 
-
 PHASH_DISTANCE_THRESHOLD = 2
-
-
-
-class Hasher(scanner.fileHasher.HashThread):
-
-	loggerPath = "Main.HashEngine"
-
-	def __init__(self):
-
-		# If we're running as a multiprocessing thread, inject that into
-		# the logger path
-		threadName = multiprocessing.current_process().name
-		if threadName:
-			self.tlog = logging.getLogger("%s.%s" % (self.loggerPath, threadName))
-		else:
-			self.tlog = logging.getLogger(self.loggerPath)
-
-		# Verify archives
-		self.archIntegrity = True
-
-		self.dbApi = dbApi.PhashDbApi()
-
-	# Nop the progress bar output
-	def putProgQueue(self, value):
-		sys.stdout.write(".")
-		sys.stdout.flush()
 
 
 class DbBase(object):
@@ -54,8 +26,10 @@ class DbBase(object):
 	def convertDbIdToPath(self, inId):
 		return self.db.getItems(wantCols=['fsPath', "internalPath"], dbId=inId).pop()
 
+
 # todo: Have a class for managing search results, which contains all the search-relevant info?
 class ArchChecker(DbBase):
+
 
 	def __init__(self, archPath, pathFilter=None):
 		super().__init__()

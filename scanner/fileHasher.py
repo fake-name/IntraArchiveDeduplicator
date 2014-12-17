@@ -11,7 +11,7 @@ import multiprocessing
 
 import magic
 import logging
-import dbApi
+import dbPhashApi
 import signal
 
 import os.path
@@ -39,7 +39,7 @@ class HashEngine(object):
 
 		self.runStateMgr   = multiprocessing.Manager()
 		self.manNamespace  = self.runStateMgr.Namespace()
-		self.dbApi         = dbApi.DbApi()
+		self.dbApi         = dbPhashApi.PhashDbApi()
 
 
 

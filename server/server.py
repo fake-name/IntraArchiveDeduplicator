@@ -12,7 +12,6 @@ import multiprocessing
 import scanner.hashFile
 import sys
 
-
 class RemoteHasher(scanner.fileHasher.HashThread):
 
 	loggerPath = "Main.HashEngine"
@@ -30,7 +29,7 @@ class RemoteHasher(scanner.fileHasher.HashThread):
 		# Verify archives
 		self.archIntegrity = True
 
-		self.dbApi = dbApi.DbApi()
+		self.dbApi = dbPhashApi.PhashDbApi()
 
 	# Nop the progress bar output
 	def putProgQueue(self, value):

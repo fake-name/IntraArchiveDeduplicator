@@ -410,9 +410,11 @@ class DbApi():
 	def getById(self, dbId):
 		return self.getItems(wantCols=["fsPath","internalPath","itemHash"], dbId=dbId)
 
-	def getOtherHashes(self, itemHash, fsMaskPath):
+	def getOtherHashes(self, itemHash, fsMaskPath, wantCols=None):
+		if not wantCols:
+			wantCols = ["fsPath","internalPath","itemHash"]
 		where = (self.table.itemhash == itemHash) & (self.table.fspath != fsMaskPath)
-		return self.getItems(wantCols=["fsPath","internalPath","itemHash"], where=where)
+		return self.getItems(wantCols, where=where)
 
 
 

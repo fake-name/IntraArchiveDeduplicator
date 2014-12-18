@@ -34,12 +34,15 @@ class ArchChecker(ProxyDbBase):
 
 
 	def __init__(self, archPath, pathFilter=None):
-		super().__init__()
+		'''
+		Params:
+			pathFilter (list): default =``['']``
+				Basically, if you pass a list of valid path prefixes, any matches not
+				on any of those path prefixes are not matched.
+				Default is [''], which matches every path, because "anything".startswith('') is true
+		'''
 
-		# pathFilter filters
-		# Basically, if you pass a list of valid path prefixes, any matches not
-		# on any of those path prefixes are not matched.
-		# Default is [''], which matches every path, because "anything".startswith('') is true
+		super().__init__()
 		self.maskedPaths = pathFilter or ['']
 
 		self.archPath    = archPath
@@ -199,7 +202,7 @@ class ArchChecker(ProxyDbBase):
 
 
 	def _getPhashMatchesForPhash(self, phash, maskedPath, searchDistance):
-		pass
+		proximateFiles = self.db.getWithinDistance(phash, searchDistance)
 
 	def getMatchingArchives(self):
 		'''
@@ -266,7 +269,6 @@ class ArchChecker(ProxyDbBase):
 
 
 			if infoDict['pHash'] == None:
-				hasDuplicates = False
 
 				self.log.warn("No phash for file '%s'! Wat?", (fileN))
 				self.log.warn("Returned pHash: '%s'", (infoDict['pHash']))
@@ -274,26 +276,25 @@ class ArchChecker(ProxyDbBase):
 				self.log.warn("Guessed file type: '%s'", (infoDict['type']))
 				self.log.warn("Using binary dup checking for file!")
 
-				dupsIn = self.db.getOtherHashes(infoDict['hexHash'], fsMaskPath=self.archPath)
-				for fsPath, internalPath, dummy_itemhash in dupsIn:
+				# get a dict->set of the matching items
+				matchDict = self._getBinaryMatchesForHash(infoDict['hexHash'], maskedPath=self.archPath)
 
-					isNotMasked =  any([fsPath.startswith(maskedPath) for maskedPath in self.maskedPaths])
-					if os.path.exists(fsPath) and isNotMasked:
-						matches.setdefault(fsPath, set()).add(fileN)
-						hasDuplicates = True
-					elif not isNotMasked:
-						pass
-						# self.log.info("Match masked by filter: '%s'", fsPath)
-					else:
-						self.log.warn("Item '%s' no longer exists!", fsPath)
-						self.db.deleteBasePath(fsPath)
-
-				self.log.warn("Found binary duplicates!")
+				if matchDict:
+					# If we have matching items, merge them into the matches dict->set
+					for key in matchDict.keys():
+						matches.setdefault(key, set()).update(matchDict[key])
+				else:
+					# Short circuit on unique item, since we are only checking if ANY item is unique
+					self.log.info("It contains at least one unique file(s).")
+					return {}
 
 			elif infoDict['pHash'] == 0:
 				self.log.warning("Skipping any checks for hash value of '%s', as it's uselessly common.", infoDict['pHash'])
 				continue
+
 			else:
+
+
 
 				proximateFiles = self.db.getWithinDistance(infoDict['pHash'], searchDistance)
 				# self.log.info("File: '%s', '%s'. Number of matches %s", self.archPath, fileN, len(proximateFiles))
@@ -330,23 +331,18 @@ class ArchChecker(ProxyDbBase):
 		return matches
 
 
-	def getHashes(self, shouldPhash=True):
-
-		self.log.info("Getting item hashes for %s.", self.archPath)
-		ret = []
-		for fileN, infoDict in self.arch.iterHashes():
-
-			if self._shouldSkipFile(fileN, infoDict['type']):
-				continue
-
-			item = (self.archPath, fileN, infoDict)
-			ret.append(item)
-
-		self.log.info("%s Fully hashed.", self.archPath)
-		return ret
-
 	def deleteArch(self, moveToPath=False):
+		'''
+		Delete target arch.
 
+		If ``moveToPath`` is specified, the archive will be moved there instead, as an option
+		for deferred deletion.
+
+		When ``moveToPath`` is specified, the current path is prepended to the filename, by
+		replacing all directory delimiters (``/``) with semicolons (``;``). This allows the
+		moved archive to be returned to it's original fs location in (almost) all cases.
+
+		'''
 		self.db.deleteBasePath(self.archPath)
 		if not moveToPath:
 			self.log.warning("Deleting archive '%s'", self.archPath)
@@ -366,6 +362,10 @@ class ArchChecker(ProxyDbBase):
 
 
 	def addNewArch(self):
+		'''
+		Add the hash values from the target archive to the database, with the current
+		archive FS path as it's location.
+		'''
 
 		self.log.info("Hashing file %s", self.archPath)
 
@@ -379,6 +379,11 @@ class ArchChecker(ProxyDbBase):
 	# Proxy through to the archChecker from UniversalArchiveInterface
 	@staticmethod
 	def isArchive(archPath):
+		'''
+		Simple staticmethod boolean check. Used to determine of the item
+		at the passed path (``archPath``) is actually an archive, by
+		looking at it with ``libmagic``.
+		'''
 		return pArch.PhashArchive.isArchive(archPath)
 
 

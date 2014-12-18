@@ -5,10 +5,12 @@ import scanner.fileHasher
 import os
 import os.path
 import logging
+import shutil
 
 import pyximport
 pyximport.install()
 
+SRC_ZIP_PATH  = 'test_ptree_base'
 TEST_ZIP_PATH = 'test_ptree'
 
 class TestDbBare(dbPhashApi.PhashDbApi):
@@ -35,13 +37,21 @@ class TestDb(TestDbBare):
 	streamChunkSize = 5
 
 	def __init__(self, tableName = None, *args, **kwargs):
-		print("TestDbStarting")
+
 		if tableName:
 			self.tableName = self.tableName+"_"+tableName
 		super().__init__(*args, **kwargs)
 
-		self.tree.dropTree()
+
+		self.copy_zips()
+
 		self.hasher = TestHasher()
+		self.tree.dropTree()
+
+		self.log.info("sync()ing")
+		# You need an explicit sync call or the load_zips call can sometimes miss the new files.
+		# Yes, this was actually an issue.
+		os.sync()
 
 		self.load_zips(TEST_ZIP_PATH)
 
@@ -49,10 +59,25 @@ class TestDb(TestDbBare):
 		self.tree.dropTree()
 		self.doLoad()
 
+	def copy_zips(self):
+		cwd = os.path.dirname(os.path.realpath(__file__))
+		srcPath = os.path.join(cwd, SRC_ZIP_PATH)
+		tmpPath = os.path.join(cwd, TEST_ZIP_PATH)
+		if not os.path.exists(tmpPath):
+			os.mkdir(tmpPath)
+
+		for item in os.listdir(srcPath):
+			srcitem = os.path.join(srcPath, item)
+			dstitem = os.path.join(tmpPath, item)
+			shutil.copy(srcitem, dstitem)
+
 	def load_zips(self, dirPath):
 		cwd = os.path.dirname(os.path.realpath(__file__))
+		items = os.listdir(os.path.join(cwd, dirPath))
 
-		for item in os.listdir(os.path.join(cwd, dirPath)):
+		# Make database-ordering deterministic
+		items.sort()
+		for item in items:
 			item = os.path.join(cwd, dirPath, item)
 			self.hasher.processArchive(item)
 
@@ -71,3 +96,9 @@ class TestDb(TestDbBare):
 		cur.execute("COMMIT;")
 
 
+		cwd = os.path.dirname(os.path.realpath(__file__))
+		tmpPath = os.path.join(cwd, TEST_ZIP_PATH)
+		for item in os.listdir(tmpPath):
+			dstitem = os.path.join(tmpPath, item)
+			os.remove(dstitem)
+		os.rmdir(tmpPath)

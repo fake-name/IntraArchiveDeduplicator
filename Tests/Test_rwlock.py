@@ -1,5 +1,5 @@
 
-from deduplicator.rwlock import RWLock
+from deduplicator.rwlock import RWLock, _LightSwitch
 
 ##
 ## Unit testing code

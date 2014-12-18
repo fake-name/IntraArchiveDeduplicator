@@ -69,7 +69,8 @@ class PhashDbApi(dbApi.DbApi):
 	def doLoad(self, silent=False):
 		if self.tree.nodes:
 			if not silent:
-				self.log.warning("Tree already built. Reloading will have no effect!")
+				self.log.error("Tree already built. Reloading will have no effect!")
+				raise ValueError
 			return
 
 		cur = self.getStreamingCursor(wantCols=['dbId', 'pHash'], where=(self.table.phash != None))

@@ -284,14 +284,39 @@ class HashThread(object):
 	def processArchive(self, wholePath):
 		fType = "none"
 		fCont = None
-		archHash = self.dbApi.getItemsOnBasePathInternalPath(wholePath, "")
+		archRow = self.dbApi.getItemsOnBasePathInternalPath(wholePath, "")
 
 		contHashes = self.dbApi.getItemsOnBasePath(wholePath)
 
 		haveImInfo = [(bool(item['imgx']) and bool(item['imgy'])) for item in contHashes if item['pHash']]
 
-		if not archHash:
-			self.tlog.info("Missing whole archive hash! Rescanning!")
+
+		if not all(haveImInfo):
+			self.tlog.info("Missing image size information for archive %s. Rescanning.", wholePath)
+			self.dbApi.deleteBasePath(wholePath)
+
+		elif len(archRow) > 1:
+			# print("archRow", archRow)
+			raise ValueError("Multiple hashes for a single file? Wat?")
+		elif archRow and archRow[0]['itemhash']:
+
+			if not self.archIntegrity:
+				self.putProgQueue("skipped")
+				return
+			item = archRow.pop()
+			curHash, fCont = self.getFileMd5(wholePath)
+
+			if curHash == item['itemhash']:
+				# print("Skipped", wholePath)
+				self.putProgQueue("hash_match")
+				return
+			else:
+				self.tlog.warn("Archive %s has changed! Rehashing!", wholePath)
+				self.dbApi.deleteBasePath(wholePath)
+
+		else:
+			if archRow:
+				self.tlog.info("Missing whole archive hash! Rescanning!")
 			self.dbApi.deleteBasePath(wholePath)
 			curHash, fCont = self.getFileMd5(wholePath)
 
@@ -303,28 +328,6 @@ class HashThread(object):
 			self.dbApi.insertIntoDb(**insertArgs)
 			self.putProgQueue("processed")
 
-		elif not all(haveImInfo):
-			self.tlog.info("Missing image size information for archive %s. Rescanning.", wholePath)
-			self.dbApi.deleteBasePath(wholePath)
-
-		elif len(archHash) != 1:
-			# print("ArchHash", archHash)
-			raise ValueError("Multiple hashes for a single file? Wat?")
-		else:
-
-			if not self.archIntegrity:
-				self.putProgQueue("skipped")
-				return
-			item = archHash.pop()
-			curHash, fCont = self.getFileMd5(wholePath)
-
-			if curHash == item['itemhash']:
-				# print("Skipped", wholePath)
-				self.putProgQueue("hash_match")
-				return
-			else:
-				self.tlog.warn("Archive %s has changed! Rehashing!", wholePath)
-				self.dbApi.deleteBasePath(wholePath)
 
 		# TODO: Use `fCont` to prevent having to read each file twice.
 

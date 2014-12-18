@@ -20,10 +20,16 @@ PHASH_DISTANCE_THRESHOLD = 2
 
 class ProxyDbBase(object):
 	def __init__(self):
-		self.db = dbApi.PhashDbApi()
+		self.db = self.getDbConnection()
+	
+	# Overridden in child classes so the unit tests can redirect 
+	# db access to the testing database by returning a different DB
+	# connection object.
+	def getDbConnection(self):
+		return dbApi.PhashDbApi()
 
 	def convertDbIdToPath(self, inId):
-		return self.db.getItems(wantCols=['fsPath', "internalPath"], dbId=inId).pop()
+		return self.db.getItem(wantCols=['fsPath', "internalPath"], dbId=inId)
 
 
 class ArchChecker(ProxyDbBase):
@@ -49,7 +55,7 @@ class ArchChecker(ProxyDbBase):
 		self.arch        = pArch.PhashArchive(archPath)
 
 		self.log = logging.getLogger("Main.Deduper")
-		self.log.info("ArchChecker Instantiated")
+		self.log.info("ArchChecker Instantiated on '%s'", archPath)
 
 	# If getMatchingArchives returns something, it means we're /not/ unique,
 	# because getMatchingArchives returns matching files
@@ -183,10 +189,25 @@ class ArchChecker(ProxyDbBase):
 		return items.pop()[-1]
 
 
-	def _getBinaryMatchesForHash(self, hexHash, maskedPath):
+	def _getBinaryMatchesForHash(self, hexHash):
+		'''
+		Params:
+			hexHash (String): The hash to match against.
+
+		Returns:
+			dict of sets. Dict keys are filesystem paths, and the set contains
+				the internal path of each item in the key that has the query key
+
+
+		This function searches for all items with a binary hash of `hexHash`, masks out
+		any paths in `self.maskedPaths`, and then checks for file existence. If the file exists,
+		it's inserted into a local dictionary with the key being the filesystem path,
+		and the value being a set into which the internal path is inserted.
+
+		'''
 		matches = {}
 
-		dupsIn = self.db.getOtherHashes(hexHash, fsMaskPath=maskedPath, wantCols=['fsPath', 'internalPath'])
+		dupsIn = self.db.getByHash(hexHash, wantCols=['fsPath', 'internalPath'])
 		for fsPath, internalPath in dupsIn:
 
 			isNotMasked =  any([fsPath.startswith(maskedPath) for maskedPath in self.maskedPaths])
@@ -201,8 +222,60 @@ class ArchChecker(ProxyDbBase):
 		return matches
 
 
-	def _getPhashMatchesForPhash(self, phash, maskedPath, searchDistance):
+	def _getPhashMatchesForPhash(self, phash, imgDims, searchDistance):
+		'''
+		Params:
+			phash (integer): The phash to match against.
+			searchDistance (integer): The phash search distance.
+
+		Returns:
+			dict of sets: Dict keys are filesystem paths, and the set contains
+				the internal path of each item that is `searchDistance` or less
+				away from `phash`
+
+
+		This function searches for all items within `searchDistance` of `phash`, masks out
+		any paths in `self.maskedPaths`, and then checks for file existence. If the file exists,
+		it's inserted into a local dictionary with the key being the filesystem path,
+		and the value being a set into which the internal path is inserted.
+
+		'''
+
+
+		# TODO: Add image size checks.
+
+		srcX, srcY = imgDims
+
+		matches = {}
+
 		proximateFiles = self.db.getWithinDistance(phash, searchDistance)
+
+		keys = ["dbid", "fspath", "internalpath", "itemhash", "phash", "dhash", "itemkind", "imgx", "imgy"]
+		rows = [dict(zip(keys, row)) for row in proximateFiles]
+
+		# for row in [match for match in proximateFiles if (match and match[1] != self.archPath)]:
+		for row in rows:
+
+			# Mask out items on the same path.
+			if row['fspath'] == self.archPath:
+				continue
+			if row['phash'] == None:
+				print("WAT?", row['dbid'])
+				continue
+
+			if srcX > row['imgx'] or srcY > row['imgy']:
+				print("Smaller image! Not matching!")
+
+			isNotMasked = any([row['fspath'].startswith(maskedPath) for maskedPath in self.maskedPaths])
+
+			if isNotMasked and os.path.exists(row['fspath']) :
+				matches.setdefault(row['fspath'], set()).add(row['internalpath'])
+
+			elif isNotMasked:
+				self.log.warn("Item '%s' no longer exists!", row['fspath'])
+				self.db.deleteBasePath(row['fspath'])
+
+		return matches
 
 	def getMatchingArchives(self):
 		'''
@@ -234,7 +307,7 @@ class ArchChecker(ProxyDbBase):
 				continue
 
 			# get a dict->set of the matching items
-			matchDict = self._getBinaryMatchesForHash(infoDict['hexHash'], maskedPath=self.archPath)
+			matchDict = self._getBinaryMatchesForHash(infoDict['hexHash'])
 
 			if matchDict:
 				# If we have matching items, merge them into the matches dict->set
@@ -268,6 +341,7 @@ class ArchChecker(ProxyDbBase):
 				continue
 
 
+			# Handle cases where an internal file is not an image
 			if infoDict['pHash'] == None:
 
 				self.log.warn("No phash for file '%s'! Wat?", (fileN))
@@ -277,7 +351,7 @@ class ArchChecker(ProxyDbBase):
 				self.log.warn("Using binary dup checking for file!")
 
 				# get a dict->set of the matching items
-				matchDict = self._getBinaryMatchesForHash(infoDict['hexHash'], maskedPath=self.archPath)
+				matchDict = self._getBinaryMatchesForHash(infoDict['hexHash'])
 
 				if matchDict:
 					# If we have matching items, merge them into the matches dict->set
@@ -288,44 +362,30 @@ class ArchChecker(ProxyDbBase):
 					self.log.info("It contains at least one unique file(s).")
 					return {}
 
+			# Phash value of '0' is commonly a result of an image where there is no content, such as a blank page.
+			# There are 79 THOUSAND of these in my collection. As a result, the existence check is prohibitively slow, so
+			# we just short-circuit and ignore it.
 			elif infoDict['pHash'] == 0:
 				self.log.warning("Skipping any checks for hash value of '%s', as it's uselessly common.", infoDict['pHash'])
 				continue
 
+			# Any non-none and non-0 matches get the normal lookup behaviour.
 			else:
 
+				imgDims = (infoDict['imX'], infoDict['imY'])
 
+				matchDict = self._getPhashMatchesForPhash(infoDict['pHash'], imgDims, searchDistance)
+				if matchDict:
+					# If we have matching items, merge them into the matches dict->set
+					for key in matchDict.keys():
+						matches.setdefault(key, set()).update(matchDict[key])
+				else:
+					# Short circuit on unique item, since we are only checking if ANY item is unique
+					self.log.info("It contains at least one unique file(s).")
+					self.log.info("Archive contains at least one unique phash(es).")
+					self.log.info("First unique file: '%s'", fileN)
+					return {}
 
-				proximateFiles = self.db.getWithinDistance(infoDict['pHash'], searchDistance)
-				# self.log.info("File: '%s', '%s'. Number of matches %s", self.archPath, fileN, len(proximateFiles))
-
-				hasDuplicates = []
-
-				keys = ["dbid", "fspath", "internalpath", "itemhash", "phash", "dhash", "itemkind", "imgx", "imgy"]
-				rows = [dict(zip(keys, row)) for row in proximateFiles]
-
-				# for row in [match for match in proximateFiles if (match and match[1] != self.archPath)]:
-				for row in rows:
-
-					# Mask out items on the same path.
-					if row['fspath'] == self.archPath:
-						continue
-
-					isNotMasked = any([fsPath.startswith(maskedPath) for maskedPath in self.maskedPaths])
-
-					if isNotMasked and os.path.exists(row['fsPath']) :
-						matches.setdefault(row['fsPath'], set()).add(fileN)
-						hasDuplicates = True
-					elif isNotMasked:
-						self.log.warn("Item '%s' no longer exists!", row['fsPath'])
-						self.db.deleteBasePath(row['fsPath'])
-
-			# Short circuit on unique item, since we are only checking if ANY item is unique
-
-			if not hasDuplicates:
-				self.log.info("Archive contains at least one unique phash(es).")
-				self.log.info("First unique file: '%s'", fileN)
-				return {}
 
 		self.log.info("Archive does not contain any unique phashes.")
 		return matches

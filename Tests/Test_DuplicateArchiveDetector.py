@@ -45,6 +45,10 @@ for x in range(len(CONTENTS)):
 	CONTENTS[x][1] = insertCwd(CONTENTS[x][1])
 	CONTENTS[x] = tuple(CONTENTS[x])
 
+# Override the db connection object in the ArchChecker so it uses the testing database.
+class TestArchiveChecker(deduplicator.ProcessArchive.ArchChecker):
+	def getDbConnection(self):
+		return Tests.basePhashTestSetup.TestDbBare()
 
 class TestSequenceFunctions(unittest.TestCase):
 
@@ -64,16 +68,40 @@ class TestSequenceFunctions(unittest.TestCase):
 				'Setup resulted in an incorrect number of items in database!')
 
 	def dropDatabase(self):
+		self.db.tree.dropTree()
 		self.db.tearDown()
 
-
-	def test_getItemsSimple(self):
-
+	def verifyArchive(self):
 		expect = list(CONTENTS)
 		expect.sort()
 		items = list(self.db.getItems())
 		items.sort()
 
 		self.assertEqual(items, expect)
+
+	def test_getItemsSimple(self):
+		self.verifyArchive()
+
+
+	def test_isBinaryUnique(self):
+		arch = CONTENTS[9][1]
+
+		ck = TestArchiveChecker(arch)
+		print(ck.isBinaryUnique())
+
+	def test_isPhashUnique(self):
+		self.verifyArchive()
+
+		arch = CONTENTS[9][1]
+
+		ck = TestArchiveChecker(arch)
+
+
+		print(ck.isPhashUnique())
+
+
+		itemRow = self.db.getItem(dbId=2, wantCols=None)
+		print(itemRow)
+
 
 

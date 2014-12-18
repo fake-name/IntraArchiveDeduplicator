@@ -137,7 +137,6 @@ class PhashDbApi(dbApi.DbApi):
 		ret = []
 		for itemId in ids:
 			itemRow = self.getItem(dbId=itemId, wantCols=wantCols)
-
 			# Sometimes a row has been deleted without being removed from the tree.
 			# If this has happened, getItem() will return an empty list.
 			# Don't return that, if it happens

@@ -277,6 +277,14 @@ class DbApi():
 
 	def getItem(self, **kwargs):
 		ret = self.getItems(**kwargs)
+
+
+		# print("Getitem Kwargs:")
+		# print(kwargs)
+		# print("Returning:")
+		# print(ret)
+		# print()
+
 		if len(ret) > 1:
 			raise ValueError("GetItem can only fetch a single item.")
 
@@ -404,11 +412,15 @@ class DbApi():
 	def numHashInDB(self, itemHash):
 		return self.itemInDB(itemHash=itemHash)
 
-	def getByHash(self, itemHash):
-		return self.getItems(wantCols=["fsPath","internalPath","itemHash"], itemHash=itemHash)
+	def getById(self, dbId, wantCols=None):
+		if not wantCols:
+			wantCols = ["fsPath","internalPath","itemHash"]
+		return self.getItems(wantCols=wantCols, dbId=dbId)
 
-	def getById(self, dbId):
-		return self.getItems(wantCols=["fsPath","internalPath","itemHash"], dbId=dbId)
+	def getByHash(self, itemHash, wantCols=None):
+		if not wantCols:
+			wantCols = ["fsPath","internalPath","itemHash"]
+		return self.getItems(wantCols=wantCols, itemHash=itemHash)
 
 	def getOtherHashes(self, itemHash, fsMaskPath, wantCols=None):
 		if not wantCols:

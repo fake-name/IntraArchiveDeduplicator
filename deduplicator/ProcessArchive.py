@@ -21,8 +21,8 @@ PHASH_DISTANCE_THRESHOLD = 2
 class ProxyDbBase(object):
 	def __init__(self):
 		self.db = self.getDbConnection()
-	
-	# Overridden in child classes so the unit tests can redirect 
+
+	# Overridden in child classes so the unit tests can redirect
 	# db access to the testing database by returning a different DB
 	# connection object.
 	def getDbConnection(self):
@@ -210,6 +210,10 @@ class ArchChecker(ProxyDbBase):
 		dupsIn = self.db.getByHash(hexHash, wantCols=['fsPath', 'internalPath'])
 		for fsPath, internalPath in dupsIn:
 
+			# Mask out items on the same path.
+			if fsPath == self.archPath:
+				continue
+
 			isNotMasked =  any([fsPath.startswith(maskedPath) for maskedPath in self.maskedPaths])
 			exists = os.path.exists(fsPath)
 			if exists and isNotMasked:
@@ -264,7 +268,9 @@ class ArchChecker(ProxyDbBase):
 				continue
 
 			if srcX > row['imgx'] or srcY > row['imgy']:
-				print("Smaller image! Not matching!")
+				self.log.info("Filtering phash match due to lower resolution.")
+				continue
+
 
 			isNotMasked = any([row['fspath'].startswith(maskedPath) for maskedPath in self.maskedPaths])
 
@@ -420,7 +426,7 @@ class ArchChecker(ProxyDbBase):
 				self.log.error("ERROR - Could not move file!")
 				self.log.error(traceback.format_exc())
 
-
+	# TODO: Possibly remove this?
 	def addNewArch(self):
 		'''
 		Add the hash values from the target archive to the database, with the current

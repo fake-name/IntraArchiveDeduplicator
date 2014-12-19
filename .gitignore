@@ -6,3 +6,5 @@ __pycache__
 
 /settings.py
 /.coverage
+*.pyc
+/Tests/test_ptree

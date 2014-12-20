@@ -127,7 +127,8 @@ class DbApi():
 			}
 
 
-
+	def close(self):
+		self.conn.close()
 
 	@contextmanager
 	def transaction(self, commit=True):

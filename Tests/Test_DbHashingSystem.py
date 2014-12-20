@@ -34,6 +34,7 @@ class TestSequenceFunctions(unittest.TestCase):
 
 	def dropDatabase(self):
 		self.db.tearDown()
+		self.db.close()
 
 	def test_treeExists(self):
 		self.assertIsInstance(self.db.tree, hamDb.BkHammingTree)

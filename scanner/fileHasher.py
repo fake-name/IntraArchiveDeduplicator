@@ -39,9 +39,15 @@ class HashEngine(object):
 
 		self.runStateMgr   = multiprocessing.Manager()
 		self.manNamespace  = self.runStateMgr.Namespace()
-		self.dbApi         = dbPhashApi.PhashDbApi()
+		self.dbApi         = self.getDbConnection()
 
 
+
+	def getDbConnection(self):
+		'''
+		Intended to be overridden in unit-tests
+		'''
+		return dbPhashApi.PhashDbApi()
 
 	def runThreads(self):
 		self.manNamespace.stopOnEmpty = False
@@ -51,7 +57,7 @@ class HashEngine(object):
 			self.manNamespace,
 			self.archIntegrity)
 
-		self.pool = multiprocessing.pool.Pool(processes=self.hashWorkers, initializer=createHashThread, initargs=args )
+		self.pool = multiprocessing.pool.Pool(processes=self.hashWorkers, initializer=createHashThread, initargs=args)
 
 	def close(self):
 		self.log.info("Closing threadpool")
@@ -129,19 +135,29 @@ class HashThread(object):
 		# the logger path
 		threadName = multiprocessing.current_process().name
 		if threadName:
-			self.tlog = logging.getLogger("%s.%s" % (self.loggerPath, threadName))
+			self.tlog      = logging.getLogger("%s.%s" % (self.loggerPath, threadName))
 		else:
-			self.tlog = logging.getLogger(self.loggerPath)
+			self.tlog      = logging.getLogger(self.loggerPath)
 
-		self.runMgr = runMgr
-		self.inQ = inputQueue
-		self.outQ = outputQueue
+		self.runMgr        = runMgr
+		self.inQ           = inputQueue
+		self.outQ          = outputQueue
 		self.archIntegrity = integrity
 
-		self.dbApi = dbApi.DbApi()
+		self.dbApi         = self.getDbConnection()
+
+
+
+	def getDbConnection(self):
+		'''
+		Intended to be overridden in unit-tests
+		'''
+		return dbPhashApi.PhashDbApi()
 
 	def putProgQueue(self, value):
-		self.outQ.put(value)
+		if self.outQ:
+			self.outQ.put(value)
+
 
 	def run(self):
 		try:

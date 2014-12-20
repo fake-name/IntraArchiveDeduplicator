@@ -7,6 +7,7 @@ import deduplicator.ProcessArchive
 import Tests.basePhashTestSetup
 
 import os.path
+import scanner.fileHasher
 
 import pyximport
 pyximport.install()
@@ -14,8 +15,14 @@ import deduplicator.cyHamDb as hamDb
 
 from Tests.baseArchiveTestSetup import CONTENTS
 
+class TestHasher(scanner.fileHasher.HashThread):
+
+	def getDbConnection(self):
+		return Tests.basePhashTestSetup.TestDbBare()
+
 # Override the db connection object in the ArchChecker so it uses the testing database.
 class TestArchiveChecker(deduplicator.ProcessArchive.ArchChecker):
+	hasher = TestHasher
 	def getDbConnection(self):
 		return Tests.basePhashTestSetup.TestDbBare()
 
@@ -36,9 +43,11 @@ class TestArchChecker(unittest.TestCase):
 		# Check the table is set up
 		self.verifyDatabaseLoaded()
 
+
 	def dropDatabase(self):
 		self.db.tree.dropTree()
 		self.db.tearDown()
+		self.db.close()
 
 	def _reprDatabase(self, db):
 		'''
@@ -66,10 +75,11 @@ class TestArchChecker(unittest.TestCase):
 		cwd = os.path.dirname(os.path.realpath(__file__))
 
 		ck = TestArchiveChecker('{cwd}/test_ptree/notQuiteAllArch.zip'.format(cwd=cwd))
-		print(ck.isBinaryUnique())
+		self.assertFalse(ck.isBinaryUnique())
 
 		ck = TestArchiveChecker('{cwd}/test_ptree/regular.zip'.format(cwd=cwd))
 		self.assertTrue(ck.isBinaryUnique())
+
 
 	def test_isPhashUnique(self):
 		cwd = os.path.dirname(os.path.realpath(__file__))
@@ -203,29 +213,35 @@ class TestArchChecker(unittest.TestCase):
 
 		ck = TestArchiveChecker('{cwd}/test_ptree/z_sml.zip'.format(cwd=cwd))
 		match = {
-			'/media/Storage/Scripts/Deduper/Tests/test_ptree/z_reg.zip':
-			{
-				'test.txt'
-			},
 			'/media/Storage/Scripts/Deduper/Tests/test_ptree/z_sml_u.zip':
 			{
 				'129165237051396578(s).jpg'
+			},
+			'/media/Storage/Scripts/Deduper/Tests/test_ptree/z_sml_w.zip':
+			{
+				'test.txt'
+			},
+			'/media/Storage/Scripts/Deduper/Tests/test_ptree/z_reg.zip':
+			{
+				'test.txt'
 			}
 		}
-
 
 		pmatch = {
-			'/media/Storage/Scripts/Deduper/Tests/test_ptree/z_reg.zip':
-			{
-				'129165237051396578.jpg',
-				'test.txt'
-			},
 			'/media/Storage/Scripts/Deduper/Tests/test_ptree/z_sml_u.zip':
 			{
 				'129165237051396578(s).jpg'
+			},
+			'/media/Storage/Scripts/Deduper/Tests/test_ptree/z_sml_w.zip':
+			{
+				'test.txt'
+			},
+			'/media/Storage/Scripts/Deduper/Tests/test_ptree/z_reg.zip':
+			{
+				'test.txt',
+				'129165237051396578.jpg'
 			}
 		}
-
 
 		self.assertEqual(ck.getMatchingArchives(),      match)
 		self.assertEqual(ck.getPhashMatchingArchives(), pmatch)
@@ -360,3 +376,126 @@ class TestArchChecker(unittest.TestCase):
 		self.assertEqual(ck.getBestPhashMatch(), '{cwd}/test_ptree/z_reg.zip'.format(cwd=cwd))
 
 
+	def test_addArchive(self):
+		self.verifyDatabaseLoaded()
+		cwd = os.path.dirname(os.path.realpath(__file__))
+		archPath = '{cwd}/test_ptree/allArch.zip'.format(cwd=cwd)
+		self.db.deleteBasePath(archPath)
+
+		self.assertFalse(self.db.getLikeBasePath(archPath))
+		self.assertFalse(self.db.getItems(fspath=archPath))
+
+		ck = TestArchiveChecker(archPath)
+		ck.addArch()
+
+		# Build a list of items from CONTENTS where the fspath
+		# is the archive we just added, chop off the DBID (because that'll
+		# have changed), add to a list
+		expect = []
+		for item in CONTENTS:
+			if item[1] == archPath:
+				expect.append(list(item[1:]))
+
+		# Get all the items that were just added, chop off the dbid.
+		have = self.db.getItems(fspath=archPath)
+		have = [list(item[1:]) for item in have]
+
+		have.sort()
+		expect.sort()
+
+		self.assertEqual(have, expect)
+
+	def test_deleteArchive_1(self):
+		self.verifyDatabaseLoaded()
+		cwd = os.path.dirname(os.path.realpath(__file__))
+		archPath = '{cwd}/test_ptree/allArch.zip'.format(cwd=cwd)
+
+		ck = TestArchiveChecker(archPath)
+		ck.deleteArch()
+
+		self.assertFalse(os.path.exists(archPath))
+
+
+	def test_deleteArchive_2(self):
+		self.verifyDatabaseLoaded()
+		cwd = os.path.dirname(os.path.realpath(__file__))
+		archPath = '{cwd}/test_ptree/allArch.zip'.format(cwd=cwd)
+
+		ck = TestArchiveChecker(archPath)
+		ck.deleteArch(moveToPath=os.path.join(cwd, 'test_ptree'))
+
+		self.assertFalse(os.path.exists(archPath))
+
+		toPath = archPath.replace("/", ';')
+		toPath = os.path.join(cwd, 'test_ptree', toPath)
+		self.assertTrue(os.path.exists(toPath))
+
+
+
+	def test_deleteArchive_3(self):
+		self.verifyDatabaseLoaded()
+		cwd = os.path.dirname(os.path.realpath(__file__))
+		archPath = '{cwd}/test_ptree/allArch.zip'.format(cwd=cwd)
+
+		ck = TestArchiveChecker(archPath)
+
+		self.assertTrue(os.path.exists(archPath))
+		ck.deleteArch(moveToPath='/this/path/does/not/exist')
+		self.assertTrue(os.path.exists(archPath))
+
+
+	def test_isArchive(self):
+		self.verifyDatabaseLoaded()
+		cwd = os.path.dirname(os.path.realpath(__file__))
+		archPath = '{cwd}/test_ptree/allArch.zip'.format(cwd=cwd)
+
+		self.assertTrue(TestArchiveChecker.isArchive(archPath))
+		with open('{cwd}/test_ptree/testTextFile.zip'.format(cwd=cwd), 'w') as fp:
+			fp.write("testing\n")
+			fp.write("file!\n")
+		self.assertFalse(TestArchiveChecker.isArchive('{cwd}/test_ptree/testTextFile.zip'.format(cwd=cwd)))
+
+
+	def test_addArchive_1(self):
+		self.verifyDatabaseLoaded()
+		cwd = os.path.dirname(os.path.realpath(__file__))
+		archPath = '{cwd}/test_ptree/z_sml.zip'.format(cwd=cwd)
+
+		status, bestMatch = deduplicator.ProcessArchive.processDownload(archPath, checkClass=TestArchiveChecker)
+		matchPath = '{cwd}/test_ptree/z_reg_junk.zip'.format(cwd=cwd)
+		self.assertEqual(status, 'deleted was-duplicate')
+		self.assertEqual(bestMatch, matchPath)
+
+	def test_addArchive_2(self):
+		self.verifyDatabaseLoaded()
+		cwd = os.path.dirname(os.path.realpath(__file__))
+
+		archPath = '{cwd}/test_ptree/small.zip'.format(cwd=cwd)
+
+		status, bestMatch = deduplicator.ProcessArchive.processDownload(archPath, checkClass=TestArchiveChecker)
+		matchPath = '{cwd}/test_ptree/regular.zip'.format(cwd=cwd)
+		self.assertEqual(status, 'deleted was-duplicate phash-duplicate')
+		self.assertEqual(bestMatch, matchPath)
+
+	def test_addArchive_3(self):
+		self.verifyDatabaseLoaded()
+		cwd = os.path.dirname(os.path.realpath(__file__))
+
+		archPath = '{cwd}/test_ptree/regular.zip'.format(cwd=cwd)
+
+		status, bestMatch = deduplicator.ProcessArchive.processDownload(archPath, checkClass=TestArchiveChecker)
+
+		self.assertFalse(status)
+		self.assertFalse(bestMatch)
+
+
+	def test_addArchive_4(self):
+		self.verifyDatabaseLoaded()
+		cwd = os.path.dirname(os.path.realpath(__file__))
+
+		archPath = '{cwd}/lol/wat/herp/derp.zip'.format(cwd=cwd)
+
+		status, bestMatch = deduplicator.ProcessArchive.processDownload(archPath, checkClass=TestArchiveChecker)
+
+		self.assertEqual(status, 'damaged')
+		self.assertFalse(bestMatch)

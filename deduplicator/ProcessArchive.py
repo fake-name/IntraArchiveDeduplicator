@@ -38,6 +38,7 @@ class ArchChecker(ProxyDbBase):
 
 	'''
 
+	hasher = scanner.fileHasher.HashThread
 
 	def __init__(self, archPath, pathFilter=None):
 		'''
@@ -106,6 +107,7 @@ class ArchChecker(ProxyDbBase):
 		Returns:
 			String: Path to archive on the local filesystem. Path is verified to
 				exist at time of return.
+				If the current archive contains unique files, this will return a empty string.
 		'''
 		ret = self.getMatchingArchives()
 		return self._getBestMatchingArchive(ret)
@@ -420,26 +422,28 @@ class ArchChecker(ProxyDbBase):
 			self.log.info("              to '%s'", dst)
 			try:
 				shutil.move(self.archPath, dst)
-			except KeyboardInterrupt:
+			except KeyboardInterrupt:  # pragma: no cover  (Can't really test keyboard interrupts)
 				raise
-			except OSError:
+			except (OSError, FileNotFoundError):
 				self.log.error("ERROR - Could not move file!")
 				self.log.error(traceback.format_exc())
 
-	# TODO: Possibly remove this?
-	def addNewArch(self):
+
+	def addArch(self):
 		'''
 		Add the hash values from the target archive to the database, with the current
 		archive FS path as it's location.
 		'''
 
-		self.log.info("Hashing file %s", self.archPath)
+		self.log.info("Adding archive to database. Hashing file: %s", self.archPath)
 
 		# Delete any existing hashes that collide
 		self.db.deleteBasePath(self.archPath)
 
 		# And tell the hasher to process the new archive.
-		self.hash.processArchive(self.archPath)
+		hasher = self.hasher(inputQueue=None, outputQueue=None, runMgr=None)
+
+		hasher.processArchive(self.archPath)
 
 
 	# Proxy through to the archChecker from UniversalArchiveInterface
@@ -454,9 +458,37 @@ class ArchChecker(ProxyDbBase):
 
 
 
-def processDownload(filePath):
+def processDownload(filePath, checkClass=ArchChecker):
+	'''
+	Process the file `filePath`. If it's a phash or binary duplicate, it is deleted.
+
+	The `checkClass` param is to allow the checking class to be overridden for testing.
+
+	Returns:
+		(tag, bestMatch) tuple.
+			`tag` is a string containing space-separated tags corresponding to
+				the deduplication state (e.g. `deleted`, `was-duplicate`, and `phash-duplicate`)
+			`bestMatch` is the fspath of the best-matching other archive.
+	'''
 	status = ''
 	bestMatch = None
+	try:
+		ck = checkClass(filePath)
+		binMatch = ck.getBestBinaryMatch()
+		if binMatch:
+			ck.deleteArch()
+			return 'deleted was-duplicate', binMatch
+
+		pMatch = ck.getBestPhashMatch()
+		if pMatch:
+			ck.deleteArch()
+			return 'deleted was-duplicate phash-duplicate', pMatch
+
+		ck.addArch()
 
 
+	except Exception:
+		status += " damaged"
+
+	status = status.strip()
 	return status, bestMatch

@@ -25,11 +25,11 @@ class ProxyDbBase(object):
 	# Overridden in child classes so the unit tests can redirect
 	# db access to the testing database by returning a different DB
 	# connection object.
-	def getDbConnection(self):
+	def getDbConnection(self):  # pragma: no cover
 		return dbApi.PhashDbApi()
 
-	def convertDbIdToPath(self, inId):
-		return self.db.getItem(wantCols=['fsPath', "internalPath"], dbId=inId)
+	# def convertDbIdToPath(self, inId):
+	# 	return self.db.getItem(wantCols=['fsPath', "internalPath"], dbId=inId)
 
 
 class ArchChecker(ProxyDbBase):
@@ -148,7 +148,8 @@ class ArchChecker(ProxyDbBase):
 			self.log.info("Windows thumbnail database. Ignoring")
 			return True
 
-		if fileN.endswith("deleted.txt") and fileType == b'ASCII text':
+		# We have to match both b'ASCII text', and the occational b'ASCII text, with no line terminators'
+		if fileN.endswith("deleted.txt") and fileType.startswith(b'ASCII text'):
 			self.log.info("Found removed advert note. Ignoring")
 			return True
 
@@ -263,9 +264,10 @@ class ArchChecker(ProxyDbBase):
 			# Mask out items on the same path.
 			if row['fspath'] == self.archPath:
 				continue
-			if row['phash'] == None:
-				print("WAT?", row['dbid'])
-				continue
+
+			# I genuinely cannot see how this line would get hit, but whatever.
+			if row['phash'] == None:      #pragma: no cover
+				raise ValueError("Line is missing phash, yet in phash database? DbId = '%s'", row['dbid'])
 
 			if srcX > row['imgx'] or srcY > row['imgy']:
 				self.log.info("Filtering phash match due to lower resolution.")
@@ -304,7 +306,7 @@ class ArchChecker(ProxyDbBase):
 
 		'''
 
-		self.log.info("Checking if %s contains any unique files.", self.archPath)
+		self.log.info("Checking if %s contains any binary unique files.", self.archPath)
 
 		matches = {}
 		for fileN, infoDict in self.arch.iterHashes():
@@ -324,7 +326,7 @@ class ArchChecker(ProxyDbBase):
 				self.log.info("It contains at least one unique file(s).")
 				return {}
 
-		self.log.info("It does not contain any unique file(s).")
+		self.log.info("It does not contain any binary unique file(s).")
 
 		return matches
 
@@ -349,10 +351,8 @@ class ArchChecker(ProxyDbBase):
 
 			# Handle cases where an internal file is not an image
 			if infoDict['pHash'] == None:
-
 				self.log.warn("No phash for file '%s'! Wat?", (fileN))
 				self.log.warn("Returned pHash: '%s'", (infoDict['pHash']))
-				self.log.warn("File size: %s", (len(infoDict['fileCtnt'])))
 				self.log.warn("Guessed file type: '%s'", (infoDict['type']))
 				self.log.warn("Using binary dup checking for file!")
 

@@ -12,17 +12,17 @@
 
 
 # Test ALL THE THINGS
-python3 $(which nosetests)                       \
-	--with-coverage                              \
-	--exe                                        \
-	--cover-package=dbApi                        \
-	--cover-package=scanner.hashFile             \
-	--cover-package=dbPhashApi                   \
-	--cover-package=deduplicator.rwlock          \
-	--cover-package=deduplicator.ProcessArchive
+# python3 $(which nosetests)                       \
+# 	--with-coverage                              \
+# 	--exe                                        \
+# 	--cover-package=dbApi                        \
+# 	--cover-package=scanner.hashFile             \
+# 	--cover-package=dbPhashApi                   \
+# 	--cover-package=deduplicator.rwlock          \
+# 	--cover-package=deduplicator.ProcessArchive
 
-# python3 $(which nosetests) --with-coverage --exe --cover-package=dbApi --cover-package=scanner.hashFile --cover-package=dbPhashApi --cover-package=deduplicator.rwlock deduplicator.rwlock
-# python3 $(which nosetests) --with-coverage --exe --cover-package=dbApi --cover-package=scanner.hashFile --cover-package=dbPhashApi --cover-package=deduplicator.rwlock Tests.Test_phashArch
+python3 $(which nosetests) --with-coverage --exe --cover-package=deduplicator.ProcessArchive Tests.Test_DuplicateArchiveDetector -s
+
 coverage report --show-missing
 
 coverage erase

@@ -112,7 +112,7 @@ class ArchChecker(ProxyDbBase):
 		ret = self.getMatchingArchives()
 		return self._getBestMatchingArchive(ret)
 
-	def getBestPhashMatch(self, distance=PHASH_DISTANCE_THRESHOLD):
+	def getBestPhashMatch(self, distance=None):
 		'''
 		Get the filesystem path of the "best" matching archive.
 
@@ -129,6 +129,9 @@ class ArchChecker(ProxyDbBase):
 			String: Path to archive on the local filesystem. Path is verified to
 				exist at time of return.
 		'''
+		if not distance:
+			distance=PHASH_DISTANCE_THRESHOLD
+
 		ret = self.getPhashMatchingArchives(distance)
 		return self._getBestMatchingArchive(ret)
 
@@ -458,7 +461,7 @@ class ArchChecker(ProxyDbBase):
 
 
 
-def processDownload(filePath, checkClass=ArchChecker):
+def processDownload(filePath, pathFilter=None, distance=None, moveToPath=None, checkClass=ArchChecker):
 	'''
 	Process the file `filePath`. If it's a phash or binary duplicate, it is deleted.
 
@@ -473,15 +476,15 @@ def processDownload(filePath, checkClass=ArchChecker):
 	status = ''
 	bestMatch = None
 	try:
-		ck = checkClass(filePath)
+		ck = checkClass(filePath, pathFilter=pathFilter)
 		binMatch = ck.getBestBinaryMatch()
 		if binMatch:
-			ck.deleteArch()
+			ck.deleteArch(moveToPath=moveToPath)
 			return 'deleted was-duplicate', binMatch
 
-		pMatch = ck.getBestPhashMatch()
+		pMatch = ck.getBestPhashMatch(distance=distance)
 		if pMatch:
-			ck.deleteArch()
+			ck.deleteArch(moveToPath=moveToPath)
 			return 'deleted was-duplicate phash-duplicate', pMatch
 
 		ck.addArch()

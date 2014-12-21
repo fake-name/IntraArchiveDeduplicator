@@ -473,6 +473,8 @@ def processDownload(filePath, pathFilter=None, distance=None, moveToPath=None, c
 				the deduplication state (e.g. `deleted`, `was-duplicate`, and `phash-duplicate`)
 			`bestMatch` is the fspath of the best-matching other archive.
 	'''
+	log = logging.getLogger("Main.DedupServer")
+
 	status = ''
 	bestMatch = None
 	try:
@@ -491,7 +493,12 @@ def processDownload(filePath, pathFilter=None, distance=None, moveToPath=None, c
 
 
 	except Exception:
+		log.critical("Exception when processing item!")
+		for line in traceback.format_exc().split("\n"):
+			log.critical(line)
 		status += " damaged"
-
 	status = status.strip()
+
+	log.info("Returning status '%s' for archive '%s'. Best Match: '%s'", status, filePath, bestMatch)
+
 	return status, bestMatch

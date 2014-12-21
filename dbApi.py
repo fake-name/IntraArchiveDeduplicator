@@ -215,6 +215,8 @@ class DbApi():
 
 
 	def generateUpdateQuery(self, where=False, **kwargs):
+		if 'fspath' in kwargs or 'internalpath' in kwargs or 'dbid' in kwargs:
+			raise ValueError("Cannot generate correct update query with lowercase params!")
 		if not where:
 			if "dbId" in kwargs:
 				where = (self.table.dbid == kwargs.pop('dbId'))

@@ -274,6 +274,11 @@ class ArchChecker(ProxyDbBase):
 			if row['phash'] == None:      #pragma: no cover
 				raise ValueError("Line is missing phash, yet in phash database? DbId = '%s'", row['dbid'])
 
+			if not row['imgx'] and not row['imgy']:
+				self.log.warn("Image with no resolution stats! Wat?.")
+				self.log.warn("Image: '%s', '%s'", row['fspath'], row['internalpath'])
+				continue
+
 			if srcX > row['imgx'] or srcY > row['imgy']:
 				self.log.info("Filtering phash match due to lower resolution.")
 				continue

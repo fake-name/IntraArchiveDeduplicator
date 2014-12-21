@@ -499,3 +499,33 @@ class TestArchChecker(unittest.TestCase):
 
 		self.assertEqual(status, 'damaged')
 		self.assertFalse(bestMatch)
+
+
+	# There was a failing issue when a returned phash has no resolution entry.
+	# I thought I had fixed those in the DB, but I guess not
+	# Add a test to verify this is fixed.
+	def test_missingResolutionData(self):
+		self.verifyDatabaseLoaded()
+		cwd = os.path.dirname(os.path.realpath(__file__))
+
+		# Remove junk zip so z_reg is actually unique
+		os.remove('{cwd}/test_ptree/z_reg_junk.zip'.format(cwd=cwd))
+
+		# Check that we are properly matching larger images
+		ck = TestArchiveChecker('{cwd}/test_ptree/small.zip'.format(cwd=cwd))
+		self.assertFalse(ck.getBestBinaryMatch())
+		self.assertEqual(ck.getBestPhashMatch(), '{cwd}/test_ptree/regular.zip'.format(cwd=cwd))
+
+		rows = self.db.getLikeBasePath('{cwd}/test_ptree/regular.zip'.format(cwd=cwd))
+
+		# Mask out all the rows without phash values.
+		rows = [row for row in rows if row[3]]
+		rows.sort()
+
+		# Set all the image sizes to NULL
+		for row in rows:
+			fsPath, intPath = row[0], row[1]
+			self.db.updateDbEntry(fsPath=fsPath, internalPath=intPath, imgx=None, imgy=None)
+
+		# Check that we get no match
+		self.assertFalse(ck.getBestPhashMatch())

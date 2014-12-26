@@ -11,7 +11,7 @@ import multiprocessing
 
 import magic
 import logging
-import dbPhashApi
+import dbApi
 import signal
 
 import os.path
@@ -47,7 +47,7 @@ class HashEngine(object):
 		'''
 		Intended to be overridden in unit-tests
 		'''
-		return dbPhashApi.PhashDbApi()
+		return dbApi.DbApi()
 
 	def runThreads(self):
 		self.manNamespace.stopOnEmpty = False
@@ -152,7 +152,7 @@ class HashThread(object):
 		'''
 		Intended to be overridden in unit-tests
 		'''
-		return dbPhashApi.PhashDbApi()
+		return dbApi.DbApi()
 
 	def putProgQueue(self, value):
 		if self.outQ:

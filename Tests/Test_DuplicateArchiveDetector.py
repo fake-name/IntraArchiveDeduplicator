@@ -461,10 +461,18 @@ class TestArchChecker(unittest.TestCase):
 		cwd = os.path.dirname(os.path.realpath(__file__))
 		archPath = '{cwd}/test_ptree/z_sml.zip'.format(cwd=cwd)
 
-		status, bestMatch = deduplicator.ProcessArchive.processDownload(archPath, checkClass=TestArchiveChecker)
+		status, bestMatch, commonArches = deduplicator.ProcessArchive.processDownload(archPath, checkClass=TestArchiveChecker)
 		matchPath = '{cwd}/test_ptree/z_reg_junk.zip'.format(cwd=cwd)
 		self.assertEqual(status, 'deleted was-duplicate')
 		self.assertEqual(bestMatch, matchPath)
+		expect = {
+			2:
+				[
+					'{cwd}/test_ptree/z_reg.zip'.format(cwd=cwd),
+					'{cwd}/test_ptree/z_reg_junk.zip'.format(cwd=cwd)
+				]
+		}
+		self.assertEqual(commonArches, expect)
 
 	def test_addArchive_2(self):
 		self.verifyDatabaseLoaded()
@@ -472,10 +480,17 @@ class TestArchChecker(unittest.TestCase):
 
 		archPath = '{cwd}/test_ptree/small.zip'.format(cwd=cwd)
 
-		status, bestMatch = deduplicator.ProcessArchive.processDownload(archPath, checkClass=TestArchiveChecker)
+		status, bestMatch, commonArches = deduplicator.ProcessArchive.processDownload(archPath, checkClass=TestArchiveChecker)
 		matchPath = '{cwd}/test_ptree/regular.zip'.format(cwd=cwd)
 		self.assertEqual(status, 'deleted was-duplicate phash-duplicate')
 		self.assertEqual(bestMatch, matchPath)
+		expect = {
+			4:
+				[
+					'{cwd}/test_ptree/regular.zip'.format(cwd=cwd)
+				]
+		}
+		self.assertEqual(commonArches, expect)
 
 	def test_addArchive_3(self):
 		self.verifyDatabaseLoaded()
@@ -483,10 +498,18 @@ class TestArchChecker(unittest.TestCase):
 
 		archPath = '{cwd}/test_ptree/regular.zip'.format(cwd=cwd)
 
-		status, bestMatch = deduplicator.ProcessArchive.processDownload(archPath, checkClass=TestArchiveChecker)
+		status, bestMatch, commonArches = deduplicator.ProcessArchive.processDownload(archPath, checkClass=TestArchiveChecker)
 
 		self.assertFalse(status)
 		self.assertFalse(bestMatch)
+
+		expect = {
+			4:
+				[
+					'{cwd}/test_ptree/small.zip'.format(cwd=cwd)
+				]
+		}
+		self.assertEqual(commonArches, expect)
 
 
 	def test_addArchive_4(self):
@@ -495,10 +518,13 @@ class TestArchChecker(unittest.TestCase):
 
 		archPath = '{cwd}/lol/wat/herp/derp.zip'.format(cwd=cwd)
 
-		status, bestMatch = deduplicator.ProcessArchive.processDownload(archPath, checkClass=TestArchiveChecker)
+		status, bestMatch, commonArches = deduplicator.ProcessArchive.processDownload(archPath, checkClass=TestArchiveChecker)
 
 		self.assertEqual(status, 'damaged')
 		self.assertFalse(bestMatch)
+
+		# IF the archive can't be scanned, no duplicates will be found.
+		self.assertEqual(commonArches, {})
 
 
 	# There was a failing issue when a returned phash has no resolution entry.

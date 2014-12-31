@@ -329,7 +329,7 @@ class ArchChecker(ProxyDbBase):
 				continue
 
 			if srcX > row['imgx'] or srcY > row['imgy']:
-				self.log.info("Filtering phash match due to lower resolution.")
+				# self.log.info("Filtering phash match due to lower resolution.")
 				continue
 
 

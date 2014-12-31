@@ -135,6 +135,57 @@ class ArchChecker(ProxyDbBase):
 		ret = self.getPhashMatchingArchives(distance)
 		return self._getBestMatchingArchive(ret)
 
+	def getSignificantlySimilarArches(self):
+		'''
+		This function returns a dict of lists containing archives with files in common with
+		the current archive. It only operates using phash similarity metrics (as phash searches
+		are intrinsically a superset of binary match similarity metrics).
+
+		The dict keys are the number of files in common, and the list is a number of filesystem-
+		paths to the intersecting archives.
+
+		'''
+
+		common = self.getPhashMatchingArchives(getAllCommon=True)
+
+		ret = self._processMatchesIntoRet(common)
+
+		# Now, we truncate the return common set to every item which has >
+		# the mean number of items in common
+		# This is a preventative measure against things like scanlators which
+		# have a credit page they put EVERYWHERE, and we therefor want to
+		# disregard.
+		keys = list(ret.keys())
+		if not keys:
+			return ret
+
+		mean = (sum(keys) / len(keys))
+		for key in [key for key in keys if key < mean]:
+			ret.pop(key)
+
+		# And pop all items which have only one item in common
+		if 1 in ret:
+			ret.pop(1)
+		return ret
+
+	def _processMatchesIntoRet(self, matches):
+		'''
+		This takes a dict of items where each key is a filesystem path, and the value
+		is a set of internal-paths that are matched in the archive at the key filesystem path.
+
+		It transforms that dict into another dict where the key is the number of matches
+		that a filesystem path has, and the value is a list of filesystem paths that
+		had `key` matches.
+		'''
+		ret = {}
+		for key in matches.keys():
+			ret.setdefault(len(matches[key]), []).append(key)
+
+		# Make the return ordering deterministic
+		for key in ret.keys():
+			ret[key].sort()
+		return ret
+
 
 	def _shouldSkipFile(self, fileN, fileType):
 		'''
@@ -252,8 +303,6 @@ class ArchChecker(ProxyDbBase):
 		'''
 
 
-		# TODO: Add image size checks.
-
 		srcX, srcY = imgDims
 
 		matches = {}
@@ -343,12 +392,21 @@ class ArchChecker(ProxyDbBase):
 
 	# This really, /really/ feels like it should be several smaller functions, but I cannot see any nice ways to break it up.
 	# It's basically like 3 loops rolled together to reduce processing time and lookups, and there isn't much I can do about that.
-	def getPhashMatchingArchives(self, searchDistance=PHASH_DISTANCE_THRESHOLD):
+	def getPhashMatchingArchives(self, searchDistance=PHASH_DISTANCE_THRESHOLD, getAllCommon=False):
 		'''
 		This function effectively mirrors the functionality of `getMatchingArchives()`,
 		except that it uses phash-duplicates to identify matches as well as
 		simple binary equality.
+
+		The additional `getAllCommon` parameter overrides the early-return behaviour if
+		one of the scanned items is unique. As such, if `getAllCommon` is True,
+		it will phash search for every item in the archive, even if they're all unique.
+		It also disables the resolution filtering of the match results.
+		This is necessary for finding commonalities between archives, which is intended
+		to return archives that the current archive has potentially superceded.
+
 		'''
+
 
 		self.log.info("Scanning for phash duplicates.")
 		matches = {}
@@ -373,7 +431,8 @@ class ArchChecker(ProxyDbBase):
 					# If we have matching items, merge them into the matches dict->set
 					for key in matchDict.keys():
 						matches.setdefault(key, set()).update(matchDict[key])
-				else:
+
+				elif not getAllCommon:
 					# Short circuit on unique item, since we are only checking if ANY item is unique
 					self.log.info("It contains at least one unique file(s).")
 					return {}
@@ -388,14 +447,20 @@ class ArchChecker(ProxyDbBase):
 			# Any non-none and non-0 matches get the normal lookup behaviour.
 			else:
 
-				imgDims = (infoDict['imX'], infoDict['imY'])
+				# If we're getting all common files, that means we don't want to filter
+				# by image resolution. Therefore, we set the current image resolution to
+				# 1,1, so everything seems larger
+				if getAllCommon:
+					imgDims = (1, 1)
+				else:
+					imgDims = (infoDict['imX'], infoDict['imY'])
 
 				matchDict = self._getPhashMatchesForPhash(infoDict['pHash'], imgDims, searchDistance)
 				if matchDict:
 					# If we have matching items, merge them into the matches dict->set
 					for key in matchDict.keys():
 						matches.setdefault(key, set()).update(matchDict[key])
-				else:
+				elif not getAllCommon:
 					# Short circuit on unique item, since we are only checking if ANY item is unique
 					self.log.info("It contains at least one unique file(s).")
 					self.log.info("Archive contains at least one unique phash(es).")
@@ -482,17 +547,21 @@ def processDownload(filePath, pathFilter=None, distance=None, moveToPath=None, c
 
 	status = ''
 	bestMatch = None
+	common = {}
 	try:
 		ck = checkClass(filePath, pathFilter=pathFilter)
+
+		common = ck.getSignificantlySimilarArches()
+
 		binMatch = ck.getBestBinaryMatch()
 		if binMatch:
 			ck.deleteArch(moveToPath=moveToPath)
-			return 'deleted was-duplicate', binMatch
+			return 'deleted was-duplicate', binMatch, common
 
 		pMatch = ck.getBestPhashMatch(distance=distance)
 		if pMatch:
 			ck.deleteArch(moveToPath=moveToPath)
-			return 'deleted was-duplicate phash-duplicate', pMatch
+			return 'deleted was-duplicate phash-duplicate', pMatch, common
 
 		ck.addArch()
 
@@ -506,4 +575,4 @@ def processDownload(filePath, pathFilter=None, distance=None, moveToPath=None, c
 
 	log.info("Returning status '%s' for archive '%s'. Best Match: '%s'", status, filePath, bestMatch)
 
-	return status, bestMatch
+	return status, bestMatch, common

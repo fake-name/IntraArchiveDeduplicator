@@ -4,7 +4,7 @@ from contextlib import contextmanager
 __author__ = "Mateusz Kobos, Connor Wolf"
 #
 # Extended to allow blocking/non-blocking and
-# context-manager use by Connor Wolfs
+# context-manager use by Connor Wolf
 #
 
 class RWLock:

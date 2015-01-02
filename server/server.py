@@ -18,10 +18,16 @@ import sys
 
 
 class DbInterfaceServer(rpyc.Service):
-
+	lock = multiprocessing.Lock()
 
 	def exposed_processDownload(self, *args, **kwargs):
-		return deduplicator.ProcessArchive.processDownload(*args, **kwargs)
+		print("Acquiring lock")
+		self.lock.acquire()
+		try:
+			return deduplicator.ProcessArchive.processDownload(*args, **kwargs)
+		finally:
+			print("Releasing lock")
+			self.lock.release()
 
 	def exposed_reloadTree(self):
 		treeProx = dbPhashApi.PhashDbApi()

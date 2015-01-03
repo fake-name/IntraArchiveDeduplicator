@@ -278,7 +278,8 @@ class ArchChecker(ProxyDbBase):
 
 			elif not exists:
 				self.log.warn("Item '%s' no longer exists!", fsPath)
-				self.db.deleteBasePath(fsPath)
+				self.db.deleteDbRows(fspath=fsPath)
+
 
 		return matches
 
@@ -309,8 +310,15 @@ class ArchChecker(ProxyDbBase):
 
 		proximateFiles = self.db.getWithinDistance(phash, searchDistance)
 
+		# Pack returned row tuples into nice dicts for easy access
 		keys = ["dbid", "fspath", "internalpath", "itemhash", "phash", "dhash", "itemkind", "imgx", "imgy"]
 		rows = [dict(zip(keys, row)) for row in proximateFiles]
+
+		# Filter returned scan results by the maskedPaths context
+		# This is done early-on, so we don't get extraPath garbage
+		# when the actual scan is done.
+		rows = [row for row in rows if any([row['fspath'].startswith(maskedPath) for maskedPath in self.maskedPaths])]
+
 
 		# for row in [match for match in proximateFiles if (match and match[1] != self.archPath)]:
 		for row in rows:
@@ -323,7 +331,7 @@ class ArchChecker(ProxyDbBase):
 			if row['phash'] == None:      #pragma: no cover
 				raise ValueError("Line is missing phash, yet in phash database? DbId = '%s'", row['dbid'])
 
-			if not row['imgx'] and not row['imgy']:
+			if not row['imgx'] or not row['imgy']:
 				self.log.warn("Image with no resolution stats! Wat?.")
 				self.log.warn("Image: '%s', '%s'", row['fspath'], row['internalpath'])
 				continue
@@ -333,14 +341,15 @@ class ArchChecker(ProxyDbBase):
 				continue
 
 
-			isNotMasked = any([row['fspath'].startswith(maskedPath) for maskedPath in self.maskedPaths])
-
-			if isNotMasked and os.path.exists(row['fspath']) :
+			# If we had more then 500 returnd matches, skip the existence check as
+			# it'll take too long.
+			if len(rows) > 500 or os.path.exists(row['fspath']) :
 				matches.setdefault(row['fspath'], set()).add(row['internalpath'])
 
-			elif isNotMasked:
+			else:
 				self.log.warn("Item '%s' no longer exists!", row['fspath'])
-				self.db.deleteBasePath(row['fspath'])
+				self.db.deleteDbRows(fspath=row['fspath'])
+
 
 		return matches
 
@@ -484,7 +493,7 @@ class ArchChecker(ProxyDbBase):
 		moved archive to be returned to it's original fs location in (almost) all cases.
 
 		'''
-		self.db.deleteBasePath(self.archPath)
+		self.db.deleteDbRows(fspath=self.archPath)
 		if not moveToPath:
 			self.log.warning("Deleting archive '%s'", self.archPath)
 			os.remove(self.archPath)
@@ -502,6 +511,11 @@ class ArchChecker(ProxyDbBase):
 				self.log.error(traceback.format_exc())
 
 
+	def deleteArchFromDb(self):
+
+		self.db.deleteDbRows(fspath=self.archPath)
+
+
 	def addArch(self):
 		'''
 		Add the hash values from the target archive to the database, with the current
@@ -511,7 +525,7 @@ class ArchChecker(ProxyDbBase):
 		self.log.info("Adding archive to database. Hashing file: %s", self.archPath)
 
 		# Delete any existing hashes that collide
-		self.db.deleteBasePath(self.archPath)
+		self.deleteArchFromDb()
 
 		# And tell the hasher to process the new archive.
 		hasher = self.hasher(inputQueue=None, outputQueue=None, runMgr=None)

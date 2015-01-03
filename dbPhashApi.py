@@ -7,7 +7,7 @@ import collections
 import pyximport
 pyximport.install()
 import deduplicator.cyHamDb as hamDb
-
+import traceback
 import server.decorators
 
 @server.decorators.Singleton
@@ -129,7 +129,15 @@ class PhashDbApi(dbApi.DbApi):
 		# care about the additional error of trying to iterate over
 		# the (then undefined) ret, since it won't happen.
 		for dbId, itemHash in [item for item in ret if item[1]]:
-			self.tree.remove(itemHash, dbId)
+			try:
+				self.tree.remove(itemHash, dbId)
+			except KeyError:
+				self.log.critical("Failure when deleting node?")
+				for line in traceback.format_exc().split("\n"):
+					self.log.critical(line)
+				self.log.critical("Ignoring error")
+
+
 
 
 	def getWithinDistance(self, inPhash, distance=2, wantCols=None):

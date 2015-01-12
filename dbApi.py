@@ -32,6 +32,12 @@ class DbApi():
 
 	loggerPath = "Main.DbApi"
 
+	_psqlDbIpAddr = settings.PSQL_IP
+	_psqlDbName   = settings.PSQL_DB_NAME
+	_psqlUserName = settings.PSQL_USER
+	_psqlUserPass = settings.PSQL_PASS
+
+
 	def __init__(self):
 
 		# If we're running as a multiprocessing thread, inject that into
@@ -45,15 +51,15 @@ class DbApi():
 
 
 		try:
-			self.conn = psycopg2.connect(dbname=settings.PSQL_DB_NAME,
-										user=settings.PSQL_USER,
-										password=settings.PSQL_PASS)
+			self.conn = psycopg2.connect(dbname  = self._psqlDbName,
+										user     = self._psqlUserName,
+										password = self._psqlUserPass)
 
 		except psycopg2.OperationalError:
-			self.conn = psycopg2.connect(host=settings.PSQL_IP,
-										dbname=settings.PSQL_DB_NAME,
-										user=settings.PSQL_USER,
-										password=settings.PSQL_PASS)
+			self.conn = psycopg2.connect(host    = self._psqlDbIpAddr,
+										dbname   = self._psqlDbName,
+										user     = self._psqlUserName,
+										password = self._psqlUserPass)
 		# self.conn.autocommit = True
 		with self.transaction() as cur:
 

@@ -8,8 +8,16 @@ from scanner.unitConverters import binStrToInt as b2i
 import pyximport
 pyximport.install()
 import deduplicator.cyHamDb as hamDb
+import test_settings
 
 class TestDb(dbPhashApi.PhashDbApi):
+
+
+	_psqlDbIpAddr = test_settings.PSQL_IP
+	_psqlDbName   = test_settings.PSQL_DB_NAME
+	_psqlUserName = test_settings.PSQL_USER
+	_psqlUserPass = test_settings.PSQL_PASS
+
 	tableName = 'testitems'
 
 	streamChunkSize = 1

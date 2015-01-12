@@ -6,6 +6,7 @@ import os
 import os.path
 import logging
 import shutil
+import test_settings
 
 import pyximport
 pyximport.install()
@@ -14,6 +15,12 @@ SRC_ZIP_PATH  = 'test_ptree_base'
 TEST_ZIP_PATH = 'test_ptree'
 
 class TestDbBare(dbPhashApi.PhashDbApi):
+
+	_psqlDbIpAddr = test_settings.PSQL_IP
+	_psqlDbName   = test_settings.PSQL_DB_NAME
+	_psqlUserName = test_settings.PSQL_USER
+	_psqlUserPass = test_settings.PSQL_PASS
+
 	tableName = 'testitems'
 
 # Need to override the database in the hasher.
@@ -32,6 +39,12 @@ class TestHasher(scanner.fileHasher.HashThread):
 		pass
 
 class TestDb(TestDbBare):
+
+	_psqlDbIpAddr = test_settings.PSQL_IP
+	_psqlDbName   = test_settings.PSQL_DB_NAME
+	_psqlUserName = test_settings.PSQL_USER
+	_psqlUserPass = test_settings.PSQL_PASS
+
 	tableName = 'testitems'
 
 	streamChunkSize = 5

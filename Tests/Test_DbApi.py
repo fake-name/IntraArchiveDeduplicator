@@ -3,8 +3,17 @@ import dbApi
 import unittest
 import scanner.logSetup as logSetup
 import psycopg2
+import test_settings
 
 class TestDb(dbApi.DbApi):
+
+
+	_psqlDbIpAddr = test_settings.PSQL_IP
+	_psqlDbName   = test_settings.PSQL_DB_NAME
+	_psqlUserName = test_settings.PSQL_USER
+	_psqlUserPass = test_settings.PSQL_PASS
+
+
 	tableName = 'testitems'
 
 

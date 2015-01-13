@@ -590,3 +590,44 @@ def processDownload(filePath, pathFilter=None, distance=None, moveToPath=None, c
 	log.info("Returning status '%s' for archive '%s'. Best Match: '%s'", status, filePath, bestMatch)
 
 	return status, bestMatch, common
+
+
+
+def commandLineReloadTree(scanConf):
+	import rpyc
+	remote = rpyc.connect("localhost", 12345)
+	print("Forcing reload of phash tree. Search functionality will block untill load is complete.")
+	remote.root.reloadTree()
+	print("Tree reloaded!")
+
+def commandLineProcess(scanConf):
+	import scanner.logSetup
+	import rpyc
+
+	scanner.logSetup.initLogging()
+
+	if not os.path.exists(scanConf.sourcePath):
+		print("ERROR: Source file does not exist!")
+		return
+	if not os.path.isfile(scanConf.sourcePath):
+		print("ERROR: Source is not a file!")
+		return
+
+	if scanConf.noContext:
+		scanContext = None
+	else:
+		scanContext = [os.path.split(scanConf.sourcePath)]
+
+	remote = rpyc.connect("localhost", 12345)
+
+	status, bestMatch, intersections = remote.root.processDownload(
+		scanConf.sourcePath,
+		pathFilter=scanContext,
+		distance=6,
+		moveToPath=None,
+		locked=True)
+	print("Processed archive. Return status '%s'", status)
+	if bestMatch:
+		print("Matching archive '%s'", bestMatch)
+	return status, bestMatch, intersections
+

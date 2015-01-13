@@ -1,6 +1,7 @@
 
 import argparse
 import scanner.scanner
+import deduplicator.ProcessArchive
 
 import sys
 
@@ -29,6 +30,23 @@ if __name__ == "__main__":
 	parserDirScan.set_defaults(func=scanner.scanner.doScan)
 
 	print("Sys args: ", sys.argv)
+
+
+	# ---------------  Processing  ----------------------
+	archProc = subparsers.add_parser('arch-process', help="Scan set of directory, and generate a list of hashes of all the files therein")
+	archProc.add_argument('-i', '--in-archive',   required=True,  dest="sourcePath")
+	archProc.add_argument('-n', '--nophash',     required=False, dest="noPhash", action='store_true')
+	archProc.add_argument('-c', '--nocontext',     required=False, dest="noContext", action='store_true')
+
+	archProc.set_defaults(func=deduplicator.ProcessArchive.commandLineProcess)
+
+
+	# ---------------  Tree Management  ----------------------
+	archProc = subparsers.add_parser('tree-reload', help="Reload the phash-tree from the database")
+
+	archProc.set_defaults(func=deduplicator.ProcessArchive.commandLineReloadTree)
+
+
 
 
 	argsParsed = parser.parse_args()

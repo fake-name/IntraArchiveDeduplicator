@@ -32,11 +32,6 @@ class DbApi():
 
 	loggerPath = "Main.DbApi"
 
-	_psqlDbIpAddr = settings.PSQL_IP
-	_psqlDbName   = settings.PSQL_DB_NAME
-	_psqlUserName = settings.PSQL_USER
-	_psqlUserPass = settings.PSQL_PASS
-
 
 	def __init__(self):
 
@@ -48,18 +43,8 @@ class DbApi():
 		else:
 			self.log = logging.getLogger(self.loggerPath)
 
+		self.connect()
 
-
-		try:
-			self.conn = psycopg2.connect(dbname  = self._psqlDbName,
-										user     = self._psqlUserName,
-										password = self._psqlUserPass)
-
-		except psycopg2.OperationalError:
-			self.conn = psycopg2.connect(host    = self._psqlDbIpAddr,
-										dbname   = self._psqlDbName,
-										user     = self._psqlUserName,
-										password = self._psqlUserPass)
 		# self.conn.autocommit = True
 		with self.transaction() as cur:
 
@@ -87,13 +72,14 @@ class DbApi():
 
 													);'''.format(table=self.tableName))
 
-				self.log.info("Checking indexes exist")
+				self.log.info("Creating indexes")
 				cur.execute('''CREATE UNIQUE INDEX {table}_name_index     ON {table}(fsPath, internalPath);'''.format(table=self.tableName))
 				cur.execute('''CREATE        INDEX {table}_path_index     ON {table}(fsPath text_pattern_ops);'''.format(table=self.tableName))
 				cur.execute('''CREATE        INDEX {table}_ihash_index    ON {table}(itemHash);'''.format(table=self.tableName))
 				cur.execute('''CREATE        INDEX {table}_phash_index    ON {table}(pHash);'''.format(table=self.tableName))
 				cur.execute('''CREATE        INDEX {table}_dhash_index    ON {table}(dHash);'''.format(table=self.tableName))
 				cur.execute('''CREATE        INDEX {table}_scantime_index ON {table}(scantime);'''.format(table=self.tableName))
+				self.log.info("Done!")
 
 				# CREATE        INDEX dedupitems_scantime_index ON dedupitems(scantime)
 
@@ -132,6 +118,30 @@ class DbApi():
 
 			}
 
+
+
+	def connect(self):
+
+
+		try:
+			# hook up login creds (overridden for tests)
+			self._psqlDbIpAddr = settings.PSQL_IP
+			self._psqlDbName   = settings.PSQL_DB_NAME
+			self._psqlUserName = settings.PSQL_USER
+			self._psqlUserPass = settings.PSQL_PASS
+		except:
+			print("WARNING: DB Credentials not available. Is this a test environment?")
+
+		try:
+			self.conn = psycopg2.connect(dbname  = self._psqlDbName,
+										user     = self._psqlUserName,
+										password = self._psqlUserPass)
+
+		except psycopg2.OperationalError:
+			self.conn = psycopg2.connect(host    = self._psqlDbIpAddr,
+										dbname   = self._psqlDbName,
+										user     = self._psqlUserName,
+										password = self._psqlUserPass)
 
 	def close(self):
 		self.conn.close()
@@ -681,6 +691,7 @@ class DbApi():
 			cur.execute(query, params)
 			ret = cur.fetchone()
 
+		# print("IdExtents = ", ret)
 		return ret
 
 
@@ -700,21 +711,27 @@ class DbApi():
 		minId, maxId = self.getIdExtents()
 
 
+
 		ret = None
+		attempts = 0
 		while not ret:
+			attempts += 1
+			if attempts > 10:
+				raise ValueError("Could not fetch random item?")
 			dbId = random.randint(minId, maxId+1)
-			query = self.table.select(*cols, where=(self.table.dbid == dbId))
+			query = self.table.select(*cols, where=(self.keyToCol('dbId') == dbId))
 
 			query, params = tuple(query)
 			with self.transaction() as cur:
 				cur.execute(query, params)
 				ret = cur.fetchone()
 
+
 		return ret
 
 def test():
 	ind = DbApi()
-	print(ind.getRandomRow())
+
 
 if __name__ == "__main__":
 

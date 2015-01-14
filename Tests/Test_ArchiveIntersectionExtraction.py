@@ -73,7 +73,7 @@ class TestArchChecker(unittest.TestCase):
 		cwd = os.path.dirname(os.path.realpath(__file__))
 
 		ck = TestArchiveChecker('{cwd}/test_ptree/notQuiteAllArch.zip'.format(cwd=cwd))
-		ret = ck.getSignificantlySimilarArches()
+		ret = ck.getSignificantlySimilarArches(searchDistance=2)
 		expect = {
 			5:
 				[
@@ -84,7 +84,7 @@ class TestArchChecker(unittest.TestCase):
 
 
 		ck = TestArchiveChecker('{cwd}/test_ptree/regular.zip'.format(cwd=cwd))
-		ret = ck.getSignificantlySimilarArches()
+		ret = ck.getSignificantlySimilarArches(searchDistance=2)
 
 		expect = {
 			4:
@@ -96,7 +96,7 @@ class TestArchChecker(unittest.TestCase):
 
 		# Check that we are properly matching larger images
 		ck = TestArchiveChecker('{cwd}/test_ptree/small.zip'.format(cwd=cwd))
-		ret = ck.getSignificantlySimilarArches()
+		ret = ck.getSignificantlySimilarArches(searchDistance=2)
 
 		expect = {
 			4:

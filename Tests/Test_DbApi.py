@@ -5,44 +5,6 @@ import scanner.logSetup as logSetup
 import psycopg2
 import test_settings
 
-class TestDb(dbApi.DbApi):
-
-
-	_psqlDbIpAddr = test_settings.PSQL_IP
-	_psqlDbName   = test_settings.PSQL_DB_NAME
-	_psqlUserName = test_settings.PSQL_USER
-	_psqlUserPass = test_settings.PSQL_PASS
-
-
-	tableName = 'testitems'
-
-
-
-	def __init__(self, tableName = None, *args, **kwargs):
-
-		# If the last run didn't complete, we will have dangling tables. Tear them down pre-emptively, so it doesn't
-		# error out this run.
-		try:
-			self.tearDown()
-		except:
-			pass
-
-		if tableName:
-			self.tableName = self.tableName+"_"+tableName
-		super().__init__(*args, **kwargs)
-
-
-	def tearDown(self):
-		self.log.info("Dropping testing table '{table}'".format(table=self.tableName))
-		cur = self.conn.cursor()
-		cur.execute("BEGIN;")
-		cur = self.conn.cursor()
-		cur.execute('DROP TABLE {table} CASCADE;'.format(table=self.tableName))
-		cur.execute("COMMIT;")
-
-		#And close the DB connection
-		self.conn.close()
-
 
 TEST_DATA = [
 	{"fspath" : '/test/dir1',       "internalpath" : 'item1', "itemhash" : 'DEAD', "phash" : 12,       "dhash" : 10,       "itemkind" : 'N/A', "imgx" : 50, "imgy" : 30},
@@ -60,6 +22,57 @@ TEST_DATA = [
 	{"fspath" : '/lol/test1/HERP',  "internalpath" : '',      "itemhash" : '5555', "phash" : None,     "dhash" : None,     "itemkind" : 'N/A', "imgx" : 62, "imgy" : 42}
 ]
 
+
+class TestDb(dbApi.DbApi):
+
+
+	_psqlDbIpAddr = test_settings.PSQL_IP
+	_psqlDbName   = test_settings.PSQL_DB_NAME
+	_psqlUserName = test_settings.PSQL_USER
+	_psqlUserPass = test_settings.PSQL_PASS
+
+
+	tableName = 'testitems'
+
+
+
+	def __init__(self, tableName = None, *args, **kwargs):
+
+		self.connect()
+
+		# If the last run didn't complete, we will have dangling tables. Tear them down pre-emptively, so it doesn't
+		# error out this run.
+		try:
+			self.tearDown()
+		except:
+			pass
+
+
+		if tableName:
+			self.tableName = self.tableName+"_"+tableName
+
+		super().__init__(*args, **kwargs)
+
+
+
+		for testRow in TEST_DATA:
+			print("Inserting", testRow)
+			self.insertIntoDb(**testRow)
+
+
+
+	def tearDown(self):
+		print("Dropping testing table '{table}'".format(table=self.tableName))
+		cur = self.conn.cursor()
+		cur.execute("BEGIN;")
+		cur = self.conn.cursor()
+		cur.execute('DROP TABLE {table} CASCADE;'.format(table=self.tableName))
+		cur.execute("COMMIT;")
+
+		#And close the DB connection
+		# self.conn.close()
+
+
 KEY_ORDER = ["fspath", "internalpath", "itemhash", "phash", "dhash", "itemkind", "imgx", "imgy"]
 
 # TODO: Actual test-failure comments!
@@ -68,19 +81,18 @@ class TestSequenceFunctions(unittest.TestCase):
 	def __init__(self, *args, **kwargs):
 		logSetup.initLogging()
 		super().__init__(*args, **kwargs)
+		print("Done")
 
 	# Exists solely so I can override it in other test classes
 	def getDb(self):
 		return TestDb()
 
 	def setUp(self):
-
+		print("Doing Setup!")
 		self.addCleanup(self.dropDatabase)
 
 		self.db = self.getDb()
-		for testRow in TEST_DATA:
-			self.db.insertIntoDb(**testRow)
-
+		print("Items in DB:", self.db.getItemNum())
 		# Check the table is set up
 		self.assertEqual(self.db.getItemNum(), (len(TEST_DATA),),
 				'Setup resulted in an incorrect number of items in database!')

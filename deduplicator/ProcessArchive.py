@@ -75,7 +75,7 @@ class ArchChecker(ProxyDbBase):
 			return False
 		return True
 
-	def isPhashUnique(self, searchDistance=PHASH_DISTANCE_THRESHOLD):
+	def isPhashUnique(self, searchDistance=None):
 		'''
 		Is the archive this class was instantiated on phash unique, where the
 		duplicating files elsewhere on the filesystem still exist.
@@ -87,6 +87,10 @@ class ArchChecker(ProxyDbBase):
 		Returns:
 			Boolean: True if unique, False if not.
 		'''
+
+		if searchDistance == None:
+			searchDistance=PHASH_DISTANCE_THRESHOLD
+
 		ret = self.getPhashMatchingArchives(searchDistance)
 
 		if len(ret):
@@ -129,13 +133,13 @@ class ArchChecker(ProxyDbBase):
 			String: Path to archive on the local filesystem. Path is verified to
 				exist at time of return.
 		'''
-		if not distance:
+		if distance == None:
 			distance=PHASH_DISTANCE_THRESHOLD
 
 		ret = self.getPhashMatchingArchives(distance)
 		return self._getBestMatchingArchive(ret)
 
-	def getSignificantlySimilarArches(self):
+	def getSignificantlySimilarArches(self, searchDistance=None):
 		'''
 		This function returns a dict of lists containing archives with files in common with
 		the current archive. It only operates using phash similarity metrics (as phash searches
@@ -145,8 +149,10 @@ class ArchChecker(ProxyDbBase):
 		paths to the intersecting archives.
 
 		'''
+		if searchDistance == None:
+			searchDistance=PHASH_DISTANCE_THRESHOLD
 
-		common = self.getPhashMatchingArchives(getAllCommon=True)
+		common = self.getPhashMatchingArchives(getAllCommon=True, searchDistance=searchDistance)
 
 		ret = self._processMatchesIntoRet(common)
 
@@ -401,7 +407,7 @@ class ArchChecker(ProxyDbBase):
 
 	# This really, /really/ feels like it should be several smaller functions, but I cannot see any nice ways to break it up.
 	# It's basically like 3 loops rolled together to reduce processing time and lookups, and there isn't much I can do about that.
-	def getPhashMatchingArchives(self, searchDistance=PHASH_DISTANCE_THRESHOLD, getAllCommon=False):
+	def getPhashMatchingArchives(self, searchDistance=None, getAllCommon=False):
 		'''
 		This function effectively mirrors the functionality of `getMatchingArchives()`,
 		except that it uses phash-duplicates to identify matches as well as
@@ -416,6 +422,8 @@ class ArchChecker(ProxyDbBase):
 
 		'''
 
+		if searchDistance == None:
+			searchDistance = PHASH_DISTANCE_THRESHOLD
 
 		self.log.info("Scanning for phash duplicates.")
 		matches = {}
@@ -565,7 +573,7 @@ def processDownload(filePath, pathFilter=None, distance=None, moveToPath=None, c
 	try:
 		ck = checkClass(filePath, pathFilter=pathFilter)
 
-		common = ck.getSignificantlySimilarArches()
+		common = ck.getSignificantlySimilarArches(searchDistance=distance)
 
 		binMatch = ck.getBestBinaryMatch()
 		if binMatch:

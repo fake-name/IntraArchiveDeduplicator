@@ -216,6 +216,14 @@ class DbApi():
 		conditional = functools.reduce(opclass.and_, operators)
 		return conditional
 
+
+	#TODO: Add unit tests!
+	def upsert(self, *args, **kwargs):
+		try:
+			self.insertIntoDb(*args, **kwargs)
+		except psycopg2.IntegrityError:
+			self.updateDbEntry(*args, **kwargs)
+
 	# Insert new item into DB.
 	# MASSIVELY faster if you set commit=False (it doesn't flush the write to disk), but that can open a transaction which locks the DB.
 	# Only pass commit=False if the calling code can gaurantee it'll call commit() itself within a reasonable timeframe.

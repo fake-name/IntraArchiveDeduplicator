@@ -235,9 +235,9 @@ class HashThread(object):
 
 	def processImageFile(self, wholePath, dbFilePath):
 
-		dummy_itemHash, pHash, dHash = self.dbApi.getHashes(dbFilePath, "")
+		pHash, dHash, imgx, imgy = self.dbApi.getItem(fspath=dbFilePath, wantCols = ['phash', 'dhash', 'imgx', 'imgy'])
 		# print("Have hashes - ", dummy_itemHash, pHash, dHash)
-		if not all((pHash, dHash)):
+		if not all((pHash, dHash, imgx, imgy)):
 			with open(wholePath, "rb") as fp:
 				fCont = fp.read()
 				try:
@@ -254,7 +254,8 @@ class HashThread(object):
 								"imgY"         :imY
 							}
 
-					self.dbApi.insertIntoDb(**insertArgs)
+					# insert or update data row
+					self.dbApi.upsert(**insertArgs)
 
 					self.outQ.put("processed")
 
@@ -395,18 +396,21 @@ class HashThread(object):
 			extantItems = self.dbApi.getItemsOnBasePath(wholePath)
 			haveFileHashList = [item['itemhash'] != "" for item in extantItems]
 
-
-			# print("Extant items = ", extantItems, wholePath)
+			haveAllStatList = [(bool(item['imgx']) and bool(item['imgy'])) for item in extantItems if item['pHash']]
 
 			# Only rescan if we don't have hashes for all the items in the archive (no idea how that would happen),
 			# or we have no items for the archive
 
-			if all(haveFileHashList) and len(extantItems):
+			if all(haveFileHashList) and len(extantItems) and all(haveAllStatList):
 
 				self.putProgQueue("skipped")
 				return
 
 			elif wholePath.lower().endswith(IMAGE_EXTS):  # It looks like an image.
+
+
+
+
 				self.processImageFile(wholePath, wholePath)
 				# self.tlog.info("Skipping Image = %s", wholePath)
 

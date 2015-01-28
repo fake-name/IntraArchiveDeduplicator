@@ -235,9 +235,13 @@ class HashThread(object):
 
 	def processImageFile(self, wholePath, dbFilePath):
 
-		pHash, dHash, imgx, imgy = self.dbApi.getItem(fspath=dbFilePath, wantCols = ['phash', 'dhash', 'imgx', 'imgy'])
+		scan = True
+		have = self.dbApi.getItem(fspath=dbFilePath, wantCols = ['phash', 'dhash', 'imgx', 'imgy'])
+		if have and all(have):
+			scan = False
+
 		# print("Have hashes - ", dummy_itemHash, pHash, dHash)
-		if not all((pHash, dHash, imgx, imgy)):
+		if scan:
 			with open(wholePath, "rb") as fp:
 				fCont = fp.read()
 				try:

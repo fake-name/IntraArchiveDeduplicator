@@ -327,6 +327,10 @@ class ArchChecker(ProxyDbBase):
 
 
 		# for row in [match for match in proximateFiles if (match and match[1] != self.archPath)]:
+
+		if len(rows) > 100:
+			self.log.info("Skipping existence check due to quantity of candidate matches.")
+
 		for row in rows:
 
 			# Mask out items on the same path.
@@ -347,9 +351,10 @@ class ArchChecker(ProxyDbBase):
 				continue
 
 
-			# If we had more then 500 returnd matches, skip the existence check as
-			# it'll take too long.
-			if len(rows) > 500 or os.path.exists(row['fspath']) :
+			# If we had more then 100 returnd matches, skip the existence check as
+			# it'll take too long, and it's probably safe to assume that /some/ of
+			# the found matches exist..
+			if len(rows) > 100 or os.path.exists(row['fspath']) :
 				matches.setdefault(row['fspath'], set()).add(row['internalpath'])
 
 			else:

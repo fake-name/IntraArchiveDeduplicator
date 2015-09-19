@@ -208,14 +208,13 @@ class HashThread(object):
 
 				fCont = fp.read()
 
-				fName, hexHash, pHash, dHash, imX, imY = hasher.hashFile(archPath, fName, fCont)
+				fName, hexHash, pHash, imX, imY = hasher.hashFile(archPath, fName, fCont)
 
 				insertArgs = {
 							"fsPath"       :archPath,
 							"internalPath" :fName,
 							"itemHash"     :hexHash,
 							"pHash"        :pHash,
-							"dHash"        :dHash,
 							"imgX"         :imX,
 							"imgY"         :imY
 						}
@@ -236,7 +235,7 @@ class HashThread(object):
 	def processImageFile(self, wholePath, dbFilePath):
 
 		scan = True
-		have = self.dbApi.getItem(fspath=dbFilePath, wantCols = ['phash', 'dhash', 'imgx', 'imgy'])
+		have = self.dbApi.getItem(fspath=dbFilePath, wantCols = ['phash', 'imgx', 'imgy'])
 		if have and all(have):
 			scan = False
 
@@ -246,14 +245,13 @@ class HashThread(object):
 				fCont = fp.read()
 				try:
 
-					fName, hexHash, pHash, dHash, imX, imY = hasher.hashFile(wholePath, "", fCont)
+					fName, hexHash, pHash, imX, imY = hasher.hashFile(wholePath, "", fCont)
 
 					insertArgs = {
 								"fsPath"       :wholePath,
 								"internalPath" :fName,     # fname == '' in this case
 								"itemHash"     :hexHash,
 								"pHash"        :pHash,
-								"dHash"        :dHash,
 								"imgX"         :imX,
 								"imgY"         :imY
 							}
@@ -277,14 +275,13 @@ class HashThread(object):
 		with open(wholePath, "rb") as fp:
 			fCont = fp.read()
 
-		fName, hexHash, pHash, dHash, imX, imY = hasher.hashFile(wholePath, "", fCont)
+		fName, hexHash, pHash, imX, imY = hasher.hashFile(wholePath, "", fCont)
 
 		insertArgs = {
 					"fsPath"       :wholePath,
 					"internalPath" :fName,     # fname == '' in this case
 					"itemHash"     :hexHash,
 					"pHash"        :pHash,
-					"dHash"        :dHash,
 					"imgX"         :imX,
 					"imgY"         :imY
 				}

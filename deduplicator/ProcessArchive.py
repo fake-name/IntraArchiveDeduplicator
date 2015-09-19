@@ -317,7 +317,7 @@ class ArchChecker(ProxyDbBase):
 		proximateFiles = self.db.getWithinDistance(phash, searchDistance)
 
 		# Pack returned row tuples into nice dicts for easy access
-		keys = ["dbid", "fspath", "internalpath", "itemhash", "phash", "dhash", "itemkind", "imgx", "imgy"]
+		keys = ["dbid", "fspath", "internalpath", "itemhash", "phash", "itemkind", "imgx", "imgy"]
 		rows = [dict(zip(keys, row)) for row in proximateFiles]
 
 		# Filter returned scan results by the maskedPaths context
@@ -512,7 +512,14 @@ class ArchChecker(ProxyDbBase):
 			os.remove(self.archPath)
 		else:
 			dst = self.archPath.replace("/", ";")
-			dst = os.path.join(moveToPath, dst)
+			for x in range(3):
+				try:
+					dst = os.path.join(moveToPath, dst)
+					break
+				except OSError:
+					self.log.error("Failure moving file?")
+					if x == 2:
+						raise
 			self.log.info("Moving item from '%s'", self.archPath)
 			self.log.info("              to '%s'", dst)
 			try:

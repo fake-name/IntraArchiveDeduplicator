@@ -91,7 +91,6 @@ class DbApi():
 				self.table.internalpath,
 				self.table.itemhash,
 				self.table.phash,
-				self.table.dhash,
 				self.table.itemkind,
 				self.table.imgx,
 				self.table.imgy,
@@ -107,7 +106,6 @@ class DbApi():
 				"internalpath"  : self.table.internalpath,
 				"itemhash"      : self.table.itemhash,
 				"phash"         : self.table.phash,
-				"dhash"         : self.table.dhash,
 				"itemkind"      : self.table.itemkind,
 				"imgx"          : self.table.imgx,
 				"imgy"          : self.table.imgy,
@@ -484,7 +482,6 @@ class DbApi():
 			"internalpath",
 			"itemhash",
 			"phash",
-			"dhash",
 			"imgx",
 			"imgy"
 		]
@@ -498,7 +495,6 @@ class DbApi():
 			"internalPath",
 			"itemHash",
 			"pHash",
-			"dHash",
 			"imgx",
 			"imgy"
 		]
@@ -710,7 +706,6 @@ class DbApi():
 			"internalpath",
 			"itemhash",
 			"phash",
-			"dhash",
 			"imgx",
 			"imgy"
 		]

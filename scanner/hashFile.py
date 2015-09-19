@@ -95,12 +95,12 @@ following http://www.hackerfactor.com/blog/index.php?/archives/529-Kind-of-Like-
 
 @image must be a PIL instance.
 """
-def dhash(image, hash_size=8):
-	image = image.convert("L").resize((hash_size + 1, hash_size), Image.ANTIALIAS)
-	pixels = numpy.array(image.getdata(), dtype=numpy.float).reshape((hash_size + 1, hash_size))
-	# compute differences
-	diff = pixels[1:,:] > pixels[:-1,:]
-	return ImageHash(diff)
+# def dhash(image, hash_size=8):
+# 	image = image.convert("L").resize((hash_size + 1, hash_size), Image.ANTIALIAS)
+# 	pixels = numpy.array(image.getdata(), dtype=numpy.float).reshape((hash_size + 1, hash_size))
+# 	# compute differences
+# 	diff = pixels[1:,:] > pixels[:-1,:]
+# 	return ImageHash(diff)
 
 
 
@@ -123,7 +123,7 @@ def hashFile(basePath, fname, fContents, shouldPhash=True):
 	hexHash = fMD5.hexdigest()
 
 	pHash = None
-	dHash = None
+	# dHash = None
 
 	imX = None
 	imY = None
@@ -137,18 +137,18 @@ def hashFile(basePath, fname, fContents, shouldPhash=True):
 		imX, imY = im.size
 
 		pHashArr, im = phash(im)
-		dHashArr     = dhash(im)
+		# dHashArr     = dhash(im)
 
 		pHash = int(pHashArr)
-		dHash = int(dHashArr)
+		# dHash = int(dHashArr)
 
 
 
-	return fname, hexHash, pHash, dHash, imX, imY
+	return fname, hexHash, pHash, imX, imY
 
 def getHashDict(fName, fContents):
-	dummy_fname, hexHash, pHash, dHash, imX, imY = hashFile('', fName, fContents)
-	retD = {'hexHash' : hexHash, 'pHash' : pHash, 'dHash' : dHash, 'imX' : imX, 'imY' : imY}
+	dummy_fname, hexHash, pHash, imX, imY = hashFile('', fName, fContents)
+	retD = {'hexHash' : hexHash, 'pHash' : pHash, 'imX' : imX, 'imY' : imY}
 	return retD
 
 

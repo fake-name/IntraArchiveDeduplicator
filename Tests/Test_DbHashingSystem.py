@@ -19,6 +19,8 @@ from Tests.baseArchiveTestSetup import CONTENTS
 def fix_paths(tuplelist):
 	# Patch in current script directory so the CONTENTS paths work.
 	curdir = os.path.dirname(os.path.realpath(__file__))
+
+	tuplelist = [list(item) for item in tuplelist]
 	for x in range(len(tuplelist)):
 		tuplelist[x][1] = tuplelist[x][1].format(cwd=curdir)
 		tuplelist[x] = tuple(tuplelist[x])
@@ -80,14 +82,14 @@ class TestSequenceFunctions(unittest.TestCase):
 	def test_searchByPhash1(self):
 
 		expect = {
-			(2,  '{cwd}/test_ptree/allArch.zip',          'Lolcat_this_is_mah_job.jpg',       'd9ceeb6b43c2d7d096532eabfa6cf482', 27427800275512429, -4504585791368671746, None, 493, 389),
-			(3,  '{cwd}/test_ptree/allArch.zip',          'Lolcat_this_is_mah_job.png',       '1268e704908cc39299d73d6caafc23a0', 27427800275512429, -4504585791368671746, None, 493, 389),
-			(4,  '{cwd}/test_ptree/allArch.zip',          'Lolcat_this_is_mah_job_small.jpg', '40d39c436e14282dcda06e8aff367307', 27427800275512429, -4504585791368671746, None, 300, 237),
-			(9,  '{cwd}/test_ptree/notQuiteAllArch.zip',  'Lolcat_this_is_mah_job.jpg',       'd9ceeb6b43c2d7d096532eabfa6cf482', 27427800275512429, -4504585791368671746, None, 493, 389),
-			(10, '{cwd}/test_ptree/notQuiteAllArch.zip',  'Lolcat_this_is_mah_job.png',       '1268e704908cc39299d73d6caafc23a0', 27427800275512429, -4504585791368671746, None, 493, 389),
-			(11, '{cwd}/test_ptree/notQuiteAllArch.zip',  'Lolcat_this_is_mah_job_small.jpg', '40d39c436e14282dcda06e8aff367307', 27427800275512429, -4504585791368671746, None, 300, 237),
-			(25, '{cwd}/test_ptree/testArch.zip',         'Lolcat_this_is_mah_job.png',       '1268e704908cc39299d73d6caafc23a0', 27427800275512429, -4504585791368671746, None, 493, 389),
-			(26, '{cwd}/test_ptree/testArch.zip',         'Lolcat_this_is_mah_job_small.jpg', '40d39c436e14282dcda06e8aff367307', 27427800275512429, -4504585791368671746, None, 300, 237),
+			(2,  '{cwd}/test_ptree/allArch.zip',          'Lolcat_this_is_mah_job.jpg',       'd9ceeb6b43c2d7d096532eabfa6cf482', 27427800275512429, None, 493, 389),
+			(3,  '{cwd}/test_ptree/allArch.zip',          'Lolcat_this_is_mah_job.png',       '1268e704908cc39299d73d6caafc23a0', 27427800275512429, None, 493, 389),
+			(4,  '{cwd}/test_ptree/allArch.zip',          'Lolcat_this_is_mah_job_small.jpg', '40d39c436e14282dcda06e8aff367307', 27427800275512429, None, 300, 237),
+			(9,  '{cwd}/test_ptree/notQuiteAllArch.zip',  'Lolcat_this_is_mah_job.jpg',       'd9ceeb6b43c2d7d096532eabfa6cf482', 27427800275512429, None, 493, 389),
+			(10, '{cwd}/test_ptree/notQuiteAllArch.zip',  'Lolcat_this_is_mah_job.png',       '1268e704908cc39299d73d6caafc23a0', 27427800275512429, None, 493, 389),
+			(11, '{cwd}/test_ptree/notQuiteAllArch.zip',  'Lolcat_this_is_mah_job_small.jpg', '40d39c436e14282dcda06e8aff367307', 27427800275512429, None, 300, 237),
+			(25, '{cwd}/test_ptree/testArch.zip',         'Lolcat_this_is_mah_job.png',       '1268e704908cc39299d73d6caafc23a0', 27427800275512429, None, 493, 389),
+			(26, '{cwd}/test_ptree/testArch.zip',         'Lolcat_this_is_mah_job_small.jpg', '40d39c436e14282dcda06e8aff367307', 27427800275512429, None, 300, 237),
 		}
 
 		expect = fix_paths(expect)
@@ -126,17 +128,20 @@ class TestSequenceFunctions(unittest.TestCase):
 
 
 		expect = [
-			(6,  '{cwd}/test_ptree/allArch.zip',         'lolcat-crocs.jpg',                 '6d0a977694630ac9d1d33a7f068e10f8', -5569898607211671279, 167400391896309758,   None, 500,  363),
-			(12, '{cwd}/test_ptree/notQuiteAllArch.zip', 'lolcat-crocs.jpg',                 '6d0a977694630ac9d1d33a7f068e10f8', -5569898607211671279, 167400391896309758,   None, 500,  363),
+			[6,  '{cwd}/test_ptree/allArch.zip',         'lolcat-crocs.jpg',                 '6d0a977694630ac9d1d33a7f068e10f8', -5569898607211671279, None, 500,  363],
+			[12, '{cwd}/test_ptree/notQuiteAllArch.zip', 'lolcat-crocs.jpg',                 '6d0a977694630ac9d1d33a7f068e10f8', -5569898607211671279, None, 500,  363],
 		]
 
 		expect = fix_paths(expect)
 
-		expect = set(expect)
 		# Distance of 2 from results
 		ret = self.db.getWithinDistance(-5569898607211671279)
+
+		expect = set(expect)
 		ret = set(ret)
 
+		print("Expect: ", expect)
+		print("ret: ", ret)
 
 		self.assertEqual(ret, expect)
 

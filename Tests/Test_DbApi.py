@@ -7,19 +7,19 @@ import test_settings
 
 
 TEST_DATA = [
-	{"fspath" : '/test/dir1',       "internalpath" : 'item1', "itemhash" : 'DEAD', "phash" : 12,       "dhash" : 10,       "itemkind" : 'N/A', "imgx" : 50, "imgy" : 30},
-	{"fspath" : '/test/dir1',       "internalpath" : 'item2', "itemhash" : 'BEEF', "phash" : 6,        "dhash" : 10,       "itemkind" : 'N/A', "imgx" : 51, "imgy" : 31},
-	{"fspath" : '/test/dir1',       "internalpath" : 'item3', "itemhash" : 'CAFE', "phash" : 2,        "dhash" : 10,       "itemkind" : 'N/A', "imgx" : 52, "imgy" : 32},
-	{"fspath" : '/test/dir1',       "internalpath" : 'item4', "itemhash" : 'BABE', "phash" : 7,        "dhash" : 10,       "itemkind" : 'N/A', "imgx" : 53, "imgy" : 33},
-	{"fspath" : '/test/dir3',       "internalpath" : 'item0', "itemhash" : 'BABE', "phash" : 7,        "dhash" : 10,       "itemkind" : 'N/A', "imgx" : 54, "imgy" : 34},
-	{"fspath" : '/test/dir4',       "internalpath" : 'item0', "itemhash" : 'BABC', "phash" : 7,        "dhash" : 10,       "itemkind" : 'N/A', "imgx" : 55, "imgy" : 35},
-	{"fspath" : '/test/dir1',       "internalpath" : '',      "itemhash" : '1234', "phash" : None,     "dhash" : None,     "itemkind" : 'N/A', "imgx" : 56, "imgy" : 36},
-	{"fspath" : '/test/dir2',       "internalpath" : '',      "itemhash" : '4607', "phash" : None,     "dhash" : None,     "itemkind" : 'N/A', "imgx" : 57, "imgy" : 37},
-	{"fspath" : '/test/dir5',       "internalpath" : '',      "itemhash" : '4607', "phash" : None,     "dhash" : None,     "itemkind" : 'N/A', "imgx" : 58, "imgy" : 38},
-	{"fspath" : '/lol/test1/WAT',   "internalpath" : 'LOL',   "itemhash" : '6666', "phash" : None,     "dhash" : None,     "itemkind" : 'N/A', "imgx" : 59, "imgy" : 39},
-	{"fspath" : '/lol/test1/WAT',   "internalpath" : 'DURR',  "itemhash" : '6666', "phash" : 90,       "dhash" : 946,      "itemkind" : 'N/A', "imgx" : 60, "imgy" : 40},
-	{"fspath" : '/lol/test1/HERP',  "internalpath" : 'LOL',   "itemhash" : '5555', "phash" : None,     "dhash" : None,     "itemkind" : 'N/A', "imgx" : 61, "imgy" : 41},
-	{"fspath" : '/lol/test1/HERP',  "internalpath" : '',      "itemhash" : '5555', "phash" : None,     "dhash" : None,     "itemkind" : 'N/A', "imgx" : 62, "imgy" : 42}
+	{"fspath" : '/test/dir1',       "internalpath" : 'item1', "itemhash" : 'DEAD', "phash" : 12,     "itemkind" : 'N/A', "imgx" : 50, "imgy" : 30},
+	{"fspath" : '/test/dir1',       "internalpath" : 'item2', "itemhash" : 'BEEF', "phash" : 6,      "itemkind" : 'N/A', "imgx" : 51, "imgy" : 31},
+	{"fspath" : '/test/dir1',       "internalpath" : 'item3', "itemhash" : 'CAFE', "phash" : 2,      "itemkind" : 'N/A', "imgx" : 52, "imgy" : 32},
+	{"fspath" : '/test/dir1',       "internalpath" : 'item4', "itemhash" : 'BABE', "phash" : 7,      "itemkind" : 'N/A', "imgx" : 53, "imgy" : 33},
+	{"fspath" : '/test/dir3',       "internalpath" : 'item0', "itemhash" : 'BABE', "phash" : 7,      "itemkind" : 'N/A', "imgx" : 54, "imgy" : 34},
+	{"fspath" : '/test/dir4',       "internalpath" : 'item0', "itemhash" : 'BABC', "phash" : 7,      "itemkind" : 'N/A', "imgx" : 55, "imgy" : 35},
+	{"fspath" : '/test/dir1',       "internalpath" : '',      "itemhash" : '1234', "phash" : None,   "itemkind" : 'N/A', "imgx" : 56, "imgy" : 36},
+	{"fspath" : '/test/dir2',       "internalpath" : '',      "itemhash" : '4607', "phash" : None,   "itemkind" : 'N/A', "imgx" : 57, "imgy" : 37},
+	{"fspath" : '/test/dir5',       "internalpath" : '',      "itemhash" : '4607', "phash" : None,   "itemkind" : 'N/A', "imgx" : 58, "imgy" : 38},
+	{"fspath" : '/lol/test1/WAT',   "internalpath" : 'LOL',   "itemhash" : '6666', "phash" : None,   "itemkind" : 'N/A', "imgx" : 59, "imgy" : 39},
+	{"fspath" : '/lol/test1/WAT',   "internalpath" : 'DURR',  "itemhash" : '6666', "phash" : 90,     "itemkind" : 'N/A', "imgx" : 60, "imgy" : 40},
+	{"fspath" : '/lol/test1/HERP',  "internalpath" : 'LOL',   "itemhash" : '5555', "phash" : None,   "itemkind" : 'N/A', "imgx" : 61, "imgy" : 41},
+	{"fspath" : '/lol/test1/HERP',  "internalpath" : '',      "itemhash" : '5555', "phash" : None,   "itemkind" : 'N/A', "imgx" : 62, "imgy" : 42}
 ]
 
 
@@ -73,7 +73,7 @@ class TestDb(dbApi.DbApi):
 		# self.conn.close()
 
 
-KEY_ORDER = ["fspath", "internalpath", "itemhash", "phash", "dhash", "itemkind", "imgx", "imgy"]
+KEY_ORDER = ["fspath", "internalpath", "itemhash", "phash", "itemkind", "imgx", "imgy"]
 
 # TODO: Actual test-failure comments!
 class TestSequenceFunctions(unittest.TestCase):
@@ -116,18 +116,18 @@ class TestSequenceFunctions(unittest.TestCase):
 
 
 	def test_getItems2(self):
-		ret = [(1, '/test/dir1', 'item1', 'DEAD', 12, 10, 'N/A', 50, 30),
-				(2, '/test/dir1', 'item2', 'BEEF', 6, 10, 'N/A', 51, 31),
-				(3, '/test/dir1', 'item3', 'CAFE', 2, 10, 'N/A', 52, 32),
-				(4, '/test/dir1', 'item4', 'BABE', 7, 10, 'N/A', 53, 33),
-				(7, '/test/dir1', '', '1234', None, None, 'N/A', 56, 36)]
+		ret = [(1, '/test/dir1', 'item1', 'DEAD', 12, 'N/A', 50, 30),
+				(2, '/test/dir1', 'item2', 'BEEF', 6, 'N/A', 51, 31),
+				(3, '/test/dir1', 'item3', 'CAFE', 2, 'N/A', 52, 32),
+				(4, '/test/dir1', 'item4', 'BABE', 7, 'N/A', 53, 33),
+				(7, '/test/dir1', '', '1234', None, 'N/A', 56, 36)]
 		self.assertEqual(self.db.getItems(fspath='/test/dir1'), ret)
 
 	def test_getItems3(self):
-		ret = [(7, '/test/dir1', '', '1234', None, None, 'N/A', 56, 36),
-				(8, '/test/dir2', '', '4607', None, None, 'N/A', 57, 37),
-				(9, '/test/dir5', '', '4607', None, None, 'N/A', 58, 38),
-				(13, '/lol/test1/HERP', '', '5555', None, None, 'N/A', 62, 42)]
+		ret = [(7, '/test/dir1',        '', '1234', None, 'N/A', 56, 36),
+				(8, '/test/dir2',       '', '4607', None, 'N/A', 57, 37),
+				(9, '/test/dir5',       '', '4607', None, 'N/A', 58, 38),
+				(13, '/lol/test1/HERP', '', '5555', None, 'N/A', 62, 42)]
 
 		self.assertEqual(self.db.getItems(internalpath=''), ret)
 
@@ -138,7 +138,7 @@ class TestSequenceFunctions(unittest.TestCase):
 
 	def test_getItem1(self):
 		item = self.db.getItem(fspath='/test/dir1', internalpath='item1')
-		expect = (1, '/test/dir1', 'item1', 'DEAD', 12, 10, 'N/A', 50, 30)
+		expect = (1, '/test/dir1', 'item1', 'DEAD', 12, 'N/A', 50, 30)
 		self.assertEqual(item, expect)
 
 	def test_getItem2(self):
@@ -263,11 +263,11 @@ class TestSequenceFunctions(unittest.TestCase):
 		# def getFileDictLikeBasePath(self, basePath):
 		expected = {'/test/dir1':
 						[
-							{'fsPath': '/test/dir1', 'dbId': 1, 'dHash': 10, 'itemHash': 'DEAD', 'imgy': 30, 'pHash': 12, 'imgx': 50, 'internalPath': 'item1'},
-							{'fsPath': '/test/dir1', 'dbId': 2, 'dHash': 10, 'itemHash': 'BEEF', 'imgy': 31, 'pHash': 6, 'imgx': 51, 'internalPath': 'item2'},
-							{'fsPath': '/test/dir1', 'dbId': 3, 'dHash': 10, 'itemHash': 'CAFE', 'imgy': 32, 'pHash': 2, 'imgx': 52, 'internalPath': 'item3'},
-							{'fsPath': '/test/dir1', 'dbId': 4, 'dHash': 10, 'itemHash': 'BABE', 'imgy': 33, 'pHash': 7, 'imgx': 53, 'internalPath': 'item4'},
-							{'fsPath': '/test/dir1', 'dbId': 7, 'dHash': None, 'itemHash': '1234', 'imgy': 36, 'pHash': None, 'imgx': 56, 'internalPath': ''}
+							{'fsPath': '/test/dir1', 'dbId': 1, 'itemHash': 'DEAD', 'imgy': 30, 'pHash': 12, 'imgx': 50, 'internalPath': 'item1'},
+							{'fsPath': '/test/dir1', 'dbId': 2, 'itemHash': 'BEEF', 'imgy': 31, 'pHash': 6, 'imgx': 51, 'internalPath': 'item2'},
+							{'fsPath': '/test/dir1', 'dbId': 3, 'itemHash': 'CAFE', 'imgy': 32, 'pHash': 2, 'imgx': 52, 'internalPath': 'item3'},
+							{'fsPath': '/test/dir1', 'dbId': 4, 'itemHash': 'BABE', 'imgy': 33, 'pHash': 7, 'imgx': 53, 'internalPath': 'item4'},
+							{'fsPath': '/test/dir1', 'dbId': 7, 'itemHash': '1234', 'imgy': 36, 'pHash': None, 'imgx': 56, 'internalPath': ''}
 						]
 					}
 
@@ -277,13 +277,13 @@ class TestSequenceFunctions(unittest.TestCase):
 						'/lol/test1/HERP':
 							[
 
-								{'imgx': 61, 'itemHash': '5555', 'dbId': 12, 'dHash': None, 'internalPath': 'LOL', 'fsPath': '/lol/test1/HERP', 'imgy': 41, 'pHash': None},
-								{'imgx': 62, 'itemHash': '5555', 'dbId': 13, 'dHash': None, 'internalPath': '', 'fsPath': '/lol/test1/HERP', 'imgy': 42, 'pHash': None}
+								{'imgx': 61, 'itemHash': '5555', 'dbId': 12, 'internalPath': 'LOL', 'fsPath': '/lol/test1/HERP', 'imgy': 41, 'pHash': None},
+								{'imgx': 62, 'itemHash': '5555', 'dbId': 13, 'internalPath': '', 'fsPath': '/lol/test1/HERP', 'imgy': 42, 'pHash': None}
 							],
 						'/lol/test1/WAT':
 							[
-								{'imgx': 59, 'itemHash': '6666', 'dbId': 10, 'dHash': None, 'internalPath': 'LOL', 'fsPath': '/lol/test1/WAT', 'imgy': 39, 'pHash': None},
-								{'imgx': 60, 'itemHash': '6666', 'dbId': 11, 'dHash': 946, 'internalPath': 'DURR', 'fsPath': '/lol/test1/WAT', 'imgy': 40, 'pHash': 90}
+								{'imgx': 59, 'itemHash': '6666', 'dbId': 10, 'internalPath': 'LOL', 'fsPath': '/lol/test1/WAT', 'imgy': 39, 'pHash': None},
+								{'imgx': 60, 'itemHash': '6666', 'dbId': 11, 'internalPath': 'DURR', 'fsPath': '/lol/test1/WAT', 'imgy': 40, 'pHash': 90}
 							]
 					}
 
@@ -291,28 +291,12 @@ class TestSequenceFunctions(unittest.TestCase):
 		self.assertEqual(self.db.getFileDictLikeBasePath('/lol/test1/'), expected)
 
 
-	def test_getDHashes(self):
-		# def getDHashes(self, limit=None):
-		cur = self.db.getDHashes()
-		dbHashes = cur.fetchall()
-		cur.close()
-
-		hashes = [(1, 10), (2, 10), (3, 10), (4, 10), (5, 10), (6, 10), (11, 946)]
-		self.assertEqual(hashes, dbHashes)
-
-
-		cur = self.db.getDHashes(limit=3)
-		dbHashes = cur.fetchall()
-		cur.close()
-
-		hashes = [(1, 10), (2, 10), (3, 10)]
-		self.assertEqual(hashes, dbHashes)
 
 	def test_getHashes(self):
 		# def getHashes(self, fsPath, internalPath):
-		self.assertEqual(self.db.getHashes('/lol/test1/WAT', ''), (False, False, False))
-		self.assertEqual(self.db.getHashes('DERPPPP', ''), (False, False, False))
-		self.assertEqual(self.db.getHashes('/lol/test1/WAT', 'DURR'), ('6666', 90, 946))
+		self.assertEqual(self.db.getHashes('/lol/test1/WAT', ''),     (False, False))
+		self.assertEqual(self.db.getHashes('DERPPPP', ''),            (False, False))
+		self.assertEqual(self.db.getHashes('/lol/test1/WAT', 'DURR'), ('6666', 90))
 
 
 	def test_getItemsOnBasePath(self):
@@ -405,27 +389,27 @@ class TestSequenceFunctions(unittest.TestCase):
 	def test_updateItem1(self):
 		# def updateDbEntry(self, commit=True, **kwargs)
 
-		expect = [(1, '/test/dir1', 'item1', 'DEAD', 12, 10, 'N/A', 50, 30)]
+		expect = [(1, '/test/dir1', 'item1', 'DEAD', 12, 'N/A', 50, 30)]
 		ret = self.db.getItems(dbId=1)
 		self.assertEqual(ret, expect)
 
 		self.db.updateDbEntry(dbId=1, itemHash='LOLL')
 
 
-		expect = [(1, '/test/dir1', 'item1', 'LOLL', 12, 10, 'N/A', 50, 30)]
+		expect = [(1, '/test/dir1', 'item1', 'LOLL', 12, 'N/A', 50, 30)]
 		ret = self.db.getItems(dbId=1)
 		self.assertEqual(ret, expect)
 
 	def test_updateItem2(self):
 		# def updateDbEntry(self, commit=True, **kwargs)
 
-		expect = [(1, '/test/dir1', 'item1', 'DEAD', 12, 10, 'N/A', 50, 30)]
+		expect = [(1, '/test/dir1', 'item1', 'DEAD', 12, 'N/A', 50, 30)]
 		ret = self.db.getItems(dbId=1)
 		self.assertEqual(ret, expect)
 
 		self.db.updateItem('/test/dir1', 'item1', itemHash='LOLL')
 
-		expect = [(1, '/test/dir1', 'item1', 'LOLL', 12, 10, 'N/A', 50, 30)]
+		expect = [(1, '/test/dir1', 'item1', 'LOLL', 12, 'N/A', 50, 30)]
 		ret = self.db.getItems(dbId=1)
 		self.assertEqual(ret, expect)
 
@@ -433,13 +417,13 @@ class TestSequenceFunctions(unittest.TestCase):
 		# def updateDbEntry(self, commit=True, **kwargs)
 
 
-		expect = [(1, '/test/dir1', 'item1', 'DEAD', 12, 10, 'N/A', 50, 30)]
+		expect = [(1, '/test/dir1', 'item1', 'DEAD', 12, 'N/A', 50, 30)]
 		ret = self.db.getItems(dbId=1)
 		self.assertEqual(ret, expect)
 
 		self.db.updateDbEntry(fsPath='/test/dir1', itemHash='LOLL')
 
-		expect = [(1, '/test/dir1', 'item1', 'LOLL', 12, 10, 'N/A', 50, 30)]
+		expect = [(1, '/test/dir1', 'item1', 'LOLL', 12, 'N/A', 50, 30)]
 		ret = self.db.getItems(dbId=1)
 		self.assertEqual(ret, expect)
 
@@ -450,12 +434,12 @@ class TestSequenceFunctions(unittest.TestCase):
 		ret = self.db.getItems(fspath='/durr/wat', internalpath='lolercoaster')
 		self.assertEqual(ret, [])
 
-		row = {'pHash': None, 'internalPath': 'lolercoaster', 'imgy': 50, 'itemHash': '1234', 'fsPath': '/durr/wat', 'dHash': None, 'imgx': 50}
+		row = {'pHash': None, 'internalPath': 'lolercoaster', 'imgy': 50, 'itemHash': '1234', 'fsPath': '/durr/wat', 'imgx': 50}
 		self.db.insertItem(**row)
 
 		ret = self.db.getItems(fspath='/durr/wat', internalpath='lolercoaster')
 
-		expect = [(14, '/durr/wat', 'lolercoaster', '1234', None, None, None, 50, 50)]
+		expect = [(14, '/durr/wat', 'lolercoaster', '1234', None, None, 50, 50)]
 		self.assertEqual(ret, expect)
 
 
@@ -506,7 +490,7 @@ class TestSequenceFunctions(unittest.TestCase):
 
 		rows = []
 		for row in TEST_DATA:
-			rows.append((row["fspath"], row["internalpath"], row["itemhash"], row["phash"], row["dhash"], row["imgx"], row["imgy"] ))
+			rows.append((row["fspath"], row["internalpath"], row["itemhash"], row["phash"], row["imgx"], row["imgy"] ))
 
 		self.assertIn(ret, rows)
 

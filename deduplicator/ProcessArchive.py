@@ -6,6 +6,7 @@ import os
 import sys
 import os.path
 import logging
+import time
 import magic
 import shutil
 import traceback
@@ -512,18 +513,19 @@ class ArchChecker(ProxyDbBase):
 			os.remove(self.archPath)
 		else:
 			dst = self.archPath.replace("/", ";")
-			for x in range(3):
-				try:
-					dst = os.path.join(moveToPath, dst)
-					break
-				except OSError:
-					self.log.error("Failure moving file?")
-					if x == 2:
-						raise
+			dst = os.path.join(moveToPath, dst)
 			self.log.info("Moving item from '%s'", self.archPath)
 			self.log.info("              to '%s'", dst)
 			try:
-				shutil.move(self.archPath, dst)
+				for x in range(3):
+					try:
+						shutil.move(self.archPath, dst)
+						break
+					except OSError:
+						self.log.error("Failure moving file?")
+						time.sleep(0.1)
+						if x == 2:
+							raise
 			except KeyboardInterrupt:  # pragma: no cover  (Can't really test keyboard interrupts)
 				raise
 			except (OSError, FileNotFoundError):

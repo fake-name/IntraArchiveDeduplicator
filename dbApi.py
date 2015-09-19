@@ -62,7 +62,6 @@ class DbApi():
 
 													itemHash        text,
 													pHash           bigint,
-													dHash           bigint,
 													itemKind        text,
 
 													imgx            INTEGER,
@@ -72,12 +71,13 @@ class DbApi():
 
 													);'''.format(table=self.tableName))
 
+				# dHash           bigint,
 				self.log.info("Creating indexes")
 				cur.execute('''CREATE UNIQUE INDEX {table}_name_index     ON {table}(fsPath, internalPath);'''.format(table=self.tableName))
 				cur.execute('''CREATE        INDEX {table}_path_index     ON {table}(fsPath text_pattern_ops);'''.format(table=self.tableName))
 				cur.execute('''CREATE        INDEX {table}_ihash_index    ON {table}(itemHash);'''.format(table=self.tableName))
 				cur.execute('''CREATE        INDEX {table}_phash_index    ON {table}(pHash);'''.format(table=self.tableName))
-				cur.execute('''CREATE        INDEX {table}_dhash_index    ON {table}(dHash);'''.format(table=self.tableName))
+				# cur.execute('''CREATE        INDEX {table}_dhash_index    ON {table}(dHash);'''.format(table=self.tableName))
 				cur.execute('''CREATE        INDEX {table}_scantime_index ON {table}(scantime);'''.format(table=self.tableName))
 				self.log.info("Done!")
 
@@ -573,18 +573,18 @@ class DbApi():
 
 
 
-	def getDHashes(self, limit=None):
+	# def getDHashes(self, limit=None):
 
-		# Specifying a name for the cursor causes it to run server-side, making is stream results,
-		# rather then completing the query and returning them as a lump item (which blocks)
-		cur = self.conn.cursor("hash_fetcher")
-		if not limit:
-			cur.execute("SELECT dbId, dHash FROM {table} WHERE dHash IS NOT NULL;".format(table=self.tableName))
-		else:
-			limit = int(limit)
-			cur.execute("SELECT dbId, dHash FROM {table} WHERE dHash IS NOT NULL LIMIT %s;".format(table=self.tableName), (limit, ))
+	# 	# Specifying a name for the cursor causes it to run server-side, making is stream results,
+	# 	# rather then completing the query and returning them as a lump item (which blocks)
+	# 	cur = self.conn.cursor("hash_fetcher")
+	# 	if not limit:
+	# 		cur.execute("SELECT dbId, dHash FROM {table} WHERE dHash IS NOT NULL;".format(table=self.tableName))
+	# 	else:
+	# 		limit = int(limit)
+	# 		cur.execute("SELECT dbId, dHash FROM {table} WHERE dHash IS NOT NULL LIMIT %s;".format(table=self.tableName), (limit, ))
 
-		return cur
+	# 	return cur
 
 
 	def deleteLikeBasePath(self, basePath):
@@ -671,13 +671,13 @@ class DbApi():
 	def getHashes(self, fsPath, internalPath):
 
 		cur = self.conn.cursor()
-		cur.execute("SELECT itemHash,pHash,dHash FROM {table} WHERE fsPath=%s AND internalPath=%s;".format(table=self.tableName), (fsPath, internalPath))
+		cur.execute("SELECT itemHash,pHash FROM {table} WHERE fsPath=%s AND internalPath=%s;".format(table=self.tableName), (fsPath, internalPath))
 		ret = cur.fetchone()
 
 		self.conn.commit()
 		if ret:
 			return ret
-		return False, False, False
+		return False, False
 
 
 	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

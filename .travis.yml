@@ -1,0 +1,17 @@
+language: python
+python:
+    - "3.4"
+
+# command to install dependencies
+install:
+    - "sudo apt-get install unrar -y"
+    - "pip install nose"
+    - "pip install coverage"
+    - "pip install coveralls"
+    - "pip install git+https://github.com/ahupp/python-magic"
+    - "pip install ."
+# command to run tests
+script: python $(which nosetests) --with-coverage --exe --cover-package=UniversalArchiveInterface
+
+after_success:
+    - coveralls

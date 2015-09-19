@@ -213,30 +213,30 @@ class TestArchChecker(unittest.TestCase):
 
 		ck = TestArchiveChecker('{cwd}/test_ptree/z_sml.zip'.format(cwd=cwd))
 		match = {
-			'/media/Storage/Scripts/Deduper/Tests/test_ptree/z_sml_u.zip':
+			'{cwd}/test_ptree/z_sml_u.zip'.format(cwd=cwd):
 			{
 				'129165237051396578(s).jpg'
 			},
-			'/media/Storage/Scripts/Deduper/Tests/test_ptree/z_sml_w.zip':
+			'{cwd}/test_ptree/z_sml_w.zip'.format(cwd=cwd):
 			{
 				'test.txt'
 			},
-			'/media/Storage/Scripts/Deduper/Tests/test_ptree/z_reg.zip':
+			'{cwd}/test_ptree/z_reg.zip'.format(cwd=cwd):
 			{
 				'test.txt'
 			}
 		}
 
 		pmatch = {
-			'/media/Storage/Scripts/Deduper/Tests/test_ptree/z_sml_u.zip':
+			'{cwd}/test_ptree/z_sml_u.zip'.format(cwd=cwd):
 			{
 				'129165237051396578(s).jpg'
 			},
-			'/media/Storage/Scripts/Deduper/Tests/test_ptree/z_sml_w.zip':
+			'{cwd}/test_ptree/z_sml_w.zip'.format(cwd=cwd):
 			{
 				'test.txt'
 			},
-			'/media/Storage/Scripts/Deduper/Tests/test_ptree/z_reg.zip':
+			'{cwd}/test_ptree/z_reg.zip'.format(cwd=cwd):
 			{
 				'test.txt',
 				'129165237051396578.jpg'
@@ -252,12 +252,12 @@ class TestArchChecker(unittest.TestCase):
 		# must have phash duplicates.)
 		ck = TestArchiveChecker('{cwd}/test_ptree/notQuiteAllArch.zip'.format(cwd=cwd))
 		match = {
-			'/media/Storage/Scripts/Deduper/Tests/test_ptree/testArch.zip':
+			'{cwd}/test_ptree/testArch.zip'.format(cwd=cwd):
 				{
 					'Lolcat_this_is_mah_job.png',
 					'Lolcat_this_is_mah_job_small.jpg'
 				},
-			'/media/Storage/Scripts/Deduper/Tests/test_ptree/allArch.zip':
+			'{cwd}/test_ptree/allArch.zip'.format(cwd=cwd):
 				{
 					'Lolcat_this_is_mah_job.jpg',
 					'lolcat-crocs.jpg',
@@ -346,15 +346,15 @@ class TestArchChecker(unittest.TestCase):
 		self.assertEqual(ck.getMatchingArchives(),      {})
 
 		p_expect = {
-			'/media/Storage/Scripts/Deduper/Tests/test_ptree/z_reg.zip':
+			'{cwd}/test_ptree/z_reg.zip'.format(cwd=cwd):
 			{
 				'test.txt'
 			},
-			'/media/Storage/Scripts/Deduper/Tests/test_ptree/z_reg_junk.zip':
+			'{cwd}/test_ptree/z_reg_junk.zip'.format(cwd=cwd):
 			{
 				'test.txt'
 			},
-			'/media/Storage/Scripts/Deduper/Tests/test_ptree/z_sml.zip':
+			'{cwd}/test_ptree/z_sml.zip'.format(cwd=cwd):
 			{
 				'test.txt'
 			},

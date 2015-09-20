@@ -197,7 +197,7 @@ expect = {
 					'type': b'JPEG image data, JFIF standard 1.01',
 					'imX': 500,
 					# 'dHash': 1119025673978783491,
-					'pHash': -6361731780925024615
+					'pHash': -5208810276318177639
 				}
 			),
 			(
@@ -421,7 +421,7 @@ expect = {
 					'type': b'PNG image data, 375 x 506, 8-bit/color RGB, non-interlaced',
 					'imX': 375,
 					# 'dHash': 1119025673978783491,
-					'pHash': -6361731780920830311
+					'pHash': -6361731780925024615
 				}
 			),
 			(

@@ -1,10 +1,16 @@
 
+# cython: profile=True
+# cython: linetrace=True
 
 from libc.stdint cimport uint64_t
 from libc.stdint cimport int64_t
 
 # TODO: Convert sets to cset v
-# from libcpp.set cimport set as cset
+from libcpp.unordered_set cimport unordered_set as cset
+from libcpp.pair cimport pair
+
+ctypedef cset[int64_t] hashset
+ctypedef pair[hashset, int64_t] prox_ret_pair
 
 cdef int64_t hamming(int64_t a, int64_t b):
 	'''
@@ -35,7 +41,7 @@ cdef int64_t hamming(int64_t a, int64_t b):
 cdef class BkHammingNode(object):
 
 	cdef int64_t nodeHash
-	cdef set nodeData
+	cdef cset[int64_t] nodeData
 	cdef dict children
 
 	def __init__(self, int64_t nodeHash, int64_t nodeData):
@@ -79,13 +85,13 @@ cdef class BkHammingNode(object):
 			try:
 				self.nodeData.remove(nodeData)
 			except KeyError:
-				print("ERROR: Key '%s' not in node!" % nodeData)
-				print("ERROR: Node keys: '%s'" % self.nodeData)
+				# print("ERROR: Key '%s' not in node!" % nodeData)
+				# print("ERROR: Node keys: '%s'" % self.nodeData)
 				raise
 
 			# If we've emptied out the node of data, return all our children so the parent can
 			# graft the children into the tree in the appropriate place
-			if not self.nodeData:
+			if self.nodeData.Size() == 0:
 				# 1 deleted node, 0 moved nodes, return all children for reinsertion by parent
 				# Parent will pop this node, and reinsert all it's children where apropriate
 				return list(self), 1, 0
@@ -116,12 +122,12 @@ cdef class BkHammingNode(object):
 
 		return False, deleted, moved
 
-	cpdef getWithinDistance(self, int64_t baseHash, int distance):
+	cdef prox_ret_pair getWithinDistance_c(self, int64_t baseHash, int distance):
 		'''
 		Get all child-nodes within an edit distance of `distance` from `baseHash`
 		returns a set containing the data of each matching node, and a integer representing
 		the number of nodes that were touched in the scan.
-		Return value is a 2-tuple
+		Return value is a std::pair[unordered_set[int64_t], int64_t]
 		'''
 
 		cdef int64_t selfDist
@@ -129,14 +135,18 @@ cdef class BkHammingNode(object):
 		cdef int postDelta
 		cdef int negDelta
 
+		cdef prox_ret_pair vals
+		cdef hashset ret
+		cdef hashset tmp
+
 		selfDist = hamming(self.nodeHash, baseHash)
 
-		ret = set()
-
 		if selfDist <= distance:
-			ret = set(self.nodeData)
+			ret = hashset(self.nodeData)
+		else:
+			ret = hashset()
 
-		touched = 1
+		cdef int64_t touched = 1
 
 
 		for key in self.children:
@@ -147,12 +157,28 @@ cdef class BkHammingNode(object):
 			postDelta = selfDist + distance
 			negDelta  = selfDist - distance
 
-			if key <= postDelta and key >= negDelta:
-				new, tmpTouch = self.children[key].getWithinDistance(baseHash, distance)
-				touched += tmpTouch
-				ret |= new
 
-		return ret, touched
+			if key <= postDelta and key >= negDelta:
+
+				vals = self.children[key].getWithinDistance(baseHash, distance)
+				touched += vals.second
+
+				# Merge in the set
+				# print(vals.first)
+				# print(type(vals.first))
+				# raise
+				tmp = vals.first
+
+				# ret += tmp
+				for item in tmp:
+					ret.insert(item)
+				# ret.insert(tmp.cbegin(), tmp.cend())
+
+		return prox_ret_pair(ret, touched)
+
+	# Proxy wrapper for c-only call
+	cpdef prox_ret_pair getWithinDistance(self, int64_t baseHash, int distance):
+		return self.getWithinDistance_c(baseHash, distance)
 
 	def __iter__(self):
 		for child in self.children.values():

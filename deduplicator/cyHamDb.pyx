@@ -6,6 +6,10 @@ from libc.stdint cimport int64_t
 # TODO: Convert sets to cset v
 # from libcpp.set cimport set as cset
 
+cdef extern from "./deduplicator/bktree.hpp" namespace "bk_tree":
+	cdef cppclass BK_Tree_Node:
+		BK_Tree_Node(int64_t, int64_t)
+
 cdef int64_t hamming(int64_t a, int64_t b):
 	'''
 	Compute number of bits that are not common between `a` and `b`.

@@ -9,6 +9,11 @@ from libc.stdint cimport int64_t
 cdef extern from "./deduplicator/bktree.hpp" namespace "bk_tree":
 	cdef cppclass BK_Tree_Node:
 		BK_Tree_Node(int64_t, int64_t)
+		insert(int64_t nodeHash, int64_t nodeData)
+		remove(int64_t nodeHash, int64_t nodeData)
+		getWithinDistance(int64_t baseHash, int distance)
+
+
 
 cdef int64_t hamming(int64_t a, int64_t b):
 	'''
@@ -193,6 +198,11 @@ def hamming_dist(a, b):
 import threading
 import rwlock
 import logging
+
+
+class CppBkHammingTree(object):
+	pass
+
 
 class BkHammingTree(object):
 	root = None

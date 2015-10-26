@@ -53,6 +53,9 @@ class ProfileTree():
 		print("Test queries complete")
 
 
+def test_cpp():
+	item = hamDb.CppBkHammingTree()
+	print(item)
 
 if __name__ == '__main__':
 	import sys
@@ -60,6 +63,8 @@ if __name__ == '__main__':
 		prof = ProfileTree()
 		prof.buildTestTree()
 		cProfile.run('prof.do_test_queries()', "query_stats.cprof")
+	if "cpp" in sys.argv:
+		test_cpp()
 	if "anal" in sys.argv:
 		import pstats
 		p = pstats.Stats("query_stats.cprof")

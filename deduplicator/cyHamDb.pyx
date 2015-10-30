@@ -3,16 +3,28 @@
 from libc.stdint cimport uint64_t
 from libc.stdint cimport int64_t
 
+
+from libcpp.pair cimport pair as cpair
+# from libcpp.tuple cimport tuple
+from libcpp.deque cimport deque
+from libcpp.vector cimport vector
+
 # TODO: Convert sets to cset v
-# from libcpp.set cimport set as cset
+from libcpp.set cimport set as cset
 
 cdef extern from "./deduplicator/bktree.hpp" namespace "bk_tree":
-	cdef cppclass BK_Tree_Node:
-		BK_Tree_Node(int64_t, int64_t)
-		insert(int64_t nodeHash, int64_t nodeData)
-		remove(int64_t nodeHash, int64_t nodeData)
-		getWithinDistance(int64_t baseHash, int distance)
+	# ctypedef cset[int64_t] set_64
+	ctypedef cpair[cset[int64_t], int64_t] search_ret
+	# ctypedef tuple[bool, int64_t, int64_t] rebuild_ret
+	ctypedef cpair[int64_t, int64_t] hash_pair
+	ctypedef deque[hash_pair] return_deque
 
+
+	cdef cppclass BK_Tree_Node:
+		BK_Tree_Node(int64_t, int64_t) except +
+		void            insert(int64_t nodeHash, int64_t nodeData)
+		vector[int64_t] remove(int64_t nodeHash, int64_t nodeData)
+		search_ret      getWithinDistance(int64_t baseHash, int distance)
 
 
 cdef int64_t hamming(int64_t a, int64_t b):
@@ -22,6 +34,7 @@ cdef int64_t hamming(int64_t a, int64_t b):
 	'''
 
 	cdef int tot
+	tot = 0
 
 	# Messy explicit casting to work around the fact that
 	# >> on a signed number is arithmetic, rather then logical,
@@ -31,7 +44,6 @@ cdef int64_t hamming(int64_t a, int64_t b):
 
 	a = <uint64_t>a
 	b = <uint64_t>b
-	tot = 0
 
 	cdef uint64_t x
 	x = (a ^ b)
@@ -40,6 +52,42 @@ cdef int64_t hamming(int64_t a, int64_t b):
 		tot += x & 1
 		x >>= 1
 	return tot
+
+cdef class CPP_BkHammingNode(object):
+	cdef BK_Tree_Node *treeroot_p
+
+	def __init__(self, int64_t nodeHash, int64_t nodeData):
+		self.treeroot_p = new BK_Tree_Node(nodeHash, nodeData)
+
+	cdef insert(self, int64_t nodeHash, int64_t nodeData):
+		self.treeroot_p.insert(nodeHash, nodeData)
+
+	cdef remove(self, int64_t nodeHash, int64_t nodeData):
+		cdef vector[int64_t] ret = self.treeroot_p.remove(nodeHash, nodeData)
+		return bool(ret[0]), ret[1], ret[2]
+
+	cdef getWithinDistance(self, int64_t baseHash, int distance):
+
+		cdef search_ret have = self.treeroot_p.getWithinDistance(baseHash, distance)
+
+		had = have.first
+		touched = have.second
+
+		return had, touched
+
+	# def __iter__(self):
+	# 	for child in self.children.values():
+	# 		for item in child:
+	# 			yield item
+	# 	for item in self.nodeData:
+	# 		yield (self.nodeHash, item)
+
+
+	def __dealloc__(self):
+		print("Cython del called")
+		del self.treeroot_p
+
+
 
 cdef class BkHammingNode(object):
 
@@ -201,7 +249,12 @@ import logging
 
 
 class CppBkHammingTree(object):
-	pass
+	def __init__(self):
+		print("CppBkHammingTree __init__ method")
+		self.root = CPP_BkHammingNode(1,2)
+	def __del__(self):
+		print("CppBkHammingTree del method")
+		del self.root
 
 
 class BkHammingTree(object):

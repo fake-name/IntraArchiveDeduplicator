@@ -1,5 +1,5 @@
 
-
+#include <iostream>
 
 #include <unordered_map>
 #include <memory>
@@ -192,8 +192,14 @@ namespace bk_tree
 
 			BK_Tree_Node(int64_t nodeHash, int64_t node_id)
 			{
+				std::cout << "Instantiating BK_Tree_Node instance" << std::endl;
 				this->node_data_items.insert(node_id);
 				this->node_hash = node_hash;
+			}
+
+			~BK_Tree_Node()
+			{
+				std::cout << "Destroying BK_Tree_Node instance" << std::endl;
 			}
 
 			void insert(int64_t nodeHash, int64_t nodeData)
@@ -204,7 +210,7 @@ namespace bk_tree
 			}
 
 
-			rebuild_ret remove(int64_t nodeHash, int64_t nodeData)
+			std::vector<int64_t> remove(int64_t nodeHash, int64_t nodeData)
 			{
 				this->get_write_lock();
 				// Remove the matching hash. Insert any items that need to be re-added
@@ -218,10 +224,15 @@ namespace bk_tree
 					this->insert(i.first, i.second);
 
 				this->free_write_lock();
-				return rm_status;
+
+				std::vector<int64_t> ret;
+				ret.push_back(1 ? std::get<0>(rm_status) : 0);
+				ret.push_back(std::get<1>(rm_status));
+				ret.push_back(std::get<2>(rm_status));
+
+				return ret;
 
 			}
-
 
 			search_ret getWithinDistance(int64_t baseHash, int distance)
 			{

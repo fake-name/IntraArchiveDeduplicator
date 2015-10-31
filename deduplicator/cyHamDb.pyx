@@ -20,9 +20,10 @@ cdef extern from "./deduplicator/bktree.hpp" namespace "bk_tree":
 	ctypedef deque[hash_pair] return_deque
 
 
-	cdef cppclass BK_Tree_Node:
-		BK_Tree_Node(int64_t, int64_t) except +
+	cdef cppclass BK_Tree:
+		BK_Tree(int64_t, int64_t) except +
 		void            insert(int64_t nodeHash, int64_t nodeData)
+		void            lockless_insert(int64_t nodeHash, int64_t nodeData)
 		vector[int64_t] remove(int64_t nodeHash, int64_t nodeData)
 		search_ret      getWithinDistance(int64_t baseHash, int distance)
 
@@ -53,25 +54,25 @@ cdef int64_t hamming(int64_t a, int64_t b):
 		x >>= 1
 	return tot
 
-cdef class CPP_BkHammingNode(object):
-	cdef BK_Tree_Node *treeroot_p
+cdef class CPP_BkHammingTree(object):
+	cdef BK_Tree *treeroot_p
 
 	def __init__(self, int64_t nodeHash, int64_t nodeData):
-		self.treeroot_p = new BK_Tree_Node(nodeHash, nodeData)
+		self.treeroot_p = new BK_Tree(nodeHash, nodeData)
 
-	cdef insert(self, int64_t nodeHash, int64_t nodeData):
+	cpdef insert(self, int64_t nodeHash, int64_t nodeData):
 		self.treeroot_p.insert(nodeHash, nodeData)
 
-	cdef remove(self, int64_t nodeHash, int64_t nodeData):
+	cpdef remove(self, int64_t nodeHash, int64_t nodeData):
 		cdef vector[int64_t] ret = self.treeroot_p.remove(nodeHash, nodeData)
-		return bool(ret[0]), ret[1], ret[2]
+		return ret[0], ret[1]
 
-	cdef getWithinDistance(self, int64_t baseHash, int distance):
+	cpdef getWithinDistance(self, int64_t baseHash, int distance):
 
 		cdef search_ret have = self.treeroot_p.getWithinDistance(baseHash, distance)
 
-		had = have.first
-		touched = have.second
+		had = set(have.first)
+		touched = int(have.second)
 
 		return had, touched
 
@@ -248,14 +249,6 @@ import rwlock
 import logging
 
 
-class CppBkHammingTree(object):
-	def __init__(self):
-		print("CppBkHammingTree __init__ method")
-		self.root = CPP_BkHammingNode(1,2)
-	def __del__(self):
-		print("CppBkHammingTree del method")
-		del self.root
-
 
 class BkHammingTree(object):
 	root = None
@@ -342,4 +335,70 @@ class BkHammingTree(object):
 	def __iter__(self):
 		for value in self.root:
 			yield value
+
+
+class CPPBkHammingTree(object):
+	root = None
+	nodes = 0
+
+	def __init__(self):
+		self.tree = None
+		cur = threading.current_thread().name
+		self.log = logging.getLogger("Main.Tree."+cur)
+		pass
+
+	def insert(self, nodeHash, nodeData):
+
+		if not isinstance(nodeData, int):
+			raise ValueError("Data must be an integer! Passed value '%s', type '%s'" % (nodeData, type(nodeData)))
+		if not isinstance(nodeHash, int):
+			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (nodeHash, type(nodeHash)))
+
+		if not self.root:
+			self.root = CPP_BkHammingTree(nodeHash, nodeData)
+		else:
+			self.root.insert(nodeHash, nodeData)
+		self.nodes += 1
+
+
+	def remove(self, nodeHash, nodeData):
+		if not self.root:
+			raise ValueError("No tree built to remove from!")
+
+		if not isinstance(nodeData, int):
+			raise ValueError("Data must be an integer! Passed value '%s', type '%s'" % (nodeData, type(nodeData)))
+
+		if not isinstance(nodeHash, int):
+			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (nodeHash, type(nodeHash)))
+
+
+		rootless, deleted, moved = self.root.remove(nodeHash, nodeData)
+
+		return deleted, moved
+
+	def getWithinDistance(self, baseHash, distance):
+
+		if not isinstance(baseHash, int):
+			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (baseHash, type(baseHash)))
+
+		ret = None
+		if not self.root:
+			self.log.info("WARNING: NO TREE BUILT!")
+			return set()
+		else:
+			ret, touched = self.root.getWithinDistance(baseHash, distance)
+			self.log.info("Search for '%s', distance '%s', Touched %s tree nodes, or %1.3f%%. Discovered %s match(es)" % (baseHash, distance, touched, touched/self.nodes * 100, len(ret)))
+
+		return ret
+
+	# Explicitly dump all the tree items.
+	# Note: Only ever called from within a lock-synchronized context.
+	def dropTree(self):
+		self.root = None
+		self.nodes = 0
+
+	def __iter__(self):
+		for value in self.root:
+			yield value
+
 

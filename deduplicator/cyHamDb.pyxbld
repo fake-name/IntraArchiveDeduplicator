@@ -6,6 +6,6 @@ def make_ext(modname, pyxfilename):
 					libraries=["stdc++"],
 					include_dirs = ['.'],
 					language='C++',
-					extra_compile_args=["-std=c++11"],
-					extra_link_args=["-std=c++11"]
+					extra_compile_args=["-std=c++11", "-march=native", "-mtune=native", "-O3", "-mpopcnt"],
+					extra_link_args=["-std=c++11", "-march=native", "-mtune=native", "-O3", "-mpopcnt"]
 					)

@@ -13,7 +13,8 @@ pyximport.install()
 
 import deduplicator.cyHamDb as hamDb
 
-TREE_ENTRIES = 1000000
+# TREE_ENTRIES = 1000000
+TREE_ENTRIES = 100000
 # TREE_ENTRIES = 10000
 TEST_QUERIES = 1000
 
@@ -30,6 +31,13 @@ class ProfileTree():
 
 	def buildTestTree(self):
 		self.tree = hamDb.BkHammingTree()
+		self.buildOntoTree(self.tree)
+
+	def buildCppTree(self):
+		self.tree = hamDb.CPPBkHammingTree()
+		self.buildOntoTree(self.tree)
+
+	def buildOntoTree(self, tree):
 
 		# Fix the random ordering so profile results
 		# are sensible
@@ -39,7 +47,7 @@ class ProfileTree():
 		for x in range(TREE_ENTRIES):
 			fk_hash = random.getrandbits(64)
 			fk_hash = hamDb.explicitSignCast(fk_hash)
-			self.tree.insert(fk_hash, x)
+			tree.insert(fk_hash, x)
 			if x % 10000 == 0:
 				print("Inserted %s items, %s%% complete" % (x, (x / TREE_ENTRIES * 100)))
 		print("Tree built")
@@ -54,10 +62,9 @@ class ProfileTree():
 
 
 def test_cpp():
-	item = hamDb.CppBkHammingTree()
-	print(item)
-	del item
-	print("Complete")
+	pt = ProfileTree()
+	pt.buildCppTree()
+	pt.do_test_queries()
 
 if __name__ == '__main__':
 	import sys
@@ -65,6 +72,10 @@ if __name__ == '__main__':
 		prof = ProfileTree()
 		prof.buildTestTree()
 		cProfile.run('prof.do_test_queries()', "query_stats.cprof")
+	if "cprof" in sys.argv:
+		prof = ProfileTree()
+		cProfile.run('prof.buildCppTree()', "query_stats.cprof")
+		# prof.buildCppTree()
 	elif "cpp" in sys.argv:
 		test_cpp()
 	elif "anal" in sys.argv:

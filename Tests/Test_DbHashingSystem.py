@@ -59,14 +59,13 @@ class TestSequenceFunctions(unittest.TestCase):
 	# Verify the structure of the tree
 	# does not change across reloading.
 	def test_testLoadingDeterminsm(self):
-		loadedTree = list(self.db.tree.root)
+		loadedTree = list(self.db.tree)
 
-		self.db.tree.root = None
-		self.db.tree.nodes = 0
+		self.db.tree.dropTree()
 
 		self.db.doLoad()
 
-		self.assertEqual(list(self.db.tree.root), loadedTree)
+		self.assertEqual(list(self.db.tree), loadedTree)
 
 
 	def test_getDbLoadedProperly(self):

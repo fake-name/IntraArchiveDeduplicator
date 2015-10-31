@@ -14,7 +14,7 @@
 // For RWLocks
 #include <pthread.h>
 
-
+// switch map for array of pointers
 
 namespace bk_tree
 {
@@ -61,9 +61,7 @@ namespace bk_tree
 			// numbers of n, which we mostly have.
 			std::set<data_type>                                       node_data_items;
 
-			// We have to have a shared_ptr because
-			// unordered_map cannot have members with incomplete types.
-			std::unordered_map<int, std::shared_ptr<BK_Tree_Node> > children;
+			std::vector<BK_Tree_Node *>                                children;
 
 			rebuild_ret remove_internal(hash_type nodeHash, data_type nodeData, return_deque &ret_deq)
 			{
@@ -78,10 +76,10 @@ namespace bk_tree
 				if (nodeHash == this->node_hash)
 				{
 					// Validate we have the
-					if (this->node_data_items.count(nodeHash) > 0)
+					if (this->node_data_items.count(nodeData) > 0)
 					{
 						// Remove the node data associated with the hash we want to remove
-						this->node_data_items.erase(nodeHash);
+						this->node_data_items.erase(nodeData);
 					}
 
 					// If we've emptied out the node of data, return all our children so the parent can
@@ -103,7 +101,7 @@ namespace bk_tree
 				// then doing operations on the search result.
 				// As such, scan children where the edit distance between `self.nodeHash` and the target `nodeHash` == 0
 				// Rebuild children where needed
-				if (this->children.count(selfDist) > 0)
+				if (this->children[selfDist] != NULL)
 				{
 					rebuild_ret removed = this->children[selfDist]->remove_internal(nodeHash, nodeData, ret_deq);
 
@@ -118,11 +116,80 @@ namespace bk_tree
 					// It's children will be re-inserted as the last step in removal.
 					if (remove_child)
 					{
-						this->children.erase(selfDist);
+						delete this->children[selfDist];
+						this->children[selfDist] = NULL;
 					}
 				}
 				return rebuild_ret(false, deleted, moved);
 			}
+
+
+			void insert_internal(hash_type nodeHash, data_type nodeData)
+			{
+				// std::cout << "Insert internal for hash: " << nodeHash << " nodeData: " << nodeData  << " onto node with hash: " << this->node_hash << std::endl;
+				// If the current node has the same has as the data we're inserting,
+				// add the data to the current node's data set
+				if (nodeHash == this->node_hash)
+				{
+					this->node_data_items.insert(nodeData);
+					return;
+				}
+
+				// otherwise, calculate the edit distance between the new phash and the current node's hash,
+				// and either recursively insert the data, or create a new child node for the phash
+				int distance = f_hamming(this->node_hash, nodeHash);
+
+				if (this->children[distance] != NULL)
+				{
+					// std::cout << "Recursing into child-node for insert!" << std::endl;
+					this->children[distance]->insert(nodeHash, nodeData);
+				}
+				else
+				{
+					// Construct in-place for extra fancyness
+					// std::cout << "Creating child-node for insertion" << std::endl;
+					this->children[distance] = new BK_Tree_Node(nodeHash, nodeData);
+				}
+
+			}
+
+
+		protected:
+			void search_internal(hash_type search_hash, int64_t distance, search_ret &ret)
+			{
+				// std::cout << "Doing hamming search" << std::endl;
+				int64_t selfDist = f_hamming(this->node_hash, search_hash);
+				// std::cout << "Searching node: " << this-> node_hash << " for " << search_hash << ", self-distance= " << selfDist << "." << std::endl;
+
+				// Add self values if the current node is within the proper distance.
+				if (selfDist <= distance)
+				{
+
+					for (const data_type &val: this->node_data_items)
+					{
+						// std::cout << "Found matching item at node: " << this->node_hash << " value: " << val << std::endl;
+						ret.first.insert(val);
+					}
+				}
+
+				ret.second += 1;
+
+				int64_t posDelta = std::min((selfDist + distance), static_cast<int64_t>(64));
+				int64_t negDelta = std::max((selfDist - distance), static_cast<int64_t>(0));
+
+				for (int x = negDelta; x <= posDelta; x += 1)
+				{
+					if (this->children[x] != NULL)
+					{
+						// std::cout << "Decending into child-node for search" << std::endl;
+						this->children[x]->search_internal(search_hash, distance, ret);
+					}
+				}
+
+			}
+
+
+		public:
 
 			void get_contains(return_deque &ret_deq)
 			{
@@ -132,81 +199,34 @@ namespace bk_tree
 
 				// Then, iterate over the item's children.
 				for (const auto val : this->children)
-					val.second->get_contains(ret_deq);
+					if (val != NULL)
+						val->get_contains(ret_deq);
 
 			}
 
 
-			void insert_internal(hash_type nodeHash, data_type nodeData)
+			BK_Tree_Node(hash_type nodeHash, int64_t node_data)
 			{
-				// If the current node has the same has as the data we're inserting,
-				// add the data to the current node's data set
-				if (nodeHash == this->node_hash)
-				{
-					this->node_data_items.insert(node_hash);
-					return;
-				}
+				// std::cout << "Instantiating BK_Tree_Node instance - Hash: " << nodeHash << " node_data: " << node_data << std::endl;
+				this->node_data_items.insert(node_data);
+				this->node_hash = nodeHash;
 
-				// otherwise, calculate the edit distance between the new phash and the current node's hash,
-				// and either recursively insert the data, or create a new child node for the phash
-				int distance = f_hamming(this->node_hash, nodeHash);
-
-				if (this->children.count(distance) > 0)
-				{
-					this->children.at(distance)->insert(nodeHash, nodeData);
-				}
-				else
-				{
-					// Construct in-place for extra fancyness
-					this->children.emplace(distance, std::make_shared<BK_Tree_Node>(nodeHash, nodeData));
-				}
-
-			}
-
-
-		protected:
-			void search_internal(hash_type baseHash, int64_t distance, search_ret &ret)
-			{
-				int64_t selfDist = f_hamming(this->node_hash, baseHash);
-
-				// Add self values if the current node is within the proper distance.
-				if (selfDist <= distance)
-				{
-					for (const data_type &val: this->node_data_items)
-					{
-						ret.first.insert(val);
-					}
-				}
-
-				ret.second += 1;
-
-				int64_t posDelta = selfDist + distance;
-				int64_t negDelta = selfDist - distance;
-
-				for (auto &child : this->children)
-				{
-					if (child.first <= posDelta && child.first >= negDelta)
-					{
-						child.second->search_internal(baseHash, distance, ret);
-					}
-				}
-
-			}
-
-
-		public:
-
-
-			BK_Tree_Node(hash_type nodeHash, int64_t node_id)
-			{
-				// std::cout << "Instantiating BK_Tree_Node instance" << std::endl;
-				this->node_data_items.insert(node_id);
-				this->node_hash = node_hash;
+				// Child 0 is unused, because if the distance between the
+				// current hash and the node hash is 0, it'll just be inserted onto the current
+				// node's data.
+				// We use a 65-ary tree just so the math is easier, leaking 8 bytes per node is kind of
+				// irrelevant (I hope).
+				this->children.assign(65, NULL);
 
 			}
 
 			~BK_Tree_Node()
 			{
+				for (auto val: this->children)
+				{
+					if (val != NULL)
+						delete val;
+				}
 				// std::cout << "Destroying BK_Tree_Node instance" << std::endl;
 			}
 
@@ -224,11 +244,16 @@ namespace bk_tree
 				auto rm_status = this->remove_internal(nodeHash, nodeData, ret_deq);
 
 
+				int non_null_children = 0;
+				for (size_t x = 0; x < this->children.size(); x += 1)
+					if (this->children[x] != NULL)
+						non_null_children += 1;
+
 				// if the current node is empty, pull the first item from the new item list, and
 				// set the current node to it's contained values.
 				if (this->node_data_items.size() == 0 && ret_deq.empty() == false)
 				{
-					assert(this->children.size() == 0);
+					assert(non_null_children == 0);
 
 					hash_pair new_root_content = ret_deq.front();
 					ret_deq.pop_front();
@@ -327,6 +352,14 @@ namespace bk_tree
 				return ret;
 			}
 
+			return_deque get_all(void)
+			{
+				return_deque ret;
+				this->get_read_lock();
+				this->tree.get_contains(ret);
+				this->free_read_lock();
+				return ret;
+			}
 
 			void get_read_lock(void)
 			{

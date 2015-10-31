@@ -32,6 +32,7 @@ cdef extern from "./deduplicator/bktree.hpp" namespace "bk_tree":
 		void            get_write_lock()
 		void            free_read_lock()
 		void            free_write_lock()
+		return_deque    get_all()
 
 
 
@@ -100,13 +101,14 @@ cdef class CPP_BkHammingTree(object):
 	cpdef free_write_lock(self):
 		self.treeroot_p.free_write_lock()
 
-	# def __iter__(self):
-	# 	for child in self.children.values():
-	# 		for item in child:
-	# 			yield item
-	# 	for item in self.nodeData:
-	# 		yield (self.nodeHash, item)
-
+	cpdef get_all(self):
+		cdef return_deque ret = self.treeroot_p.get_all()
+		extracted = []
+		deq_sz = ret.size()
+		for x in range(deq_sz):
+			if ret[x].first != 0 or ret[x].second != 0:
+				extracted.append((ret[x].first, ret[x].second))
+		return extracted
 
 	def __dealloc__(self):
 		del self.treeroot_p
@@ -385,40 +387,40 @@ class CPPLockProxy(object):
 
 
 class CPPBkHammingTree(object):
-	root = None
+	__root = None
 	nodes = 0
 
 	def __init__(self):
 		cur             = threading.current_thread().name
 		self.log        = logging.getLogger("Main.Tree."+cur)
-		self.root       = CPP_BkHammingTree(0, 0)
-		self.updateLock = CPPLockProxy(self.root)
+		self.__root       = CPP_BkHammingTree(0, 0)
+		self.updateLock = CPPLockProxy(self.__root)
 
 	def insert(self, nodeHash, nodeData):
-		assert(self.root)
+		assert(self.__root)
 
 		if not isinstance(nodeData, int):
 			raise ValueError("Data must be an integer! Passed value '%s', type '%s'" % (nodeData, type(nodeData)))
 		if not isinstance(nodeHash, int):
 			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (nodeHash, type(nodeHash)))
 
-		self.root.insert(nodeHash, nodeData)
+		self.__root.insert(nodeHash, nodeData)
 		self.nodes += 1
 
 	def unlocked_insert(self, nodeHash, nodeData):
-		assert(self.root)
+		assert(self.__root)
 
 		if not isinstance(nodeData, int):
 			raise ValueError("Data must be an integer! Passed value '%s', type '%s'" % (nodeData, type(nodeData)))
 		if not isinstance(nodeHash, int):
 			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (nodeHash, type(nodeHash)))
 
-		self.root.unlocked_insert(nodeHash, nodeData)
+		self.__root.unlocked_insert(nodeHash, nodeData)
 		self.nodes += 1
 
 
 	def remove(self, nodeHash, nodeData):
-		if not self.root:
+		if not self.__root:
 			raise ValueError("No tree built to remove from!")
 
 		if not isinstance(nodeData, int):
@@ -428,17 +430,17 @@ class CPPBkHammingTree(object):
 			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (nodeHash, type(nodeHash)))
 
 
-		rootless, deleted, moved = self.root.remove(nodeHash, nodeData)
+		deleted, moved = self.__root.remove(nodeHash, nodeData)
 
 		return deleted, moved
 
 	def getWithinDistance(self, baseHash, distance):
-		assert(self.root)
+		assert(self.__root)
 
 		if not isinstance(baseHash, int):
 			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (baseHash, type(baseHash)))
 
-		ret, touched = self.root.getWithinDistance(baseHash, distance)
+		ret, touched = self.__root.getWithinDistance(baseHash, distance)
 		self.log.info("Search for '%s', distance '%s', Touched %s tree nodes, or %1.3f%%. Discovered %s match(es)" % (baseHash, distance, touched, touched/self.nodes * 100, len(ret)))
 
 		return ret
@@ -446,17 +448,17 @@ class CPPBkHammingTree(object):
 	# Explicitly dump all the tree items.
 	# Note: Only ever called from within a lock-synchronized context.
 	def dropTree(self):
-		self.root = None
+		self.__root = None
 		self.nodes = 0
-		self.root       = CPP_BkHammingTree(0, 0)
-		self.updateLock = CPPLockProxy(self.root)
+		self.__root       = CPP_BkHammingTree(0, 0)
+		self.updateLock = CPPLockProxy(self.__root)
 
 
 
-	# def __iter__(self):
-	# 	for value in self.root:
-	# 		yield value
+	def __iter__(self):
+		for value in self.__root.get_all():
+			yield value
 
 
-BkHammingTree = PyBkHammingTree
-# BkHammingTree = CPPBkHammingTree
+# BkHammingTree = PyBkHammingTree
+BkHammingTree = CPPBkHammingTree

@@ -105,14 +105,14 @@ class TestSequenceFunctions(unittest.TestCase):
 	# Verify the structure of the tree
 	# does not change across reloading.
 	def test_testLoadingDeterminsm(self):
-		loadedTree = list(self.db.tree.root)
+		loadedTree = list(self.db.tree)
 
 		self.db.tree.root = None
 		self.db.tree.nodes = 0
 
 		self.db.doLoad()
 
-		self.assertEqual(list(self.db.tree.root), loadedTree)
+		self.assertEqual(list(self.db.tree), loadedTree)
 
 
 	def test_getItemsSimple(self):
@@ -140,10 +140,10 @@ class TestSequenceFunctions(unittest.TestCase):
 		]
 
 		ret = self.db.getWithinDistance(H_5)
-		self.assertEqual(ret, expect)
+		self.assertEqual(set(ret), set(expect))
 
 		ret = self.db.getWithinDistance(H_6)
-		self.assertEqual(ret, expect)
+		self.assertEqual(set(ret), set(expect))
 
 	def test_searchByPhash2(self):
 		ret = self.db.getWithinDistance(H_9)
@@ -157,7 +157,7 @@ class TestSequenceFunctions(unittest.TestCase):
 		]
 
 		ret = self.db.getWithinDistance(H_4)
-		self.assertEqual(ret, expect)
+		self.assertEqual(set(ret), set(expect))
 
 
 

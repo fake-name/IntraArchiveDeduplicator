@@ -29,9 +29,9 @@ namespace bk_tree
 	typedef std::deque<hash_pair> return_deque;
 
 
-	int64_t inline f_hamming(uint64_t a_int, uint64_t b_int);
+	int64_t inline f_hamming(int64_t a_int, int64_t b_int);
 
-	int64_t inline f_hamming(uint64_t a_int, uint64_t b_int)
+	int64_t inline f_hamming(int64_t a_int, int64_t b_int)
 	{
 		/*
 		Compute number of bits that are not common between `a` and `b`.
@@ -127,7 +127,7 @@ namespace bk_tree
 			void get_contains(return_deque &ret_deq)
 			{
 				// For each item the node contains, push it back into the dequeu
-				for (const uint64_t i : this->node_data_items)
+				for (const int64_t i : this->node_data_items)
 					ret_deq.push_back(hash_pair(this->node_hash, i));
 
 				// Then, iterate over the item's children.
@@ -268,31 +268,13 @@ namespace bk_tree
 			BK_Tree_Node      tree;
 			pthread_rwlock_t lock_rw;
 
-			void get_read_lock(void)
-			{
-				pthread_rwlock_rdlock(&(this->lock_rw));
-			}
-			void get_write_lock(void)
-			{
-				pthread_rwlock_wrlock(&(this->lock_rw));
-
-			}
-
-			void free_read_lock(void)
-			{
-				pthread_rwlock_unlock(&(this->lock_rw));
-			}
-			void free_write_lock(void)
-			{
-				pthread_rwlock_unlock(&(this->lock_rw));
-			}
 
 		public:
 
 			BK_Tree(hash_type nodeHash, data_type node_id)
 				: tree(nodeHash, node_id)
 			{
-				std::cout << "Instantiating BK_Tree instance" << std::endl;
+				// std::cout << "Instantiating BK_Tree instance" << std::endl;
 				this->lock_rw = PTHREAD_RWLOCK_INITIALIZER;
 				int ret = pthread_rwlock_init(&(this->lock_rw), NULL);
 				if (ret != 0)
@@ -304,7 +286,7 @@ namespace bk_tree
 
 			~BK_Tree()
 			{
-				std::cout << "Destroying BK_Tree instance" << std::endl;
+				// std::cout << "Destroying BK_Tree instance" << std::endl;
 			}
 
 			void insert(hash_type nodeHash, data_type nodeData)
@@ -314,11 +296,9 @@ namespace bk_tree
 				this->free_write_lock();
 			}
 
-			void lockless_insert(hash_type nodeHash, data_type nodeData)
+			void unlocked_insert(hash_type nodeHash, data_type nodeData)
 			{
-				// this->get_write_lock();
 				this->tree.insert(nodeHash, nodeData);
-				// this->free_write_lock();
 			}
 
 
@@ -346,6 +326,27 @@ namespace bk_tree
 				this->free_read_lock();
 				return ret;
 			}
+
+
+			void get_read_lock(void)
+			{
+				pthread_rwlock_rdlock(&(this->lock_rw));
+			}
+			void get_write_lock(void)
+			{
+				pthread_rwlock_wrlock(&(this->lock_rw));
+
+			}
+
+			void free_read_lock(void)
+			{
+				pthread_rwlock_unlock(&(this->lock_rw));
+			}
+			void free_write_lock(void)
+			{
+				pthread_rwlock_unlock(&(this->lock_rw));
+			}
+
 
 	};
 

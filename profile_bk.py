@@ -8,13 +8,13 @@ import random
 import pyximport
 print("Have Cython")
 pyximport.install()
-
+import timeit
 
 
 import deduplicator.cyHamDb as hamDb
 
-# TREE_ENTRIES = 1000000
-TREE_ENTRIES = 100000
+TREE_ENTRIES = 1000000
+# TREE_ENTRIES = 100000
 # TREE_ENTRIES = 10000
 TEST_QUERIES = 1000
 
@@ -60,11 +60,35 @@ class ProfileTree():
 			self.tree.getWithinDistance(fk_hash, SEARCH_DIST)
 		print("Test queries complete")
 
+	def random_q(self):
+		fk_hash = random.getrandbits(64)
+		fk_hash = hamDb.explicitSignCast(fk_hash)
+		self.tree.getWithinDistance(fk_hash, SEARCH_DIST)
+
+
+pt = ProfileTree()
 
 def test_cpp():
-	pt = ProfileTree()
 	pt.buildCppTree()
 	pt.do_test_queries()
+
+def test_py():
+	pt.buildTestTree()
+	pt.do_test_queries()
+
+
+def timeit_c():
+	pt.buildCppTree()
+	ret = timeit.repeat("pt.random_q()", "from __main__ import pt; import random; random.seed()", number=2000)
+	print("timing results: ", ret)
+
+
+
+def timeit_py():
+	pt.buildTestTree()
+	ret = timeit.repeat("pt.random_q()", "from __main__ import pt; import random; random.seed()", number=2000)
+	print("timing results: ", ret)
+
 
 if __name__ == '__main__':
 	import sys
@@ -78,6 +102,10 @@ if __name__ == '__main__':
 		# prof.buildCppTree()
 	elif "cpp" in sys.argv:
 		test_cpp()
+	elif "ctime" in sys.argv:
+		timeit_c()
+	elif "ptime" in sys.argv:
+		timeit_py()
 	elif "anal" in sys.argv:
 		import pstats
 		p = pstats.Stats("query_stats.cprof")

@@ -13,7 +13,7 @@ from libcpp.vector cimport vector
 from libcpp.set cimport set as cset
 from contextlib import contextmanager
 
-cdef extern from "./deduplicator/bktree.hpp" namespace "bk_tree":
+cdef extern from "./deduplicator/bktree.hpp" namespace "BK_Tree_Ns":
 	# ctypedef cset[int64_t] set_64
 	ctypedef cpair[cset[int64_t], int64_t] search_ret
 	# ctypedef tuple[bool, int64_t, int64_t] rebuild_ret
@@ -24,15 +24,15 @@ cdef extern from "./deduplicator/bktree.hpp" namespace "bk_tree":
 
 	cdef cppclass BK_Tree:
 		BK_Tree(int64_t, int64_t) except +
-		void            insert(int64_t nodeHash, int64_t nodeData)
-		void            unlocked_insert(int64_t nodeHash, int64_t nodeData)
-		vector[int64_t] remove(int64_t nodeHash, int64_t nodeData)
-		search_ret      getWithinDistance(int64_t baseHash, int distance)
-		void            get_read_lock()
-		void            get_write_lock()
-		void            free_read_lock()
-		void            free_write_lock()
-		return_deque    get_all()
+		void            insert(int64_t nodeHash, int64_t nodeData) nogil
+		void            unlocked_insert(int64_t nodeHash, int64_t nodeData) nogil
+		vector[int64_t] remove(int64_t nodeHash, int64_t nodeData) nogil
+		search_ret      getWithinDistance(int64_t baseHash, int distance) nogil
+		void            get_read_lock() nogil
+		void            get_write_lock() nogil
+		void            free_read_lock() nogil
+		void            free_write_lock() nogil
+		return_deque    get_all() nogil
 
 
 
@@ -66,6 +66,7 @@ cdef int64_t hamming(int64_t a, int64_t b):
 
 
 
+# Most of these calls can release the GIL, because they only manipulate the BK_Tree internal data structure.
 cdef class CPP_BkHammingTree(object):
 	cdef BK_Tree *treeroot_p
 
@@ -73,19 +74,27 @@ cdef class CPP_BkHammingTree(object):
 		self.treeroot_p = new BK_Tree(nodeHash, nodeData)
 
 	cpdef insert(self, int64_t nodeHash, int64_t nodeData):
-		self.treeroot_p.insert(nodeHash, nodeData)
+		cdef BK_Tree *root_ptr = self.treeroot_p
+		with nogil:
+			root_ptr.insert(nodeHash, nodeData)
 
 	cpdef unlocked_insert(self, int64_t nodeHash, int64_t nodeData):
-		self.treeroot_p.unlocked_insert(nodeHash, nodeData)
+		cdef BK_Tree *root_ptr = self.treeroot_p
+		with nogil:
+			root_ptr.unlocked_insert(nodeHash, nodeData)
 
 	cpdef remove(self, int64_t nodeHash, int64_t nodeData):
-		cdef vector[int64_t] ret = self.treeroot_p.remove(nodeHash, nodeData)
+		cdef vector[int64_t] ret
+		cdef BK_Tree *root_ptr = self.treeroot_p
+		with nogil:
+			ret = root_ptr.remove(nodeHash, nodeData)
 		return ret[0], ret[1]
 
 	cpdef getWithinDistance(self, int64_t baseHash, int distance):
-
-		cdef search_ret have = self.treeroot_p.getWithinDistance(baseHash, distance)
-
+		cdef search_ret have
+		cdef BK_Tree *root_ptr = self.treeroot_p
+		with nogil:
+			have = root_ptr.getWithinDistance(baseHash, distance)
 		had = set(have.first)
 		touched = int(have.second)
 
@@ -102,7 +111,10 @@ cdef class CPP_BkHammingTree(object):
 		self.treeroot_p.free_write_lock()
 
 	cpdef get_all(self):
-		cdef return_deque ret = self.treeroot_p.get_all()
+		cdef return_deque ret
+		cdef BK_Tree *root_ptr = self.treeroot_p
+		with nogil:
+			ret = root_ptr.get_all()
 		extracted = []
 		deq_sz = ret.size()
 		for x in range(deq_sz):

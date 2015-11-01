@@ -6,45 +6,50 @@
 #include "../deduplicator/bktree.hpp"
 
 
-class HammingBenchFixture : public ::hayai::Fixture
+#define TEST_TREE_SIZE 8000000
+
+class BK_Tree_Fixture : public ::hayai::Fixture
 {
 public:
 
-	int64_t x;
-	int64_t y;
+	BK_Tree_Ns::BK_Tree *tree;
+	std::mt19937_64 generator;
 
 	virtual void SetUp()
 	{
-		std::mt19937_64 generator(12345);
-		this->x = generator();
-		this->y = generator();
+		this->generator.seed(12345);
+		std::cout << "Building " << TEST_TREE_SIZE << " node testing-tree..." << std::endl;
+		this->tree = new BK_Tree_Ns::BK_Tree(0, 0);
+		for (int x = 1; x < TEST_TREE_SIZE; x += 1)
+		{
+			this->tree->insert(this->generator(), x);
+		}
+		std::cout << "Tree built. Doing performance queries." << std::endl;
 	}
 
 	virtual void TearDown()
 	{
-
+		std::cout << "Deallocating tree." << std::endl;
+		delete this->tree;
+		std::cout << "Tree deallocated." << std::endl;
 	}
 
-	int Hamming()
+	int Tree_Search()
 	{
-		BK_Tree_Ns::f_hamming(this->x, this->y);
+		this->tree->getWithinDistance(this->generator(), 4);
 	}
 
 };
 
-BENCHMARK_F(HammingBenchFixture, Hamming, 10000, 10)
+BENCHMARK_F(BK_Tree_Fixture, Tree_Search, 2, 10000)
 {
-	Hamming();
+	Tree_Search();
 }
 
 
 int main()
 {
 	std::cout << "Doing benchmark" << std::endl;
-
-
-	 root(0, 0);
-
 
 
 	hayai::ConsoleOutputter consoleOutputter;

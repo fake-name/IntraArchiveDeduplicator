@@ -235,7 +235,7 @@ namespace BK_Tree_Ns
 				// We also clamp the search space to the bounds of our
 				// index.
 				int64_t posDelta = std::min((selfDist + distance), static_cast<int64_t>(64));
-				int64_t negDelta = std::max((selfDist - distance), static_cast<int64_t>(0));
+				int64_t negDelta = std::max((selfDist - distance), static_cast<int64_t>(1));
 
 				// For each child within our search scope, if the child is present (non-NULL),
 				// recursively search into that child.

@@ -24,6 +24,8 @@ public:
 		{
 			this->tree->insert(this->generator(), x);
 		}
+
+		this->generator.seed(12345);
 		std::cout << "Tree built. Doing performance queries." << std::endl;
 	}
 
@@ -36,12 +38,12 @@ public:
 
 	int Tree_Search()
 	{
-		this->tree->getWithinDistance(this->generator(), 4);
+		this->tree->getWithinDistance(this->generator()+1, 4);
 	}
 
 };
 
-BENCHMARK_F(BK_Tree_Fixture, Tree_Search, 2, 10000)
+BENCHMARK_F(BK_Tree_Fixture, Tree_Search, 2, 1000)
 {
 	Tree_Search();
 }

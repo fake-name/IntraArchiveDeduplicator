@@ -197,7 +197,8 @@ class CPPBkHammingTree(object):
 
 
 		deleted, moved = self.__root.remove(nodeHash, nodeData)
-
+		# Moved seems to always be 0
+		self.log.info("Deletion operation removed %s item(s)", deleted)
 		return deleted, moved
 
 	def getWithinDistance(self, baseHash, distance):

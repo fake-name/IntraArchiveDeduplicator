@@ -22,10 +22,20 @@ def hamming(a, b):
 THREADS = 8
 RANDOM_INIT = 6461351
 
-def proc_test(tree, nlookups):
+TREE_SIZE = 8 * 1000 * 1000
+TEST_SAMPLE_SIZE = 100*1000
+
+def lookup_call(tree, nlookups, offset):
 	local_random = random.Random()
 	local_random.seed(RANDOM_INIT)
+
+	# offset = (TREE_SIZE // 2) - TEST_SAMPLE_SIZE
+	# Step the random number generator to the end of the search space
+	for dummy_x in range(offset):
+		local_random.getrandbits(64)
+
 	for nodeId in range(nlookups):
+		nodeId += offset
 		node_hash = local_random.getrandbits(64) - 2**63
 		ret0 = tree.getWithinDistance(node_hash, 0)
 		ret1 = tree.getWithinDistance(node_hash, 1)
@@ -35,6 +45,19 @@ def proc_test(tree, nlookups):
 		assert ret1 == set((nodeId, ))
 		assert ret2 == set((nodeId, ))
 		assert ret3 == set((nodeId, ))
+
+def destroy_call(tree, nlookups, offset=0):
+	local_random = random.Random()
+	local_random.seed(RANDOM_INIT)
+
+	for dummy_x in range(offset):
+		local_random.getrandbits(64)
+
+	for nodeId in range(nlookups):
+		nodeId += offset
+		node_hash = local_random.getrandbits(64) - 2**63
+		deleted, removed = tree.remove(node_hash, nodeId)
+		assert deleted == 1
 
 
 class TestSequenceFunctions_FlatTree(unittest.TestCase):
@@ -47,28 +70,38 @@ class TestSequenceFunctions_FlatTree(unittest.TestCase):
 		self.buildTestTree()
 
 	def buildTestTree(self):
-		random.seed(RANDOM_INIT)
+
+		local_random = random.Random()
+		local_random.seed(RANDOM_INIT)
 		self.tree = hamDb.BkHammingTree()
 		print("Building tree")
-		for nodeId in range(8 * 1000 * 1000):
-			node_hash = random.getrandbits(64) - 2**63
+		for nodeId in range(TREE_SIZE):
+			node_hash = local_random.getrandbits(64) - 2**63
 			self.tree.insert(node_hash, nodeId)
 		print("Built")
 
 		# for nodeId, node_hash in enumerate(TEST_DATA_FLAT):
-	def test_1(self, lookup_count=5000):
-		proc_test(tree=self.tree, nlookups=lookup_count)
+	def test_single_thread(self, lookup_count=TEST_SAMPLE_SIZE//2):
+		lookup_call(tree=self.tree, nlookups=lookup_count, offset=0)
 
 
-	def test_2(self):
+	def test_concurrent_reads(self):
 		with ThreadPoolExecutor(max_workers=THREADS) as executor:
 			for x in range(THREADS):
-				executor.submit(proc_test, tree=self.tree, nlookups=10*1000)
+				executor.submit(lookup_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE)
+
+	def test_read_and_write(self):
+		with ThreadPoolExecutor(max_workers=THREADS) as executor:
+			for x in range(THREADS-3):
+				executor.submit(lookup_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE, offset=(TREE_SIZE - (TEST_SAMPLE_SIZE * x)))
+			executor.submit(destroy_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE)
+			executor.submit(destroy_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE, offset=TEST_SAMPLE_SIZE)
+			executor.submit(destroy_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE, offset=TEST_SAMPLE_SIZE+TEST_SAMPLE_SIZE)
 
 	# Requires `BkHammingTree` instance to be pickleable to work.
 	# As such, it does not work.
-	def fails_test_3(self):
-		with ProcessPoolExecutor(max_workers=THREADS) as executor:
-			for x in range(THREADS):
-				executor.submit(proc_test, tree=self.tree, nlookups=10*1000)
+	# def fails_test_3(self):
+	#   with ProcessPoolExecutor(max_workers=THREADS) as executor:
+	#       for x in range(THREADS):
+	#           executor.submit(proc_call, tree=self.tree, nlookups=10*1000)
 

@@ -9,6 +9,7 @@
 # Therefore, we don't run the BK Tree tests with it.
 # python3 -m unittest Tests.BinaryConverterTests
 # python3 -m unittest Tests.BKTreeTests
+# python3 -m unittest Tests.Test_BKTree_Concurrency
 
 
 # Test ALL THE THINGS

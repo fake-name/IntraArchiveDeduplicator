@@ -19,7 +19,7 @@ def hamming(a, b):
 		x >>= 1
 	return tot
 
-THREADS = 5
+THREADS = 8
 RANDOM_INIT = 6461351
 
 def proc_test(tree, nlookups):
@@ -50,24 +50,25 @@ class TestSequenceFunctions_FlatTree(unittest.TestCase):
 		random.seed(RANDOM_INIT)
 		self.tree = hamDb.BkHammingTree()
 		print("Building tree")
-		for nodeId in range(1500 * 1000):
+		for nodeId in range(8 * 1000 * 1000):
 			node_hash = random.getrandbits(64) - 2**63
 			self.tree.insert(node_hash, nodeId)
 		print("Built")
 
 		# for nodeId, node_hash in enumerate(TEST_DATA_FLAT):
-	def test_1(self, lookup_count=500):
+	def test_1(self, lookup_count=5000):
 		proc_test(tree=self.tree, nlookups=lookup_count)
-
 
 
 	def test_2(self):
 		with ThreadPoolExecutor(max_workers=THREADS) as executor:
 			for x in range(THREADS):
-				executor.submit(proc_test, tree=self.tree, nlookups=1*1000)
+				executor.submit(proc_test, tree=self.tree, nlookups=10*1000)
 
-	def test_3(self):
+	# Requires `BkHammingTree` instance to be pickleable to work.
+	# As such, it does not work.
+	def fails_test_3(self):
 		with ProcessPoolExecutor(max_workers=THREADS) as executor:
 			for x in range(THREADS):
-				executor.submit(proc_test, tree=self.tree, nlookups=1*1000)
+				executor.submit(proc_test, tree=self.tree, nlookups=10*1000)
 

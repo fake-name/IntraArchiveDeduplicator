@@ -1,7 +1,7 @@
 
 
 import rpyc
-from rpyc.utils.server import ThreadedServer
+from rpyc.utils.server import ThreadPoolServer
 import dbPhashApi
 import deduplicator.ProcessArchive
 import scanner.hashFile
@@ -20,7 +20,7 @@ import sys
 class DbInterfaceServer(rpyc.Service):
 	lock = multiprocessing.RLock()
 
-	def exposed_processDownload(self, *args, locked=True, **kwargs):
+	def exposed_processDownload(self, *args, locked=False, **kwargs):
 		if locked:
 			print("Acquiring lock")
 			self.lock.acquire()
@@ -41,7 +41,7 @@ class DbInterfaceServer(rpyc.Service):
 def run_server():
 	print("Started.")
 	serverLog = logging.getLogger("Main.RPyCServer")
-	server = ThreadedServer(service=DbInterfaceServer, port = 12345, hostname='localhost', logger=serverLog)
+	server = ThreadPoolServer(service=DbInterfaceServer, port = 12345, hostname='localhost', logger=serverLog, nbThreads=6)
 	server.start()
 
 

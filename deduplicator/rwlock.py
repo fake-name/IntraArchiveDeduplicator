@@ -6,6 +6,8 @@ __author__ = "Mateusz Kobos, Connor Wolf"
 # Extended to allow blocking/non-blocking and
 # context-manager use by Connor Wolf
 #
+# MIT Licensed. Orignal source:
+# https://code.activestate.com/recipes/577803-reader-writer-lock-with-priority-for-writers/
 
 class RWLock:
 	"""Synchronization object used in a solution of so-called second

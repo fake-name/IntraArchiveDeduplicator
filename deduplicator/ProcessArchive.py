@@ -567,7 +567,7 @@ class ArchChecker(ProxyDbBase):
 
 
 
-def processDownload(filePath, pathFilter=None, distance=None, moveToPath=None, checkClass=ArchChecker):
+def processDownload(filePath, pathFilter=None, distance=None, moveToPath=None, checkClass=ArchChecker, cross_match=True):
 	'''
 	Process the file `filePath`. If it's a phash or binary duplicate, it is deleted.
 
@@ -587,7 +587,10 @@ def processDownload(filePath, pathFilter=None, distance=None, moveToPath=None, c
 	try:
 		ck = checkClass(filePath, pathFilter=pathFilter)
 
-		common = ck.getSignificantlySimilarArches(searchDistance=distance)
+		if cross_match:
+			common = ck.getSignificantlySimilarArches(searchDistance=distance)
+		else:
+			common = None
 
 		binMatch = ck.getBestBinaryMatch()
 		if binMatch:

@@ -14,8 +14,8 @@ echo Creating 2GB swap file \(this is occationally required when fetching extrem
 /sbin/swapon /swapfile
 /bin/echo '/swapfile          swap            swap    defaults        0 0' >> /etc/fstab
 
-apt-get install -y python3.4 python3.4-dev build-essential postgresql-client postgresql-common libpq-dev postgresql-9.3 unrar
-apt-get install -y postgresql-server-dev-9.3 postgresql-contrib libyaml-dev git
+apt-get install -y python3.4 python3.4-dev build-essential postgresql-client postgresql-common libpq-dev postgresql-9.5 unrar
+apt-get install -y postgresql-server-dev-9.5 postgresql-contrib libyaml-dev git
 
 # PIL/Pillow support stuff
 sudo apt-get install -y libtiff4-dev libjpeg-turbo8-dev zlib1g-dev liblcms2-dev libwebp-dev libxml2 libxslt1-dev

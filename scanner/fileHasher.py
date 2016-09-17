@@ -352,7 +352,8 @@ class HashThread(object):
 
 		try:
 			fType = magic.from_file(wholePath, mime=True)
-			fType = fType.decode("ascii")
+			if not isinstance(fType, str):
+				fType = fType.decode("ascii")
 		except magic.MagicException:
 			self.tlog.error("REALLY Corrupt Archive! ")
 			self.tlog.error("%s", wholePath)

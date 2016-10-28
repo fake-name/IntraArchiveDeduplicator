@@ -1,9 +1,11 @@
 
+import traceback
+import sys
 import argparse
 import scanner.scanner
+import interactive_tests.test_interface
 import deduplicator.ProcessArchive
 
-import sys
 
 
 
@@ -26,10 +28,9 @@ if __name__ == "__main__":
 	parserDirScan.add_argument('-t', '--threads',     required=False, dest="threadNo")
 	parserDirScan.add_argument('-s', '--nophash',     required=False, dest="noPhash", action='store_true')
 	parserDirScan.add_argument('-c', '--noIntegrity', required=False, dest="noIntegrityCheck", action='store_true')
-
 	parserDirScan.set_defaults(func=scanner.scanner.doScan)
+	parserDirScan.set_defaults(subproc=parserDirScan)
 
-	print("Sys args: ", sys.argv)
 
 
 	# ---------------  Processing  ----------------------
@@ -39,18 +40,34 @@ if __name__ == "__main__":
 	archProc.add_argument('-c', '--nocontext',     required=False, dest="noContext", action='store_true')
 
 	archProc.set_defaults(func=deduplicator.ProcessArchive.commandLineProcess)
+	archProc.set_defaults(subproc=archProc)
 
 
 	# ---------------  Tree Management  ----------------------
 	archProc = subparsers.add_parser('tree-reload', help="Reload the phash-tree from the database")
-
 	archProc.set_defaults(func=deduplicator.ProcessArchive.commandLineReloadTree)
+	archProc.set_defaults(subproc=archProc)
+
+
+	# ---------------  Testing  ----------------------
+	testProc = subparsers.add_parser('test', help="test-functions")
+	testProc.add_argument('-f', '--test-file',    required=False,  dest="testScan",    help="Scan an archive, and print it's resulting hashes to the console.")
+	testProc.add_argument('-s', '--list-similar', required=False,  dest="listSimilar", help="Scan an archive, and print archives with many phash-results in common.")
+	testProc.set_defaults(func=interactive_tests.test_interface.go)
+	testProc.set_defaults(subproc=testProc)
+
 
 
 
 
 	argsParsed = parser.parse_args()
 	if len(sys.argv) > 1:
-		argsParsed.func(argsParsed)
+		try:
+			argsParsed.func(argsParsed)
+		except Exception:
+			print()
+			parser.print_help()
+			argsParsed.subproc.print_help()
+			raise
 	else:
-		print("You must specify the operating mode. 'dir-scan' is the only supported mode currently")
+		parser.print_help()

@@ -31,6 +31,18 @@ class DbInterfaceServer(rpyc.Service):
 				print("Releasing lock")
 				self.lock.release()
 
+	def exposed_listDupes(self, *args, locked=False, **kwargs):
+		print("ListDupes call: ", (args, kwargs))
+		if locked:
+			print("Acquiring lock")
+			self.lock.acquire()
+		try:
+			return deduplicator.ProcessArchive.getSignificantlySimilarArches(*args, **kwargs)
+		finally:
+			if locked:
+				print("Releasing lock")
+				self.lock.release()
+
 	def exposed_reloadTree(self):
 		treeProx = dbPhashApi.PhashDbApi()
 		treeProx.forceReload()

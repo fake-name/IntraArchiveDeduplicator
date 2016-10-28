@@ -249,6 +249,13 @@ class ArchChecker(ProxyDbBase):
 		items = [(os.path.getsize(item), item) for item in tmp[maxKey]]
 		items.sort()
 
+		# TODO: The fitness of the match should additionally consider the number of files in each dir.
+		#       e.g. if the current file has 100 files, with 10 in common with another file with
+		#       100 files, that's not really a good match. On the other hand, if the current
+		#       file has 100 files, with 10 in common with another file which has a total of
+		#       10 files in it, it's an excellent match since the current file is a complete
+		#       superset of the other file.
+
 		# Finally, sort by size, return the biggest one of them
 		return items.pop()[-1]
 
@@ -564,6 +571,27 @@ class ArchChecker(ProxyDbBase):
 		looking at it with ``libmagic``.
 		'''
 		return pArch.PhashArchive.isArchive(archPath)
+
+
+
+def getSignificantlySimilarArches(filePath, distance=4):
+	log = logging.getLogger("Main.DedupServer")
+	print("Args:", (filePath, distance))
+	status = ''
+	bestMatch = None
+	common = {}
+	try:
+		ck = ArchChecker(filePath)
+
+		return ck.getSignificantlySimilarArches(searchDistance=distance)
+
+	except Exception:
+		log.critical("Exception when processing item!")
+		for line in traceback.format_exc().split("\n"):
+			log.critical(line)
+		return "error!"
+
+
 
 
 

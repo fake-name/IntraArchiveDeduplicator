@@ -225,9 +225,15 @@ namespace BK_Tree_Ns
 
 				// Add self values if the current node is within the proper distance.
 				if (selfDist <= distance)
+				{
 					for (const data_type &val: this->node_data_items)
+					{
+						// std::cout << "Inserting self into return: " << val << " hash: " << this->node_hash << "." << std::endl;
 						ret.first.insert(val);
+					}
+				}
 
+				// std::cout << "Items in return: " << ret.first.size() << "." << std::endl;
 				ret.second += 1;
 
 				// Search scope is self_distance - search_distance <-> self_distance + search_distance,
@@ -384,8 +390,18 @@ namespace BK_Tree_Ns
 			search_ret search(hash_type baseHash, int distance)
 			{
 				search_ret ret;
+				ret.first.clear();
+				// std::cout << "Search call! " << ret.first << "." << std::endl;
 				ret.second = 0;
 				this->search_internal(baseHash, distance, ret);
+
+				// std::cout << "Search return: ";
+				// for (auto& tmp : ret.first)
+				// {
+				// 	std::cout << tmp << ", ";
+				// }
+				// std::cout << "." << std::endl;
+
 				return ret;
 			}
 
@@ -426,7 +442,7 @@ namespace BK_Tree_Ns
 	class BK_Tree
 	{
 		private:
-			BK_Tree_Node      tree;
+			BK_Tree_Node*      tree;
 			pthread_rwlock_t lock_rw;
 
 
@@ -439,8 +455,8 @@ namespace BK_Tree_Ns
 			 * @param nodeHash hash-value for the root of the tree.
 			 * @param node_id associated data-value for the tree root.
 			 */
-			BK_Tree(hash_type nodeHash, data_type node_id)
-				: tree(nodeHash, node_id)
+			BK_Tree()
+				: tree(NULL)
 			{
 				this->lock_rw = PTHREAD_RWLOCK_INITIALIZER;
 				int ret = pthread_rwlock_init(&(this->lock_rw), NULL);
@@ -454,6 +470,8 @@ namespace BK_Tree_Ns
 			~BK_Tree()
 			{
 				// std::cout << "Destroying BK_Tree instance" << std::endl;
+				if (this->tree != NULL)
+					delete this->tree;
 			}
 
 			/**
@@ -465,7 +483,10 @@ namespace BK_Tree_Ns
 			void insert(hash_type nodeHash, data_type nodeData)
 			{
 				this->get_write_lock();
-				this->tree.insert(nodeHash, nodeData);
+				if (this->tree == NULL)
+					this->tree = new BK_Tree_Node(nodeHash, nodeData);
+				else
+					this->tree->insert(nodeHash, nodeData);
 				this->free_write_lock();
 			}
 
@@ -481,7 +502,10 @@ namespace BK_Tree_Ns
 			 */
 			void unlocked_insert(hash_type nodeHash, data_type nodeData)
 			{
-				this->tree.insert(nodeHash, nodeData);
+				if (this->tree == NULL)
+					this->tree = new BK_Tree_Node(nodeHash, nodeData);
+				else
+					this->tree->insert(nodeHash, nodeData);
 			}
 
 
@@ -508,7 +532,12 @@ namespace BK_Tree_Ns
 			std::vector<int64_t> remove(hash_type nodeHash, data_type nodeData)
 			{
 				this->get_write_lock();
-				auto rm_status = this->tree.remove(nodeHash, nodeData);
+				if (this->tree == NULL)
+				{
+					std::vector<int64_t> ret = {0, 0};
+					return ret;
+				}
+				auto rm_status = this->tree->remove(nodeHash, nodeData);
 
 				// bool rebuild = rm_status[0]; // Rebuilding is handled in tree.remove()
 				int deleted  = rm_status[1];
@@ -538,7 +567,14 @@ namespace BK_Tree_Ns
 			{
 				// std::cout << "Get within distance!" << std::endl;
 				this->get_read_lock();
-				auto ret = this->tree.search(baseHash, distance);
+
+				if (this->tree == NULL)
+				{
+					search_ret ret = {{}, 0};
+					return ret;
+				}
+
+				auto ret = this->tree->search(baseHash, distance);
 				this->free_read_lock();
 				return ret;
 			}
@@ -553,7 +589,7 @@ namespace BK_Tree_Ns
 			{
 				return_deque ret;
 				this->get_read_lock();
-				this->tree.get_contains(ret);
+				this->tree->get_contains(ret);
 				this->free_read_lock();
 				return ret;
 			}

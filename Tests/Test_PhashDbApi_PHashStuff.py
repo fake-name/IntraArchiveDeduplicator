@@ -107,9 +107,7 @@ class TestSequenceFunctions(unittest.TestCase):
 	def test_testLoadingDeterminsm(self):
 		loadedTree = list(self.db.tree)
 
-		self.db.tree.root = None
-		self.db.tree.nodes = 0
-
+		self.db.tree.dropTree()
 		self.db.doLoad()
 
 		self.assertEqual(list(self.db.tree), loadedTree)

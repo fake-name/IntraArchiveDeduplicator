@@ -23,7 +23,7 @@ cdef extern from "./deduplicator/bktree.hpp" namespace "BK_Tree_Ns":
 	cdef int64_t f_hamming(int64_t a, int64_t b)
 
 	cdef cppclass BK_Tree:
-		BK_Tree(int64_t, int64_t) except +
+		BK_Tree() except +
 		void            insert(int64_t nodeHash, int64_t nodeData) nogil
 		void            unlocked_insert(int64_t nodeHash, int64_t nodeData) nogil
 		vector[int64_t] remove(int64_t nodeHash, int64_t nodeData) nogil
@@ -65,13 +65,12 @@ cdef int64_t hamming(int64_t a, int64_t b):
 
 
 
-
 # Most of these calls can release the GIL, because they only manipulate the BK_Tree internal data structure.
 cdef class CPP_BkHammingTree(object):
 	cdef BK_Tree *treeroot_p
 
-	def __init__(self, int64_t nodeHash, int64_t nodeData):
-		self.treeroot_p = new BK_Tree(nodeHash, nodeData)
+	def __init__(self):
+		self.treeroot_p = new BK_Tree()
 
 	cpdef insert(self, int64_t nodeHash, int64_t nodeData):
 		cdef BK_Tree *root_ptr = self.treeroot_p
@@ -152,42 +151,40 @@ class CPPLockProxy(object):
 
 
 class CPPBkHammingTree(object):
-	__root = None
-	nodes = 0
 
 	def __init__(self):
 		cur             = threading.current_thread().name
 		self.log        = logging.getLogger("Main.Tree."+cur)
-		self.__root       = CPP_BkHammingTree(0, 0)
-		self.updateLock = CPPLockProxy(self.__root)
+		self.root       = CPP_BkHammingTree()
+		self.updateLock = CPPLockProxy(self.root)
 		self.nodes = 0
 
-	def insert(self, nodeHash, nodeData):
-		assert(self.__root)
 
+
+	def insert(self, nodeHash, nodeData):
 		if not isinstance(nodeData, int):
 			raise ValueError("Data must be an integer! Passed value '%s', type '%s'" % (nodeData, type(nodeData)))
 		if not isinstance(nodeHash, int):
 			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (nodeHash, type(nodeHash)))
 
-		self.__root.insert(nodeHash, nodeData)
+		self.root.insert(nodeHash, nodeData)
 		self.nodes += 1
 
 	def unlocked_insert(self, nodeHash, nodeData):
-		assert(self.__root)
+
 
 		if not isinstance(nodeData, int):
 			raise ValueError("Data must be an integer! Passed value '%s', type '%s'" % (nodeData, type(nodeData)))
 		if not isinstance(nodeHash, int):
 			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (nodeHash, type(nodeHash)))
 
-		self.__root.unlocked_insert(nodeHash, nodeData)
+		print("Root: ", self.root)
+		self.root.unlocked_insert(nodeHash, nodeData)
+
 		self.nodes += 1
 
 
 	def remove(self, nodeHash, nodeData):
-		if not self.__root:
-			raise ValueError("No tree built to remove from!")
 
 		if not isinstance(nodeData, int):
 			raise ValueError("Data must be an integer! Passed value '%s', type '%s'" % (nodeData, type(nodeData)))
@@ -195,24 +192,25 @@ class CPPBkHammingTree(object):
 		if not isinstance(nodeHash, int):
 			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (nodeHash, type(nodeHash)))
 
+		if self.nodes == 0:
+			raise ValueError("Remove from empty tree!")
 
-		deleted, moved = self.__root.remove(nodeHash, nodeData)
+		deleted, moved = self.root.remove(nodeHash, nodeData)
 		# Moved seems to always be 0
 		self.log.info("Deletion operation removed %s item(s)", deleted)
 		return deleted, moved
 
 	def getWithinDistance(self, baseHash, distance):
-		assert(self.__root)
 
+		# print("Search for %s within distance of %s" % (baseHash, distance))
 		if not isinstance(baseHash, int):
 			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (baseHash, type(baseHash)))
-
 
 		if self.nodes == 0:
 			raise ValueError("Search on empty tree!")
 
 
-		ret, touched = self.__root.getWithinDistance(baseHash, distance)
+		ret, touched = self.root.getWithinDistance(baseHash, distance)
 		percent = (touched/self.nodes) * 100
 		self.log.info("Search for '%s', distance '%s', Touched %s tree nodes, or %1.3f%%. Discovered %s match(es)" % (baseHash, distance, touched, percent, len(ret)))
 
@@ -221,147 +219,153 @@ class CPPBkHammingTree(object):
 	# Explicitly dump all the tree items.
 	# Note: Only ever called from within a lock-synchronized context.
 	def dropTree(self):
-		self.__root = None
-		self.nodes = 0
-		self.__root       = CPP_BkHammingTree(0, 0)
-		self.updateLock = CPPLockProxy(self.__root)
+		self.root       = CPP_BkHammingTree()
+		self.updateLock = CPPLockProxy(self.root)
+		self.nodes  = 0
 
+		assert self.root is not None
 
 
 	def __iter__(self):
-		for value in self.__root.get_all():
+		for value in self.root.get_all():
 			yield value
 
+	def __setattr__(self, name, value):
+		if name == "root":
+			assert value != None, "Attempting to set key '{}' to value '{}'".format(name, value)
+
+		object.__setattr__(self, name, value)
 
 
-cdef class BkHammingNode(object):
 
-	cdef int64_t nodeHash
-	cdef set nodeData
-	cdef dict children
+# cdef class BkHammingNode(object):
 
-	def __init__(self, int64_t nodeHash, int64_t nodeData):
-		self.nodeData = {nodeData}
-		self.children = {}
-		self.nodeHash = nodeHash
+# 	cdef int64_t nodeHash
+# 	cdef set nodeData
+# 	cdef dict children
 
-	cpdef insert(self, int64_t nodeHash, int64_t nodeData):
-		'''
-		Insert phash `nodeHash` into tree, with the associated data `nodeData`
-		'''
+# 	def __init__(self, int64_t nodeHash, int64_t nodeData):
+# 		self.nodeData = {nodeData}
+# 		self.children = {}
+# 		self.nodeHash = nodeHash
 
-		# If the current node has the same has as the data we're inserting,
-		# add the data to the current node's data set
-		if nodeHash == self.nodeHash:
-			self.nodeData.add(nodeData)
-			return
+# 	cpdef insert(self, int64_t nodeHash, int64_t nodeData):
+# 		'''
+# 		Insert phash `nodeHash` into tree, with the associated data `nodeData`
+# 		'''
 
-		# otherwise, calculate the edit distance between the new phash and the current node's hash,
-		# and either recursively insert the data, or create a new child node for the phash
-		distance = hamming(self.nodeHash, nodeHash)
-		if not distance in self.children:
-			self.children[distance] = BkHammingNode(nodeHash, nodeData)
-		else:
-			self.children[distance].insert(nodeHash, nodeData)
+# 		# If the current node has the same has as the data we're inserting,
+# 		# add the data to the current node's data set
+# 		if nodeHash == self.nodeHash:
+# 			self.nodeData.add(nodeData)
+# 			return
 
-	cpdef remove(self, int64_t nodeHash, int64_t nodeData):
-		'''
-		Remove node with hash `nodeHash` and accompanying data `nodeData` from the tree.
-		Returns list of children that must be re-inserted (or false if no children need to be updated),
-		number of nodes deleted, and number of nodes that were moved as a 3-tuple.
-		'''
+# 		# otherwise, calculate the edit distance between the new phash and the current node's hash,
+# 		# and either recursively insert the data, or create a new child node for the phash
+# 		distance = hamming(self.nodeHash, nodeHash)
+# 		if not distance in self.children:
+# 			self.children[distance] = BkHammingNode(nodeHash, nodeData)
+# 		else:
+# 			self.children[distance].insert(nodeHash, nodeData)
 
-		cdef int64_t deleted = 0
-		cdef int64_t moved = 0
+# 	cpdef remove(self, int64_t nodeHash, int64_t nodeData):
+# 		'''
+# 		Remove node with hash `nodeHash` and accompanying data `nodeData` from the tree.
+# 		Returns list of children that must be re-inserted (or false if no children need to be updated),
+# 		number of nodes deleted, and number of nodes that were moved as a 3-tuple.
+# 		'''
 
-		# If the node we're on matches the hash we want to delete exactly:
-		if nodeHash == self.nodeHash:
+# 		cdef int64_t deleted = 0
+# 		cdef int64_t moved = 0
 
-			# Remove the node data associated with the hash we want to remove
-			try:
-				self.nodeData.remove(nodeData)
-			except KeyError:
-				print("ERROR: Key '%s' not in node!" % nodeData)
-				print("ERROR: Node keys: '%s'" % self.nodeData)
-				raise
+# 		# If the node we're on matches the hash we want to delete exactly:
+# 		if nodeHash == self.nodeHash:
 
-			# If we've emptied out the node of data, return all our children so the parent can
-			# graft the children into the tree in the appropriate place
-			if not self.nodeData:
-				# 1 deleted node, 0 moved nodes, return all children for reinsertion by parent
-				# Parent will pop this node, and reinsert all it's children where apropriate
-				return list(self), 1, 0
+# 			# Remove the node data associated with the hash we want to remove
+# 			try:
+# 				self.nodeData.remove(nodeData)
+# 			except KeyError:
+# 				print("ERROR: Key '%s' not in node!" % nodeData)
+# 				print("ERROR: Node keys: '%s'" % self.nodeData)
+# 				raise
 
-			# node has data remaining, do not do any rebuilding
-			return False, 1, 0
+# 			# If we've emptied out the node of data, return all our children so the parent can
+# 			# graft the children into the tree in the appropriate place
+# 			if not self.nodeData:
+# 				# 1 deleted node, 0 moved nodes, return all children for reinsertion by parent
+# 				# Parent will pop this node, and reinsert all it's children where apropriate
+# 				return list(self), 1, 0
 
-
-		selfDist = hamming(self.nodeHash, nodeHash)
-
-		# Removing is basically searching with a distance of zero, and
-		# then doing operations on the search result.
-		# As such, scan children where the edit distance between `self.nodeHash` and the target `nodeHash` == 0
-		# Rebuild children where needed
-		if selfDist in self.children:
-			moveChildren, childDeleted, childMoved = self.children[selfDist].remove(nodeHash, nodeData)
-			deleted += childDeleted
-			moved += childMoved
-
-			# If the child returns children, it means the child no longer contains any unique data, so it
-			# needs to be deleted. As such, pop it from the tree, and re-insert all it's children as
-			# direct decendents of the current node
-			if moveChildren:
-				self.children.pop(selfDist)
-				for childHash, childData in moveChildren:
-					self.insert(childHash, childData)
-					moved += 1
-
-		return False, deleted, moved
-
-	cpdef getWithinDistance(self, int64_t baseHash, int distance):
-		'''
-		Get all child-nodes within an edit distance of `distance` from `baseHash`
-		returns a set containing the data of each matching node, and a integer representing
-		the number of nodes that were touched in the scan.
-		Return value is a 2-tuple
-		'''
-
-		cdef int64_t selfDist
-
-		cdef int postDelta
-		cdef int negDelta
-
-		selfDist = hamming(self.nodeHash, baseHash)
-
-		ret = set()
-
-		if selfDist <= distance:
-			ret = set(self.nodeData)
-
-		touched = 1
+# 			# node has data remaining, do not do any rebuilding
+# 			return False, 1, 0
 
 
-		for key in self.children:
+# 		selfDist = hamming(self.nodeHash, nodeHash)
 
-			# need to use signed intermediate values to avoid wrap-around issues
-			# when the value of `selfDist` < the value of `distance`, negDelta would
-			# wrap if if were unsigned, leading to a false-negative comparison.
-			postDelta = selfDist + distance
-			negDelta  = selfDist - distance
+# 		# Removing is basically searching with a distance of zero, and
+# 		# then doing operations on the search result.
+# 		# As such, scan children where the edit distance between `self.nodeHash` and the target `nodeHash` == 0
+# 		# Rebuild children where needed
+# 		if selfDist in self.children:
+# 			moveChildren, childDeleted, childMoved = self.children[selfDist].remove(nodeHash, nodeData)
+# 			deleted += childDeleted
+# 			moved += childMoved
 
-			if key <= postDelta and key >= negDelta:
-				new, tmpTouch = self.children[key].getWithinDistance(baseHash, distance)
-				touched += tmpTouch
-				ret |= new
+# 			# If the child returns children, it means the child no longer contains any unique data, so it
+# 			# needs to be deleted. As such, pop it from the tree, and re-insert all it's children as
+# 			# direct decendents of the current node
+# 			if moveChildren:
+# 				self.children.pop(selfDist)
+# 				for childHash, childData in moveChildren:
+# 					self.insert(childHash, childData)
+# 					moved += 1
 
-		return ret, touched
+# 		return False, deleted, moved
 
-	def __iter__(self):
-		for child in self.children.values():
-			for item in child:
-				yield item
-		for item in self.nodeData:
-			yield (self.nodeHash, item)
+# 	cpdef getWithinDistance(self, int64_t baseHash, int distance):
+# 		'''
+# 		Get all child-nodes within an edit distance of `distance` from `baseHash`
+# 		returns a set containing the data of each matching node, and a integer representing
+# 		the number of nodes that were touched in the scan.
+# 		Return value is a 2-tuple
+# 		'''
+
+# 		cdef int64_t selfDist
+
+# 		cdef int postDelta
+# 		cdef int negDelta
+
+# 		selfDist = hamming(self.nodeHash, baseHash)
+
+# 		ret = set()
+
+# 		if selfDist <= distance:
+# 			ret = set(self.nodeData)
+
+# 		touched = 1
+
+
+# 		for key in self.children:
+
+# 			# need to use signed intermediate values to avoid wrap-around issues
+# 			# when the value of `selfDist` < the value of `distance`, negDelta would
+# 			# wrap if if were unsigned, leading to a false-negative comparison.
+# 			postDelta = selfDist + distance
+# 			negDelta  = selfDist - distance
+
+# 			if key <= postDelta and key >= negDelta:
+# 				new, tmpTouch = self.children[key].getWithinDistance(baseHash, distance)
+# 				touched += tmpTouch
+# 				ret |= new
+
+# 		return ret, touched
+
+# 	def __iter__(self):
+# 		for child in self.children.values():
+# 			for item in child:
+# 				yield item
+# 		for item in self.nodeData:
+# 			yield (self.nodeHash, item)
 
 
 # Expose the casting behaviour because I need to be
@@ -397,95 +401,96 @@ import logging
 
 
 
-class PyBkHammingTree(object):
-	root = None
-	nodes = 0
+# class PyBkHammingTree(object):
+# 	root = None
+# 	updateLock = None
+# 	nodes = 0
 
-	def __init__(self):
-		self.updateLock = rwlock.RWLock()
-		cur = threading.current_thread().name
-		self.log = logging.getLogger("Main.Tree."+cur)
-		pass
+# 	def __init__(self):
+# 		self.updateLock = rwlock.RWLock()
+# 		cur = threading.current_thread().name
+# 		self.log = logging.getLogger("Main.Tree."+cur)
+# 		pass
 
-	# TODO: Right now, this blindly increments the number of `self.nodes`
-	# on every call. This means if you insert the /same/ item repeatedly,
-	# it'll increase the value of `self.nodes`, despite not making any
-	# actual changes to the tree. Fix this, maybe?
-	def unlocked_insert(self, nodeHash, nodeData):
+# 	# TODO: Right now, this blindly increments the number of `self.nodes`
+# 	# on every call. This means if you insert the /same/ item repeatedly,
+# 	# it'll increase the value of `self.nodes`, despite not making any
+# 	# actual changes to the tree. Fix this, maybe?
+# 	def unlocked_insert(self, nodeHash, nodeData):
 
-		if not isinstance(nodeData, int):
-			raise ValueError("Data must be an integer! Passed value '%s', type '%s'" % (nodeData, type(nodeData)))
+# 		if not isinstance(nodeData, int):
+# 			raise ValueError("Data must be an integer! Passed value '%s', type '%s'" % (nodeData, type(nodeData)))
 
-		if not isinstance(nodeHash, int):
-			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (nodeHash, type(nodeHash)))
+# 		if not isinstance(nodeHash, int):
+# 			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (nodeHash, type(nodeHash)))
 
 
-		if not self.root:
-			self.root = BkHammingNode(nodeHash, nodeData)
-		else:
-			self.root.insert(nodeHash, nodeData)
-		self.nodes += 1
+# 		if not self.root:
+# 			self.root = BkHammingNode(nodeHash, nodeData)
+# 		else:
+# 			self.root.insert(nodeHash, nodeData)
+# 		self.nodes += 1
 
-	def insert(self, nodeHash, nodeData):
+# 	def insert(self, nodeHash, nodeData):
+# 		print("Inserting!")
+# 		with self.updateLock.writer_context():
+# 			self.unlocked_insert(nodeHash, nodeData)
 
-		with self.updateLock.writer_context():
-			self.unlocked_insert(nodeHash, nodeData)
+# 	def remove(self, nodeHash, nodeData):
+# 		if not self.root:
+# 			raise ValueError("No tree built to remove from!")
 
-	def remove(self, nodeHash, nodeData):
-		if not self.root:
-			raise ValueError("No tree built to remove from!")
+# 		if not isinstance(nodeData, int):
+# 			raise ValueError("Data must be an integer! Passed value '%s', type '%s'" % (nodeData, type(nodeData)))
 
-		if not isinstance(nodeData, int):
-			raise ValueError("Data must be an integer! Passed value '%s', type '%s'" % (nodeData, type(nodeData)))
+# 		if not isinstance(nodeHash, int):
+# 			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (nodeHash, type(nodeHash)))
 
-		if not isinstance(nodeHash, int):
-			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (nodeHash, type(nodeHash)))
+# 		with self.updateLock.writer_context():
+# 			rootless, deleted, moved = self.root.remove(nodeHash, nodeData)
 
-		with self.updateLock.writer_context():
-			rootless, deleted, moved = self.root.remove(nodeHash, nodeData)
+# 			# If the node we're deleting is the root node, we need to handle it properly
+# 			# if it is, overwrite the root node with one of the values returned, and then
+# 			# rebuild the entire tree by reinserting all the nodes
+# 			if rootless:
+# 				self.log.info("Tree root deleted! Rebuilding...")
+# 				rootHash, rootData = rootless.pop()
+# 				self.root = BkHammingNode(rootHash, rootData)
+# 				for childHash, childData in rootless:
+# 					self.root.insert(childHash, childData)
 
-			# If the node we're deleting is the root node, we need to handle it properly
-			# if it is, overwrite the root node with one of the values returned, and then
-			# rebuild the entire tree by reinserting all the nodes
-			if rootless:
-				self.log.info("Tree root deleted! Rebuilding...")
-				rootHash, rootData = rootless.pop()
-				self.root = BkHammingNode(rootHash, rootData)
-				for childHash, childData in rootless:
-					self.root.insert(childHash, childData)
+# 			self.nodes -= deleted
 
-			self.nodes -= deleted
+# 		return deleted, moved
 
-		return deleted, moved
+# 	def getWithinDistance(self, baseHash, distance):
 
-	def getWithinDistance(self, baseHash, distance):
+# 		if not isinstance(baseHash, int):
+# 			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (baseHash, type(baseHash)))
 
-		if not isinstance(baseHash, int):
-			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (baseHash, type(baseHash)))
+# 		if self.nodes == 0:
+# 			raise ValueError("Search on empty tree!")
 
-		if self.nodes == 0:
-			raise ValueError("Search on empty tree!")
+# 		with self.updateLock.reader_context():
+# 			if not self.root:
+# 				self.log.info("WARNING: NO TREE BUILT!")
+# 				return set()
 
-		with self.updateLock.reader_context():
-			if not self.root:
-				self.log.info("WARNING: NO TREE BUILT!")
-				return set()
+# 			ret, touched = self.root.getWithinDistance(baseHash, distance)
+# 			percent = (touched/self.nodes) * 100
+# 			self.log.info("Search for '%s', distance '%s', Touched %s tree nodes, or %1.3f%%. Discovered %s match(es)" % (baseHash, distance, touched, percent, len(ret)))
 
-			ret, touched = self.root.getWithinDistance(baseHash, distance)
-			percent = (touched/self.nodes) * 100
-			self.log.info("Search for '%s', distance '%s', Touched %s tree nodes, or %1.3f%%. Discovered %s match(es)" % (baseHash, distance, touched, percent, len(ret)))
+# 		return ret
 
-		return ret
+# 	# Explicitly dump all the tree items.
+# 	# Note: Only ever called from within a lock-synchronized context.
+# 	def dropTree(self):
+# 		self.root = None
+# 		self.nodes = 0
 
-	# Explicitly dump all the tree items.
-	# Note: Only ever called from within a lock-synchronized context.
-	def dropTree(self):
-		self.root = None
-		self.nodes = 0
-
-	def __iter__(self):
-		for value in self.root:
-			yield value
+# 	def __iter__(self):
+# 		for value in self.root:
+# 			yield value
 
 
 # BkHammingTree = PyBkHammingTree

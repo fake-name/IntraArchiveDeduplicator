@@ -36,9 +36,11 @@ class Singleton:
 
 		"""
 		try:
+			print("Getting instance!", self._instance)
 			return self._instance
 		except AttributeError:
 			self._instance = self._decorated()
+			print("Creating instance: ", self._instance, self._decorated)
 			return self._instance
 
 	def __call__(self):

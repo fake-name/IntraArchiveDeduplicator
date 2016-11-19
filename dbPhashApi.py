@@ -49,7 +49,7 @@ class PhashDbApi(dbApi.DbApi):
 		else:
 			self.tree = TreeProxy.Instance()
 
-
+		assert self.tree is not None
 		# Only load the tree if it's empty
 
 		with self.tree.updateLock.writer_context():
@@ -67,9 +67,11 @@ class PhashDbApi(dbApi.DbApi):
 			self.log.warn("Tree Rebuilt")
 
 	def doLoad(self, silent=False):
-		if self.tree.nodes:
+		print("DoLoad: ", self.tree, self.tree.nodes, self.tree.root)
+		assert self.tree.root is not None
+		if self.tree.nodes > 0:
 			if not silent:
-				self.log.error("Tree already built. Reloading will have no effect!")
+				self.log.error("Tree already built (%s nodes). Reloading will have no effect!" % self.tree.nodes)
 				raise ValueError
 			return
 

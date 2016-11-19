@@ -178,7 +178,7 @@ class CPPBkHammingTree(object):
 		if not isinstance(nodeHash, int):
 			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (nodeHash, type(nodeHash)))
 
-		print("Root: ", self.root)
+		# print("Root: ", self.root)
 		self.root.unlocked_insert(nodeHash, nodeData)
 
 		self.nodes += 1

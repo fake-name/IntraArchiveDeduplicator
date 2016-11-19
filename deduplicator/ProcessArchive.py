@@ -207,12 +207,12 @@ class ArchChecker(ProxyDbBase):
 			Boolean: True if the file is garbage, False if it is not.
 		'''
 
-		if fileN.endswith("Thumbs.db") and fileType == b'Composite Document File V2 Document, No summary info':
+		if fileN.endswith("Thumbs.db") and fileType == 'Composite Document File V2 Document, No summary info':
 			self.log.info("Windows thumbnail database. Ignoring")
 			return True
 
-		# We have to match both b'ASCII text', and the occational b'ASCII text, with no line terminators'
-		if fileN.endswith("deleted.txt") and fileType.startswith(b'ASCII text'):
+		# We have to match both 'ASCII text', and the occational 'ASCII text, with no line terminators'
+		if fileN.endswith("deleted.txt") and fileType.startswith('ASCII text'):
 			self.log.info("Found removed advert note. Ignoring")
 			return True
 

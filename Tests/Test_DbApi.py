@@ -349,6 +349,10 @@ class TestSequenceFunctions(unittest.TestCase):
 			('/test/dir3',)
 		]
 
+		# Cast to an unordered type
+		ret = set(ret)
+		expect = set(expect)
+
 		self.assertEqual(ret, expect)
 
 		cur = self.db.getUniqueOnBasePath('/lol/')
@@ -359,7 +363,7 @@ class TestSequenceFunctions(unittest.TestCase):
 			('/lol/test1/WAT',),
 			('/lol/test1/HERP',)
 		]
-		self.assertEqual(ret, expect)
+		self.assertEqual(set(ret), set(expect))
 
 		cur = self.db.getUniqueOnBasePath('/DERPADOODLE/')
 		ret = cur.fetchall()

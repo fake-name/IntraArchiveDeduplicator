@@ -27,7 +27,7 @@ class TestSequenceFunctions(unittest.TestCase):
 				'Lolcat_this_is_mah_job.jpg',
 				{
 					'hexHash' : 'd9ceeb6b43c2d7d096532eabfa6cf482',
-					'type'    : b'JPEG image data, JFIF standard 1.01',
+					'type'    : 'JPEG image data, JFIF standard 1.01',
 					'imY'     : 389,
 					'pHash'   : 27427800275512429,
 					# 'dHash'   : -4504585791368671746,
@@ -38,7 +38,7 @@ class TestSequenceFunctions(unittest.TestCase):
 				'Lolcat_this_is_mah_job.png',
 				{
 					'hexHash' : '1268e704908cc39299d73d6caafc23a0',
-					'type'    : b'PNG image data, 493 x 389, 8-bit/color RGB, non-interlaced',
+					'type'    : 'PNG image data, 493 x 389, 8-bit/color RGB, non-interlaced',
 					'imY'     : 389,
 					'pHash'   : 27427800275512429,
 					# 'dHash'   : -4504585791368671746,
@@ -49,7 +49,7 @@ class TestSequenceFunctions(unittest.TestCase):
 				'Lolcat_this_is_mah_job_small.jpg',
 				{
 					'hexHash' : '40d39c436e14282dcda06e8aff367307',
-					'type'    : b'JPEG image data, JFIF standard 1.01',
+					'type'    : 'JPEG image data, JFIF standard 1.01',
 					'imY'     : 237,
 					'pHash'   : 27427800275512429,
 					# 'dHash'   : -4504585791368671746,
@@ -60,7 +60,7 @@ class TestSequenceFunctions(unittest.TestCase):
 				'dangerous-to-go-alone.jpg',
 				{
 					'hexHash' : 'dcd6097eeac911efed3124374f44085b',
-					'type'    : b'JPEG image data, JFIF standard 1.02',
+					'type'    : 'JPEG image data, JFIF standard 1.02',
 					'imY'     : 307,
 					'pHash'   : -149413575039568585,
 					# 'dHash'   : 4576150637722077151,
@@ -71,7 +71,7 @@ class TestSequenceFunctions(unittest.TestCase):
 				'lolcat-crocs.jpg',
 				{
 					'hexHash' : '6d0a977694630ac9d1d33a7f068e10f8',
-					'type'    : b'JPEG image data, JFIF standard 1.01',
+					'type'    : 'JPEG image data, JFIF standard 1.01',
 					'imY'     : 363,
 					'pHash'   : -5569898607211671279,
 					# 'dHash'   : 167400391896309758,
@@ -82,7 +82,7 @@ class TestSequenceFunctions(unittest.TestCase):
 				'lolcat-oregon-trail.jpg',
 				{
 					'hexHash' : '7227289a017988b6bdcf61fd4761f6b9',
-					'type'    : b'JPEG image data, JFIF standard 1.01',
+					'type'    : 'JPEG image data, JFIF standard 1.01',
 					'imY'     : 356,
 					'pHash'   : -4955310669995365332,
 					# 'dHash'   : -8660145558008088574,
@@ -112,7 +112,7 @@ class TestSequenceFunctions(unittest.TestCase):
 			'hexHash': 'dcd6097eeac911efed3124374f44085b',
 			'imX': 325,
 			'pHash': -149413575039568585,
-			'type': b'JPEG image data, JFIF standard 1.02',
+			'type': 'JPEG image data, JFIF standard 1.02',
 			'imY': 307
 		}
 
@@ -129,7 +129,7 @@ class TestSequenceFunctions(unittest.TestCase):
 		match = [
 			('Lolcat_this_is_mah_job.jpg',
 				{
-					'type': b'JPEG image data, JFIF standard 1.01',
+					'type': 'JPEG image data, JFIF standard 1.01',
 					'pHash': 27427800275512429,
 					# 'dHash': -4504585791368671746,
 					'imY': 389,
@@ -139,7 +139,7 @@ class TestSequenceFunctions(unittest.TestCase):
 			),
 			('Lolcat_this_is_mah_job.png',
 				{
-					'type': b'PNG image data, 493 x 389, 8-bit/color RGB, non-interlaced',
+					'type': 'PNG image data, 493 x 389, 8-bit/color RGB, non-interlaced',
 					'pHash': 27427800275512429,
 					# 'dHash': -4504585791368671746,
 					'imY': 389,
@@ -149,7 +149,7 @@ class TestSequenceFunctions(unittest.TestCase):
 			),
 			('Lolcat_this_is_mah_job_small.jpg',
 				{
-					'type': b'JPEG image data, JFIF standard 1.01',
+					'type': 'JPEG image data, JFIF standard 1.01',
 					'pHash': 27427800275512429,
 					# 'dHash': -4504585791368671746,
 					'imY': 237,
@@ -159,7 +159,7 @@ class TestSequenceFunctions(unittest.TestCase):
 			),
 			('dangerous-to-go-alone.jpg',
 				{
-					'type': b'JPEG image data, JFIF standard 1.02',
+					'type': 'JPEG image data, JFIF standard 1.02',
 					'pHash': -149413575039568585,
 					# 'dHash': 4576150637722077151,
 					'imY': 307,
@@ -169,7 +169,7 @@ class TestSequenceFunctions(unittest.TestCase):
 			),
 			('lolcat-crocs.jpg',
 				{
-					'type': b'JPEG image data, JFIF standard 1.01',
+					'type': 'JPEG image data, JFIF standard 1.01',
 					'pHash': -5569898607211671279,
 					# 'dHash': 167400391896309758,
 					'imY': 363,
@@ -179,7 +179,7 @@ class TestSequenceFunctions(unittest.TestCase):
 			),
 			('lolcat-oregon-trail.jpg',
 				{
-					'type': b'JPEG image data, JFIF standard 1.01',
+					'type': 'JPEG image data, JFIF standard 1.01',
 					'pHash': -4955310669995365332,
 					# 'dHash': -8660145558008088574,
 					'imY': 356,
@@ -216,7 +216,7 @@ class TestSequenceFunctions(unittest.TestCase):
 			'hexHash': 'dcd6097eeac911efed3124374f44085b',
 			'imX': 325,
 			'pHash': -149413575039568585,
-			'type': b'JPEG image data, JFIF standard 1.02',
+			'type': 'JPEG image data, JFIF standard 1.02',
 			'imY': 307
 		}
 

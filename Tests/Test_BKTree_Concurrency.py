@@ -22,7 +22,7 @@ def hamming(a, b):
 THREADS = 8
 RANDOM_INIT = 6461351
 
-TREE_SIZE = 8 * 1000 * 1000
+TREE_SIZE = 1 * 1000 * 1000
 TEST_SAMPLE_SIZE = 10 * 1000
 
 def lookup_call(tree, nlookups, offset):
@@ -72,7 +72,7 @@ class TestSequenceFunctions_FlatTree(unittest.TestCase):
 	def buildTestTree(self):
 
 		self.tree = hamDb.BkHammingTree()
-		print("Building tree")
+		print("Building test tree with size: %s" % TREE_SIZE)
 		local_random = random.Random()
 		local_random.seed(RANDOM_INIT)
 		for nodeId in range(TREE_SIZE):

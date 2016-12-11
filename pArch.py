@@ -3,6 +3,18 @@ import scanner.hashFile as hf
 import UniversalArchiveInterface
 import magic
 
+def fix_mime(mtype):
+
+	# So some versions of libmagic return application/CDFV2-corrupt for some
+	# thumbs.db, while some return application/CDFV2 for the /same/ file.
+	# In any event, I've never seen a application/CDFV2 file that wasn't
+	# one of the garbage application/CDFV2 file, so just pretend
+	# the corrupt ones aren't corrupt, since we don't wany any of them
+	# anyways.
+	if mtype == "application/CDFV2-corrupt":
+		mtype = 'application/CDFV2'
+	return mtype
+
 class PhashArchive(UniversalArchiveInterface.ArchiveReader):
 	'''
 	Encapsulates and caches the mechanics needed to scan an archive and
@@ -26,7 +38,7 @@ class PhashArchive(UniversalArchiveInterface.ArchiveReader):
 				cont = fp.read()
 				ret = hf.getHashDict(item, cont)
 				ret['cont'] = cont
-				ret['type'] = magic.from_buffer(cont)
+				ret['type'] = fix_mime(magic.from_buffer(cont, mime=True))
 				self.hashedFiles[item] = ret
 			yield item, self.hashedFiles[item]
 
@@ -40,7 +52,7 @@ class PhashArchive(UniversalArchiveInterface.ArchiveReader):
 			cont = fp.read()
 			ret = hf.getHashDict(intPath, cont)
 			ret['cont'] = cont
-			ret['type'] = magic.from_buffer(cont)
+			ret['type'] = fix_mime(magic.from_buffer(cont, mime=True))
 			self.hashedFiles[intPath] = ret
 
 		return self.hashedFiles[intPath]

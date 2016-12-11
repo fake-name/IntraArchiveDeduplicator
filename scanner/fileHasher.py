@@ -354,6 +354,16 @@ class HashThread(object):
 			fType = magic.from_file(wholePath, mime=True)
 			if not isinstance(fType, str):
 				fType = fType.decode("ascii")
+
+			# So some versions of libmagic return application/CDFV2-corrupt for some
+			# thumbs.db, while some return application/CDFV2 for the /same/ file.
+			# In any event, I've never seen a application/CDFV2 file that wasn't
+			# one of the garbage application/CDFV2 file, so just pretend
+			# the corrupt ones aren't corrupt, since we don't wany any of them
+			# anyways.
+			if fType == "application/CDFV2-corrupt":
+				fType = 'application/CDFV2'
+
 		except magic.MagicException:
 			self.tlog.error("REALLY Corrupt Archive! ")
 			self.tlog.error("%s", wholePath)

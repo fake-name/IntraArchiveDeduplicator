@@ -20,8 +20,8 @@ python3 $(which nosetests)                       \
 	--cover-package=scanner.hashFile             \
 	--cover-package=dbPhashApi                   \
 	--cover-package=deduplicator.rwlock          \
-	--cover-package=deduplicator.ProcessArchive  \
-	--nocapture
+	--cover-package=deduplicator.ProcessArchive
+	# --nocapture
 
 # python3 $(which nosetests) --with-coverage --exe --cover-package=deduplicator.ProcessArchive Tests.Test_DuplicateArchiveDetector
 

@@ -207,12 +207,12 @@ class ArchChecker(ProxyDbBase):
 			Boolean: True if the file is garbage, False if it is not.
 		'''
 
-		if fileN.endswith("Thumbs.db") and fileType == 'Composite Document File V2 Document, No summary info':
+		if fileN.endswith("Thumbs.db") and (fileType == 'application/CDFV2' or fileType == 'application/CDFV2-corrupt'):
 			self.log.info("Windows thumbnail database. Ignoring")
 			return True
 
 		# We have to match both 'ASCII text', and the occational 'ASCII text, with no line terminators'
-		if fileN.endswith("deleted.txt") and fileType.startswith('ASCII text'):
+		if fileN.endswith("deleted.txt") and fileType =='text/plain':
 			self.log.info("Found removed advert note. Ignoring")
 			return True
 
@@ -452,6 +452,7 @@ class ArchChecker(ProxyDbBase):
 				self.log.warn("No phash for file '%s'! Wat?", (fileN))
 				self.log.warn("Returned pHash: '%s'", (infoDict['pHash']))
 				self.log.warn("Guessed file type: '%s'", (infoDict['type']))
+				self.log.warn("Should skip: '%s'", (self._shouldSkipFile(fileN, infoDict['type'])))
 				self.log.warn("Using binary dup checking for file!")
 
 				# get a dict->set of the matching items

@@ -28,7 +28,7 @@ expect = {
 				{
 					'imY': 373,
 					'hexHash': '7c257ec7fdfd24f249d290dc47dcc71c',
-					'type': 'JPEG image data, JFIF standard 1.01',
+					'type': 'image/jpeg',
 					'imX': 249,
 					# 'dHash': 4593710720834346496,
 					'pHash': -5788352938335285257
@@ -39,7 +39,7 @@ expect = {
 				{
 					'imY': None,
 					'hexHash': 'b3a79c95a10b4cc0a838b35782b4dc0a',
-					'type': 'ASCII text, with CRLF line terminators',
+					'type': 'text/plain',
 					'imX': None,
 					# 'dHash': None,
 					'pHash': None
@@ -53,7 +53,7 @@ expect = {
 				{
 					'imY': 389,
 					'hexHash': '1268e704908cc39299d73d6caafc23a0',
-					'type': 'PNG image data, 493 x 389, 8-bit/color RGB, non-interlaced',
+					'type': 'image/png',
 					'imX': 493,
 					# 'dHash': -4504585791368671746,
 					'pHash': 27427800275512429
@@ -64,7 +64,7 @@ expect = {
 				{
 					'imY': 237,
 					'hexHash': '40d39c436e14282dcda06e8aff367307',
-					'type': 'JPEG image data, JFIF standard 1.01',
+					'type': 'image/jpeg',
 					'imX': 300,
 					# 'dHash': -4504585791368671746,
 					'pHash': 27427800275512429
@@ -75,7 +75,7 @@ expect = {
 				{
 					'imY': 307,
 					'hexHash': 'dcd6097eeac911efed3124374f44085b',
-					'type': 'JPEG image data, JFIF standard 1.02',
+					'type': 'image/jpeg',
 					'imX': 325,
 					# 'dHash': 4576150637722077151,
 					'pHash': -149413575039568585
@@ -89,7 +89,7 @@ expect = {
 				{
 					'imY': 497,
 					'hexHash': 'b688e3ead00ca1453f860b408c446ec2',
-					'type': 'JPEG image data, JFIF standard 1.01',
+					'type': 'image/jpeg',
 					'imX': 332,
 					# 'dHash': 4593710720968564225,
 					'pHash': -5788352938335285257
@@ -100,7 +100,7 @@ expect = {
 				{
 					'imY': None,
 					'hexHash': 'b3a79c95a10b4cc0a838b35782b4dc0a',
-					'type': 'ASCII text, with CRLF line terminators',
+					'type': 'text/plain',
 					'imX': None,
 					# 'dHash': None,
 					'pHash': None
@@ -114,7 +114,7 @@ expect = {
 				{
 					'imY': 497,
 					'hexHash': 'b688e3ead00ca1453f860b408c446ec2',
-					'type': 'JPEG image data, JFIF standard 1.01',
+					'type': 'image/jpeg',
 					'imX': 332,
 					# 'dHash': 4593710720968564225,
 					'pHash': -5788352938335285257
@@ -125,7 +125,7 @@ expect = {
 				{
 					'imY': None,
 					'hexHash': '2ea0b76437adb1dfb8889beab9d7ef3b',
-					'type': 'Composite Document File V2 Document, No summary info',
+					'type': 'application/CDFV2',
 					'imX': None,
 					# 'dHash': None,
 					'pHash': None
@@ -136,7 +136,7 @@ expect = {
 				{
 					'imY': None,
 					'hexHash': '1ad84adee17e7d3525528ff7e381a900',
-					'type': 'ASCII text, with no line terminators',
+					'type': 'text/plain',
 					'imX': None,
 					# 'dHash': None,
 					'pHash': None
@@ -147,7 +147,7 @@ expect = {
 				{
 					'imY': None,
 					'hexHash': '2fe06876bc7694a6357e5d9c5f05e0ab',
-					'type': 'ASCII text, with no line terminators',
+					'type': 'text/plain',
 					'imX': None,
 					# 'dHash': None,
 					'pHash': None
@@ -158,7 +158,7 @@ expect = {
 				{
 					'imY': None,
 					'hexHash': 'b3a79c95a10b4cc0a838b35782b4dc0a',
-					'type': 'ASCII text, with CRLF line terminators',
+					'type': 'text/plain',
 					'imX': None,
 					# 'dHash': None,
 					'pHash': None
@@ -172,7 +172,7 @@ expect = {
 				{
 					'imY': 375,
 					'hexHash': '35484890b48148d260b52ebbb7493ffc',
-					'type': 'JPEG image data, JFIF standard 1.01',
+					'type': 'image/jpeg',
 					'imX': 500,
 					# 'dHash': 5546533486212567551,
 					'pHash': -4230769653536099758
@@ -183,7 +183,7 @@ expect = {
 				{
 					'imY': 442,
 					'hexHash': 'bd914f72d824d2a18d076f7643017505',
-					'type': 'JPEG image data, JFIF standard 1.01',
+					'type': 'image/jpeg',
 					'imX': 492,
 					# 'dHash': -4629305759067799552,
 					'pHash': -93277392328150
@@ -194,7 +194,7 @@ expect = {
 				{
 					'imY': 674,
 					'hexHash': '5b5620b0cfcb469aef632864707a0445',
-					'type': 'JPEG image data, JFIF standard 1.01',
+					'type': 'image/jpeg',
 					'imX': 500,
 					# 'dHash': 1119025673978783491,
 					'pHash': -5208810276318177639
@@ -205,7 +205,7 @@ expect = {
 				{
 					'imY': 375,
 					'hexHash': 'a26d63bdbb38621b8f44c563ff496987',
-					'type': 'JPEG image data, JFIF standard 1.01',
+					'type': 'image/jpeg',
 					'imX': 500,
 					# 'dHash': 9187567978625498130,
 					'pHash': -5860684349360469885
@@ -219,7 +219,7 @@ expect = {
 				{
 					'imY': 100,
 					'hexHash': 'e8566233d43b2e964b77471a99c5fa36',
-					'type': 'JPEG image data, JFIF standard 1.01',
+					'type': 'image/jpeg',
 					'imX': 100,
 					# 'dHash': 0,
 					'pHash': 0}
@@ -230,7 +230,7 @@ expect = {
 				{
 					'imY': None,
 					'hexHash': 'b3a79c95a10b4cc0a838b35782b4dc0a',
-					'type': 'ASCII text, with CRLF line terminators',
+					'type': 'text/plain',
 					'imX': None,
 					# 'dHash': None,
 					'pHash': None
@@ -244,7 +244,7 @@ expect = {
 				{
 					'imY': 373,
 					'hexHash': '7c257ec7fdfd24f249d290dc47dcc71c',
-					'type': 'JPEG image data, JFIF standard 1.01',
+					'type': 'image/jpeg',
 					'imX': 249,
 					# 'dHash': 4593710720834346496,
 					'pHash': -5788352938335285257
@@ -255,7 +255,7 @@ expect = {
 				{
 					'imY': None,
 					'hexHash': '1234ae2e7a21c94100cb60773efe482b',
-					'type': 'ASCII text, with CRLF line terminators',
+					'type': 'text/plain',
 					'imX': None,
 					# 'dHash': None,
 					'pHash': None
@@ -269,7 +269,7 @@ expect = {
 				{
 					'imY': 389,
 					'hexHash': 'd9ceeb6b43c2d7d096532eabfa6cf482',
-					'type': 'JPEG image data, JFIF standard 1.01',
+					'type': 'image/jpeg',
 					'imX': 493,
 					# 'dHash': -4504585791368671746,
 					'pHash': 27427800275512429
@@ -280,7 +280,7 @@ expect = {
 				{
 					'imY': 389,
 					'hexHash': '1268e704908cc39299d73d6caafc23a0',
-					'type': 'PNG image data, 493 x 389, 8-bit/color RGB, non-interlaced',
+					'type': 'image/png',
 					'imX': 493,
 					# 'dHash': -4504585791368671746,
 					'pHash': 27427800275512429
@@ -291,7 +291,7 @@ expect = {
 				{
 					'imY': 237,
 					'hexHash': '40d39c436e14282dcda06e8aff367307',
-					'type': 'JPEG image data, JFIF standard 1.01',
+					'type': 'image/jpeg',
 					'imX': 300,
 					# 'dHash': -4504585791368671746,
 					'pHash': 27427800275512429
@@ -302,7 +302,7 @@ expect = {
 				{
 					'imY': 307,
 					'hexHash': 'dcd6097eeac911efed3124374f44085b',
-					'type': 'JPEG image data, JFIF standard 1.02',
+					'type': 'image/jpeg',
 					'imX': 325,
 					# 'dHash': 4576150637722077151,
 					'pHash': -149413575039568585
@@ -313,7 +313,7 @@ expect = {
 				{
 					'imY': 363,
 					'hexHash': '6d0a977694630ac9d1d33a7f068e10f8',
-					'type': 'JPEG image data, JFIF standard 1.01',
+					'type': 'image/jpeg',
 					'imX': 500,
 					# 'dHash': 167400391896309758,
 					'pHash': -5569898607211671279
@@ -324,7 +324,7 @@ expect = {
 				{
 					'imY': 356,
 					'hexHash': '7227289a017988b6bdcf61fd4761f6b9',
-					'type': 'JPEG image data, JFIF standard 1.01',
+					'type': 'image/jpeg',
 					'imX': 501,
 					# 'dHash': -8660145558008088574,
 					'pHash': -4955310669995365332
@@ -338,7 +338,7 @@ expect = {
 				{
 					'imY': 389,
 					'hexHash': 'd9ceeb6b43c2d7d096532eabfa6cf482',
-					'type': 'JPEG image data, JFIF standard 1.01',
+					'type': 'image/jpeg',
 					'imX': 493,
 					# 'dHash': -4504585791368671746,
 					'pHash': 27427800275512429
@@ -349,7 +349,7 @@ expect = {
 				{
 					'imY': 389,
 					'hexHash': '1268e704908cc39299d73d6caafc23a0',
-					'type': 'PNG image data, 493 x 389, 8-bit/color RGB, non-interlaced',
+					'type': 'image/png',
 					'imX': 493,
 					# 'dHash': -4504585791368671746,
 					'pHash': 27427800275512429
@@ -360,7 +360,7 @@ expect = {
 				{
 					'imY': 237,
 					'hexHash': '40d39c436e14282dcda06e8aff367307',
-					'type': 'JPEG image data, JFIF standard 1.01',
+					'type': 'image/jpeg',
 					'imX': 300,
 					# 'dHash': -4504585791368671746,
 					'pHash': 27427800275512429
@@ -371,7 +371,7 @@ expect = {
 				{
 					'imY': 363,
 					'hexHash': '6d0a977694630ac9d1d33a7f068e10f8',
-					'type': 'JPEG image data, JFIF standard 1.01',
+					'type': 'image/jpeg',
 					'imX': 500,
 					# 'dHash': 167400391896309758,
 					'pHash': -5569898607211671279
@@ -382,7 +382,7 @@ expect = {
 				{
 					'imY': 356,
 					'hexHash': '7227289a017988b6bdcf61fd4761f6b9',
-					'type': 'JPEG image data, JFIF standard 1.01',
+					'type': 'image/jpeg',
 					'imX': 501,
 					# 'dHash': -8660145558008088574,
 					'pHash': -4955310669995365332
@@ -396,7 +396,7 @@ expect = {
 				{
 					'imY': 281,
 					'hexHash': 'b4c3d02411a34e1222972cc262a40b89',
-					'type': 'PNG image data, 375 x 281, 8-bit/color RGB, non-interlaced',
+					'type': 'image/png',
 					'imX': 375,
 					# 'dHash': 5546533486212567551,
 					'pHash': -4230769653536099758
@@ -407,7 +407,7 @@ expect = {
 				{
 					'imY': 332,
 					'hexHash': '740555f4e730ab2c6c261be7d53a3156',
-					'type': 'PNG image data, 369 x 332, 8-bit/color RGB, non-interlaced',
+					'type': 'image/png',
 					'imX': 369,
 					# 'dHash': -4629305759067799552,
 					'pHash': -93277392328150
@@ -418,7 +418,7 @@ expect = {
 				{
 					'imY': 506,
 					'hexHash': 'c47ed1cd79c4e7925b8015cb51bbab10',
-					'type': 'PNG image data, 375 x 506, 8-bit/color RGB, non-interlaced',
+					'type': 'image/png',
 					'imX': 375,
 					# 'dHash': 1119025673978783491,
 					'pHash': -6361731780925024615
@@ -429,7 +429,7 @@ expect = {
 				{
 					'imY': 281,
 					'hexHash': 'fb64248009dde8605a95b041b772544a',
-					'type': 'PNG image data, 375 x 281, 8-bit/color RGB, non-interlaced',
+					'type': 'image/png',
 					'imX': 375,
 					# 'dHash': 9187567978625498130,
 					'pHash': -5860684349360469885

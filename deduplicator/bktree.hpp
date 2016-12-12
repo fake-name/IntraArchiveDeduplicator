@@ -471,7 +471,12 @@ namespace BK_Tree_Ns
 			{
 				// std::cout << "Destroying BK_Tree instance" << std::endl;
 				if (this->tree != NULL)
+				{
 					delete this->tree;
+
+					// Now I'm just being silly.
+					this->tree = NULL
+				}
 			}
 
 			/**
@@ -535,6 +540,7 @@ namespace BK_Tree_Ns
 				if (this->tree == NULL)
 				{
 					std::vector<int64_t> ret = {0, 0};
+					this->free_read_lock();
 					return ret;
 				}
 				auto rm_status = this->tree->remove(nodeHash, nodeData);
@@ -571,12 +577,15 @@ namespace BK_Tree_Ns
 				if (this->tree == NULL)
 				{
 					search_ret ret = {{}, 0};
+					this->free_read_lock();
 					return ret;
 				}
-
-				auto ret = this->tree->search(baseHash, distance);
-				this->free_read_lock();
-				return ret;
+				else
+				{
+					auto ret = this->tree->search(baseHash, distance);
+					this->free_read_lock();
+					return ret;
+				}
 			}
 
 			/**
@@ -589,7 +598,12 @@ namespace BK_Tree_Ns
 			{
 				return_deque ret;
 				this->get_read_lock();
-				this->tree->get_contains(ret);
+
+				if (this->tree != NULL)
+				{
+					this->tree->get_contains(ret);
+				}
+
 				this->free_read_lock();
 				return ret;
 			}

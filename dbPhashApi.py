@@ -52,8 +52,8 @@ class PhashDbApi(dbApi.DbApi):
 		assert self.tree is not None
 		# Only load the tree if it's empty
 
-		with self.tree.updateLock.writer_context():
-			self.doLoad(silent=True)
+		# with self.tree.updateLock.writer_context():
+		# 	self.doLoad(silent=True)
 
 
 	def forceReload(self):

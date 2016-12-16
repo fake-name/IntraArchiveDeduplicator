@@ -3,6 +3,7 @@
 
 import dbApi
 import collections
+import gc
 
 import pyximport
 pyximport.install()
@@ -62,6 +63,11 @@ class PhashDbApi(dbApi.DbApi):
 			self.log.warn("Forcing a reload of the tree from the database!")
 			self.log.warn("Dropping Tree")
 			self.tree.dropTree()
+
+			# Flush the dropped tree out of memory
+			collected = gc.collect()
+			self.log.info("GC collected %s items.", collected)
+
 			self.log.warn("Tree Dropped. Rebuilding")
 			self.doLoad(silent=False)
 			self.log.warn("Tree Rebuilt")

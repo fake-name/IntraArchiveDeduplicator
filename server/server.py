@@ -44,8 +44,12 @@ class DbInterfaceServer(rpyc.Service):
 				self.lock.release()
 
 	def exposed_reloadTree(self):
+		print("Acquiring lock")
+		self.lock.acquire()
 		treeProx = dbPhashApi.PhashDbApi()
 		treeProx.forceReload()
+		print("Releasing lock")
+		self.lock.release()
 
 
 

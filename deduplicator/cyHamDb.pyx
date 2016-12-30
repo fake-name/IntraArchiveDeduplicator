@@ -219,6 +219,7 @@ class CPPBkHammingTree(object):
 	# Explicitly dump all the tree items.
 	# Note: Only ever called from within a lock-synchronized context.
 	def dropTree(self):
+		del self.root
 		self.root       = CPP_BkHammingTree()
 		self.updateLock = CPPLockProxy(self.root)
 		self.nodes  = 0

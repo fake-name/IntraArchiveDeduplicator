@@ -39,10 +39,11 @@ pip3 install scipy
 pip3 install rarfile python-magic cython psycopg2 Colorama
 pip3 install python-sql rpyc server_reloader
 pip3 install Coverage Bitstring nose
+pip3 install pytz apscheduler
 pip3 install git+https://github.com/fake-name/UniversalArchiveInterface.git
 
 # So pillow keeps changing the behaviour of image.resize. Arrrgh.
-pip3 install pillow<'2.4.0'
+pip3 install pillow=='3.3.1'
 
 
 

@@ -112,7 +112,7 @@ class TestSequenceFunctions_ConcurrentModification(unittest.TestCase):
 	def test_read_and_delete(self):
 		with ThreadPoolExecutor(max_workers=THREADS) as executor:
 			for x in range(THREADS-3):
-				executor.submit(lookup_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE, offset=(TREE_SIZE - (TEST_SAMPLE_SIZE * x)))
+				executor.submit(lookup_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE, offset=(self.tree_size - (TEST_SAMPLE_SIZE * x)))
 			executor.submit(destroy_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE)
 			executor.submit(destroy_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE, offset=TEST_SAMPLE_SIZE)
 			executor.submit(destroy_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE, offset=TEST_SAMPLE_SIZE+TEST_SAMPLE_SIZE)
@@ -121,7 +121,7 @@ class TestSequenceFunctions_ConcurrentModification(unittest.TestCase):
 	def test_read_and_write(self):
 		with ThreadPoolExecutor(max_workers=THREADS) as executor:
 			for x in range(THREADS-3):
-				executor.submit(lookup_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE, offset=(TREE_SIZE - (TEST_SAMPLE_SIZE * x)))
+				executor.submit(lookup_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE, offset=(self.tree_size - (TEST_SAMPLE_SIZE * x)))
 			executor.submit(destroy_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE, offset=TEST_SAMPLE_SIZE*0)
 			executor.submit(destroy_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE, offset=TEST_SAMPLE_SIZE*1)
 			executor.submit(destroy_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE, offset=TEST_SAMPLE_SIZE*2)
@@ -133,7 +133,7 @@ class TestSequenceFunctions_ConcurrentModification(unittest.TestCase):
 	def test_read_and_write_2(self):
 		with ThreadPoolExecutor(max_workers=THREADS) as executor:
 			for x in range(THREADS-3):
-				executor.submit(lookup_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE, offset=(TREE_SIZE - (TEST_SAMPLE_SIZE * x)))
+				executor.submit(lookup_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE, offset=(self.tree_size - (TEST_SAMPLE_SIZE * x)))
 			executor.submit(destroy_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE, offset=TEST_SAMPLE_SIZE*0)
 			executor.submit(destroy_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE, offset=TEST_SAMPLE_SIZE*1)
 			executor.submit(destroy_call, tree=self.tree, nlookups=TEST_SAMPLE_SIZE, offset=TEST_SAMPLE_SIZE*2)

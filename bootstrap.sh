@@ -14,11 +14,11 @@ echo Creating 2GB swap file \(this is occationally required when fetching extrem
 /sbin/swapon /swapfile
 /bin/echo '/swapfile          swap            swap    defaults        0 0' >> /etc/fstab
 
-apt-get install -y python3.4 python3.4-dev build-essential postgresql-client postgresql-common libpq-dev postgresql-9.5 unrar
-apt-get install -y postgresql-server-dev-9.5 postgresql-contrib libyaml-dev git
+sudo apt-get install -y python3.5 python3.5-dev build-essential postgresql-client postgresql-common libpq-dev postgresql-9.5 unrar
+sudo apt-get install -y postgresql-server-dev-9.5 postgresql-contrib libyaml-dev git wget
 
 # PIL/Pillow support stuff
-sudo apt-get install -y libtiff4-dev libjpeg-turbo8-dev zlib1g-dev liblcms2-dev libwebp-dev libxml2 libxslt1-dev
+sudo apt-get install -y libtiff5-dev libjpeg-turbo8-dev zlib1g-dev liblcms2-dev libwebp-dev libxml2 libxslt1-dev
 
 # Install Numpy/Scipy support packages. Yes, scipy depends on FORTAN. Arrrgh
 sudo apt-get install -y gfortran libopenblas-dev liblapack-dev
@@ -27,7 +27,7 @@ sudo apt-get install -y gfortran libopenblas-dev liblapack-dev
 echo Installing required python libraries
 # Install pip (You cannot use the ubuntu repos for this, because they will also install python3.2)
 wget https://bootstrap.pypa.io/get-pip.py -nv
-python3 get-pip.py
+sudo python3 get-pip.py
 rm get-pip.py
 
 

@@ -287,7 +287,9 @@ namespace BK_Tree_Ns
 				for (auto val: this->children)
 				{
 					if (val != NULL)
+					{
 						delete val;
+					}
 				}
 			}
 
@@ -475,7 +477,7 @@ namespace BK_Tree_Ns
 					delete this->tree;
 
 					// Now I'm just being silly.
-					this->tree = NULL
+					this->tree = NULL;
 				}
 			}
 

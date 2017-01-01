@@ -26,7 +26,8 @@ do
 		--cover-package=scanner.hashFile             \
 		--cover-package=dbPhashApi                   \
 		--cover-package=deduplicator.rwlock          \
-		--cover-package=deduplicator.ProcessArchive
+		--cover-package=deduplicator.ProcessArchive  \
+		--stop
 		# --nocapture
 done;
 

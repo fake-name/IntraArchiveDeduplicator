@@ -58,14 +58,18 @@ class TestSequenceFunctions(unittest.TestCase):
 		super().__init__(*args, **kwargs)
 
 	def setUp(self):
-		self.buildTestTree()
+		# We set up and tear down the tree a few times to validate the dropTree function
+		self.tree = hamDb.BkHammingTree()
+		for x in range(4):
+			with self.tree.writer_context():
+				self.tree.dropTree()
+				self.buildTestTree()
 
 	def buildTestTree(self):
-		self.tree = hamDb.BkHammingTree()
 		for nodeId, node_hash in enumerate(TEST_DATA):
 			print("Inserting node id: ", nodeId, "hash", node_hash, "value: ", b2i(node_hash))
 			node_hash = b2i(node_hash)
-			self.tree.insert(node_hash, nodeId)
+			self.tree.unlocked_insert(node_hash, nodeId)
 
 	def test_1(self):
 		tgtHash = "0100000000000000000000000000000000000000000000000000000000000000"

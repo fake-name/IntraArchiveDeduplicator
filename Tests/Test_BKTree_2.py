@@ -176,14 +176,20 @@ class TestSequenceFunctions_FlatTree(unittest.TestCase):
 		super().__init__(*args, **kwargs)
 
 	def setUp(self):
-		self.buildTestTree()
+
+
+		self.tree = hamDb.BkHammingTree()
+		for x in range(4):
+			with self.tree.writer_context():
+				self.tree.dropTree()
+				self.buildTestTree()
 
 	def buildTestTree(self):
 		self.tree = hamDb.BkHammingTree()
 		for nodeId, node_hash in enumerate(TEST_DATA_FLAT):
 			print("Inserting node id: ", nodeId, "hash", node_hash, "value: ", b2i(node_hash))
 			node_hash = b2i(node_hash)
-			self.tree.insert(node_hash, nodeId)
+			self.tree.unlocked_insert(node_hash, nodeId)
 
 	def test_1(self):
 		tgtHash = "0000000000000000000000000000000000000000000000000000000000000001"
@@ -210,7 +216,12 @@ class TestSequenceFunctions_TallTree(unittest.TestCase):
 		super().__init__(*args, **kwargs)
 
 	def setUp(self):
-		self.buildTestTree()
+
+		self.tree = hamDb.BkHammingTree()
+		for x in range(4):
+			with self.tree.writer_context():
+				self.tree.dropTree()
+				self.buildTestTree()
 
 	def buildTestTree(self):
 		self.tree = hamDb.BkHammingTree()

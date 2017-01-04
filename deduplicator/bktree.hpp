@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <atomic>
 
@@ -65,6 +64,8 @@ namespace BK_Tree_Ns
 	class BK_Tree_Node
 	{
 		private:
+
+			const int tree_aryness;
 
 			/**
 			 * Bitmapped hash value for the node.
@@ -265,6 +266,7 @@ namespace BK_Tree_Ns
 			 * @param node_data data associated with hash.
 			 */
 			BK_Tree_Node(hash_type nodeHash, int64_t node_data)
+				: tree_aryness(65)
 			{
 				// std::cout << "Instantiating BK_Tree_Node instance - Hash: " << nodeHash << " node_data: " << node_data << std::endl;
 				this->node_data_items.insert(node_data);
@@ -275,8 +277,24 @@ namespace BK_Tree_Ns
 				// node's data.
 				// We use a 65-ary tree just so the math is easier, leaking 8 bytes per node is kind of
 				// irrelevant (I hope).
-				this->children.assign(65, NULL);
+				this->children.assign(this->tree_aryness, NULL);
 
+			}
+
+			int clear_node(void)
+			{
+				int cleared = 1;
+				for (int x = 0; x < this->tree_aryness; x += 1)
+				{
+					if (this->children[x] != NULL)
+					{
+						// std::cout << "Deleting node " << (uint64_t) val << std::endl;
+						cleared += this->children[x]->clear_node();
+						delete this->children[x];
+						this->children[x] = NULL;
+					}
+				}
+				return cleared;
 			}
 
 			/**
@@ -285,13 +303,7 @@ namespace BK_Tree_Ns
 			 */
 			~BK_Tree_Node()
 			{
-				for (auto val: this->children)
-				{
-					if (val != NULL)
-					{
-						delete val;
-					}
-				}
+				this->clear_node();
 			}
 
 			/**
@@ -480,16 +492,19 @@ namespace BK_Tree_Ns
 				this->clear_tree();
 			}
 
-			void clear_tree(void)
+			int clear_tree(void)
 			{
+				int cleared = 0;
 				// std::cout << "Destroying BK_Tree instance" << std::endl;
 				if (this->tree != NULL)
 				{
+					cleared += this->tree->clear_node();
 					delete this->tree;
 
 					// Now I'm just being silly.
 					this->tree = NULL;
 				}
+				return cleared;
 
 			}
 

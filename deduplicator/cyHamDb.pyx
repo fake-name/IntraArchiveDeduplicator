@@ -14,6 +14,8 @@ from libcpp.set cimport set as cset
 from contextlib import contextmanager
 # import traceback
 
+import gc
+
 cdef extern from "./deduplicator/bktree.hpp" namespace "BK_Tree_Ns":
 	# ctypedef cset[int64_t] set_64
 	ctypedef cpair[cset[int64_t], int64_t] search_ret
@@ -33,7 +35,7 @@ cdef extern from "./deduplicator/bktree.hpp" namespace "BK_Tree_Ns":
 		void            get_write_lock() nogil
 		void            free_read_lock() nogil
 		void            free_write_lock() nogil
-		void            clear_tree() nogil
+		int             clear_tree() nogil
 		return_deque    get_all() nogil
 
 
@@ -126,7 +128,9 @@ cdef class CPP_BkHammingTree(object):
 		return extracted
 
 	cpdef clear_tree(self):
-		self.treeroot_p.clear_tree()
+		ret = self.treeroot_p.clear_tree()
+		print("Tree cleared!")
+		return ret
 
 
 	def __dealloc__(self):
@@ -203,11 +207,14 @@ class CPPBkHammingTree(object):
 	# Note: Only ever called from within a lock-synchronized context.
 	def dropTree(self):
 
-		self.root.clear_tree()
+		cleared = self.root.clear_tree()
 		self.nodes  = 0
 
-		assert self.root is not None
+		self.log.info("Tree-Drop deleted %s items", cleared)
+		collected = gc.collect()
+		self.log.info("GC collected %s items.", collected)
 
+		assert self.root is not None
 
 	@contextmanager
 	def reader_context(self):

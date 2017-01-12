@@ -3,6 +3,9 @@
 from libc.stdint cimport uint64_t
 from libc.stdint cimport int64_t
 
+from libc.stdint cimport uint32_t
+from libc.stdint cimport int32_t
+
 
 from libcpp.pair cimport pair as cpair
 # from libcpp.tuple cimport tuple
@@ -18,36 +21,36 @@ import gc
 
 cdef extern from "./deduplicator/bktree.hpp" namespace "BK_Tree_Ns":
 	# ctypedef cset[int64_t] set_64
-	ctypedef cpair[cset[int64_t], int64_t] search_ret
-	# ctypedef tuple[bool, int64_t, int64_t] rebuild_ret
-	ctypedef cpair[int64_t, int64_t] hash_pair
+	ctypedef cpair[cset[uint64_t], uint64_t] search_ret
+	# ctypedef tuple[bool, uint64_t, uint64_t] rebuild_ret
+	ctypedef cpair[uint64_t, uint64_t] hash_pair
 	ctypedef deque[hash_pair] return_deque
 
-	cdef int64_t f_hamming(int64_t a, int64_t b)
+	cdef uint64_t f_hamming(uint64_t a, uint64_t b)
 
 	cdef cppclass BK_Tree:
 		BK_Tree() except +
-		void            insert(int64_t nodeHash, int64_t nodeData) nogil
-		void            unlocked_insert(int64_t nodeHash, int64_t nodeData) nogil
-		vector[int64_t] remove(int64_t nodeHash, int64_t nodeData) nogil
-		search_ret      getWithinDistance(int64_t baseHash, int distance) nogil
+		void            insert(uint64_t nodeHash, uint64_t nodeData) nogil
+		void            unlocked_insert(uint64_t nodeHash, uint64_t nodeData) nogil
+		vector[uint64_t] remove(uint64_t nodeHash, uint64_t nodeData) nogil
+		search_ret      getWithinDistance(uint64_t baseHash, uint32_t distance) nogil
 		void            get_read_lock() nogil
 		void            get_write_lock() nogil
 		void            free_read_lock() nogil
 		void            free_write_lock() nogil
-		int             clear_tree() nogil
+		uint64_t        clear_tree() nogil
 		return_deque    get_all() nogil
 
 
 
 
-cdef int64_t hamming(int64_t a, int64_t b):
+cdef uint64_t hamming(uint64_t a, uint64_t b):
 	'''
 	Compute number of bits that are not common between `a` and `b`.
 	return value is a plain integer
 	'''
 
-	cdef int tot
+	cdef uint32_t tot
 	tot = 0
 
 	# Messy explicit casting to work around the fact that
@@ -76,24 +79,24 @@ cdef class CPP_BkHammingTree(object):
 	def __init__(self):
 		self.treeroot_p = new BK_Tree()
 
-	cpdef insert(self, int64_t nodeHash, int64_t nodeData):
+	cpdef insert(self, uint64_t nodeHash, uint64_t nodeData):
 		cdef BK_Tree *root_ptr = self.treeroot_p
 		with nogil:
 			root_ptr.insert(nodeHash, nodeData)
 
-	cpdef unlocked_insert(self, int64_t nodeHash, int64_t nodeData):
+	cpdef unlocked_insert(self, uint64_t nodeHash, uint64_t nodeData):
 		cdef BK_Tree *root_ptr = self.treeroot_p
 		with nogil:
 			root_ptr.unlocked_insert(nodeHash, nodeData)
 
-	cpdef remove(self, int64_t nodeHash, int64_t nodeData):
-		cdef vector[int64_t] ret
+	cpdef remove(self, uint64_t nodeHash, uint64_t nodeData):
+		cdef vector[uint64_t] ret
 		cdef BK_Tree *root_ptr = self.treeroot_p
 		with nogil:
 			ret = root_ptr.remove(nodeHash, nodeData)
 		return ret[0], ret[1]
 
-	cpdef getWithinDistance(self, int64_t baseHash, int distance):
+	cpdef getWithinDistance(self, uint64_t baseHash, uint32_t distance):
 		cdef search_ret have
 		cdef BK_Tree *root_ptr = self.treeroot_p
 		with nogil:
@@ -165,6 +168,8 @@ class CPPBkHammingTree(object):
 		if not isinstance(nodeHash, int):
 			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (nodeHash, type(nodeHash)))
 
+		assert nodeHash >= 0,    "Node hash values must be an unsigned integer 64-bits in size. Negative value passed"
+		assert nodeHash < 2**64, "Node hash values must be an unsigned integer 64-bits in size. Oversized value passed"
 		# print("Root: ", self.root)
 		self.root.unlocked_insert(nodeHash, nodeData)
 

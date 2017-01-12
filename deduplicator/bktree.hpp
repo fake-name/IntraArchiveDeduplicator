@@ -17,18 +17,18 @@
 
 namespace BK_Tree_Ns
 {
-	typedef int64_t hash_type;
-	typedef int64_t data_type;
+	typedef uint64_t hash_type;
+	typedef uint64_t data_type;
 
-	typedef std::pair<std::set<int64_t>, int64_t> search_ret;
-	typedef std::tuple<bool, int64_t, int64_t> rebuild_ret;
+	typedef std::pair<std::set<uint64_t>, uint64_t> search_ret;
+	typedef std::tuple<bool, uint64_t, uint64_t> rebuild_ret;
 
 	// Search return item. Contains [hash-value, item-data]
-	typedef std::pair<hash_type, int64_t> hash_pair;
+	typedef std::pair<hash_type, uint64_t> hash_pair;
 	typedef std::deque<hash_pair> return_deque;
 
 
-	int64_t inline f_hamming(int64_t a_int, int64_t b_int);
+	uint64_t inline f_hamming(uint64_t a_int, uint64_t b_int);
 
 	/**
 	 * @brief Compute the hamming distance, e.g. the number of differing
@@ -40,7 +40,7 @@ namespace BK_Tree_Ns
 	 * @return number of differing bits between the two values. Possible
 	 *         return values are 0-64, as the parameters are 64 bit integers.
 	 */
-	int64_t inline f_hamming(int64_t a_int, int64_t b_int)
+	uint64_t inline f_hamming(uint64_t a_int, uint64_t b_int)
 	{
 		/*
 		Compute number of bits that are not common between `a` and `b`.
@@ -65,7 +65,7 @@ namespace BK_Tree_Ns
 	{
 		private:
 
-			const int tree_aryness;
+			const uint32_t tree_aryness;
 
 			/**
 			 * Bitmapped hash value for the node.
@@ -74,7 +74,7 @@ namespace BK_Tree_Ns
 
 			/**
 			 * Data values associated with the current node. In my use, they're generally
-			 * database-ID values as int64_t.
+			 * database-ID values as uint64_t.
 			 */
 			std::set<data_type>                                       node_data_items;
 			// Unordered set is slower for small
@@ -106,7 +106,7 @@ namespace BK_Tree_Ns
 			 * @param nodeData data associated with hash.
 			 * @param ret_deq reference to a `return_deque` into which any parentless-node's data
 			 *                is copied into for re-insertion.
-			 * @return std::vector<int64_t> containing 3 status values.
+			 * @return std::vector<uint64_t> containing 3 status values.
 			 *         The first is a boolean cast to an int, indicating
 			 *         whether the direct child node is empty, and should
 			 *         be deleted (with it's children re-inserted).
@@ -123,8 +123,8 @@ namespace BK_Tree_Ns
 				// Returns list of children that must be re-inserted (or false if no children need to be updated),
 				// number of nodes deleted, and number of nodes that were moved as a 3-tuple.
 
-				int64_t deleted = 0;
-				int64_t moved   = 0;
+				uint64_t deleted = 0;
+				uint64_t moved   = 0;
 
 				// If the node we're on matches the hash we want to delete exactly:
 				if (nodeHash == this->node_hash)
@@ -149,7 +149,7 @@ namespace BK_Tree_Ns
 					return rebuild_ret(false, 1, 0);
 				}
 
-				int64_t selfDist = f_hamming(this->node_hash, nodeHash);
+				uint64_t selfDist = f_hamming(this->node_hash, nodeHash);
 
 				// Removing is basically searching with a distance of zero, and
 				// then doing operations on the search result.
@@ -221,9 +221,9 @@ namespace BK_Tree_Ns
 			 * @param distance Edit distance to search.
 			 * @param ret Reference to deque into which found results are placed.
 			 */
-			void search_internal(hash_type search_hash, int64_t distance, search_ret &ret)
+			void search_internal(hash_type search_hash, uint64_t distance, search_ret &ret)
 			{
-				int64_t selfDist = f_hamming(this->node_hash, search_hash);
+				uint64_t selfDist = f_hamming(this->node_hash, search_hash);
 
 				// Add self values if the current node is within the proper distance.
 				if (selfDist <= distance)
@@ -242,15 +242,18 @@ namespace BK_Tree_Ns
 				// as hamming distance is a metric space and obeys triangle inequalities.
 				// We also clamp the search space to the bounds of our
 				// index.
-				int64_t posDelta = std::min((selfDist + distance), static_cast<int64_t>(64));
-				int64_t negDelta = std::max((selfDist - distance), static_cast<int64_t>(1));
+				int posDelta = std::min(static_cast<int>(selfDist + distance), static_cast<int>(64));
+				int negDelta = std::max(static_cast<int>(selfDist - distance), static_cast<int>(1));
+
+				// std::cout << "Search window: " << posDelta << " <-> " << negDelta << "." << std::endl;
 
 				// For each child within our search scope, if the child is present (non-NULL),
 				// recursively search into that child.
-				for (int_fast8_t x = negDelta; x <= posDelta; x += 1)
+				for (uint_fast8_t x = negDelta; x <= posDelta; x += 1ul)
 				{
 					if (this->children[x] != NULL)
 					{
+						// std::cout << "Child " << x << " is not null. Recursing." << std::endl;
 						this->children[x]->search_internal(search_hash, distance, ret);
 					}
 				}
@@ -265,7 +268,7 @@ namespace BK_Tree_Ns
 			 * @param nodeHash hash for node.
 			 * @param node_data data associated with hash.
 			 */
-			BK_Tree_Node(hash_type nodeHash, int64_t node_data)
+			BK_Tree_Node(hash_type nodeHash, uint64_t node_data)
 				: tree_aryness(65)
 			{
 				// std::cout << "Instantiating BK_Tree_Node instance - Hash: " << nodeHash << " node_data: " << node_data << std::endl;
@@ -281,10 +284,10 @@ namespace BK_Tree_Ns
 
 			}
 
-			int clear_node(void)
+			uint32_t clear_node(void)
 			{
-				int cleared = 1;
-				for (int x = 0; x < this->tree_aryness; x += 1)
+				uint32_t cleared = 1;
+				for (uint32_t x = 0; x < this->tree_aryness; x += 1)
 				{
 					if (this->children[x] != NULL)
 					{
@@ -313,7 +316,7 @@ namespace BK_Tree_Ns
 			 * @param nodeHash node-hash to insert.
 			 * @param nodeData data associated with the node-hash.
 			 */
-			void insert(hash_type nodeHash, int64_t nodeData)
+			void insert(hash_type nodeHash, uint64_t nodeData)
 			{
 				this->insert_internal(nodeHash, nodeData);
 			}
@@ -332,7 +335,7 @@ namespace BK_Tree_Ns
 			 * @param nodeHash hash to remove
 			 * @param nodeData id to remove
 			 *
-			 * @return std::vector<int64_t> containing 3 status values.
+			 * @return std::vector<uint64_t> containing 3 status values.
 			 *         The first is a boolean cast to an int, indicating
 			 *         whether the direct child node is empty, and should
 			 *         be deleted (with it's children re-inserted).
@@ -343,7 +346,7 @@ namespace BK_Tree_Ns
 			 *         The third is the number of child-nodes that had to be re-inserted to
 			 *         accomodate any deletion of any nodes.
 			 */
-			std::vector<int64_t> remove(hash_type nodeHash, int64_t nodeData)
+			std::vector<uint64_t> remove(hash_type nodeHash, uint64_t nodeData)
 			{
 				// Remove the matching hash. Insert any items that need to be re-added
 				// into a deque for processing.
@@ -351,7 +354,7 @@ namespace BK_Tree_Ns
 				auto rm_status = this->remove_internal(nodeHash, nodeData, ret_deq);
 
 
-				int non_null_children = 0;
+				uint32_t non_null_children = 0;
 				for (size_t x = 0; x < this->children.size(); x += 1)
 					if (this->children[x] != NULL)
 						non_null_children += 1;
@@ -375,7 +378,7 @@ namespace BK_Tree_Ns
 
 
 				// Pack up the return value.
-				std::vector<int64_t> ret;
+				std::vector<uint64_t> ret;
 				ret.push_back(1 ? std::get<0>(rm_status) : 0);
 				ret.push_back(std::get<1>(rm_status));
 				ret.push_back(std::get<2>(rm_status));
@@ -396,17 +399,16 @@ namespace BK_Tree_Ns
 			 *                 the specified hash and returned
 			 *                 similar values.
 			 *
-			 * @return std::pair<std::set<int64_t>, int64_t>, where the
+			 * @return std::pair<std::set<uint64_t>, uint64_t>, where the
 			 *         first item is a set of item_id values for each matched
 			 *         similar items, and the second value is the number
 			 *         of tree nodes the search had to touch to return
 			 *         the first value (for diagnostic purposes).
 			 */
-			search_ret search(hash_type baseHash, int distance)
+			search_ret search(hash_type baseHash, uint32_t distance)
 			{
 				search_ret ret;
 				ret.first.clear();
-				// std::cout << "Search call! " << ret.first << "." << std::endl;
 				ret.second = 0;
 				this->search_internal(baseHash, distance, ret);
 
@@ -428,13 +430,13 @@ namespace BK_Tree_Ns
 			 *          tree.
 			 *
 			 * @param ret_deq Reference to a deque<hash_pair>, where has_pair is
-			 *                a std::pair<hash_type, int64_t> containing the item hash
+			 *                a std::pair<hash_type, uint64_t> containing the item hash
 			 *                and the item id respectively.
 			 */
 			void get_contains(return_deque &ret_deq)
 			{
 				// For each item the node contains, push it back into the dequeu
-				for (const int64_t i : this->node_data_items)
+				for (const uint64_t i : this->node_data_items)
 					ret_deq.push_back(hash_pair(this->node_hash, i));
 
 				// Then, iterate over the item's children.
@@ -462,7 +464,7 @@ namespace BK_Tree_Ns
 
 
 			// We track attempts to acquire the locks so we can detect accidental recursions.
-			std::atomic<int>                                           recursed;
+			std::atomic<uint32_t>                                           recursed;
 
 		public:
 
@@ -492,9 +494,9 @@ namespace BK_Tree_Ns
 				this->clear_tree();
 			}
 
-			int clear_tree(void)
+			uint64_t clear_tree(void)
 			{
-				int cleared = 0;
+				uint64_t cleared = 0;
 				// std::cout << "Destroying BK_Tree instance" << std::endl;
 				if (this->tree != NULL)
 				{
@@ -536,6 +538,7 @@ namespace BK_Tree_Ns
 			 */
 			void unlocked_insert(hash_type nodeHash, data_type nodeData)
 			{
+				// std::cout << "Inserting: " << nodeHash << "." << std::endl;
 				if (this->tree == NULL)
 					this->tree = new BK_Tree_Node(nodeHash, nodeData);
 				else
@@ -556,30 +559,30 @@ namespace BK_Tree_Ns
 			 * @param nodeHash hash to remove
 			 * @param nodeData id to remove
 			 *
-			 * @return std::vector<int64_t> containing 2 status values.
+			 * @return std::vector<uint64_t> containing 2 status values.
 			 *         The first is a count of the number of children
 			 *         that were actually deleted by the remove call (which
 			 *         should really only ever be 1).
 			 *         The second is the number of child-nodes that had to be re-inserted to
 			 *         accomodate any deletion of any nodes.
 			 */
-			std::vector<int64_t> remove(hash_type nodeHash, data_type nodeData)
+			std::vector<uint64_t> remove(hash_type nodeHash, data_type nodeData)
 			{
 				this->get_write_lock();
 				if (this->tree == NULL)
 				{
-					std::vector<int64_t> ret = {0, 0};
+					std::vector<uint64_t> ret = {0, 0};
 					this->free_read_lock();
 					return ret;
 				}
 				auto rm_status = this->tree->remove(nodeHash, nodeData);
 
 				// bool rebuild = rm_status[0]; // Rebuilding is handled in tree.remove()
-				int deleted  = rm_status[1];
-				int moved    = rm_status[2];
+				uint64_t deleted  = rm_status[1];
+				uint64_t moved    = rm_status[2];
 
 				this->free_write_lock();
-				std::vector<int64_t> ret(2);
+				std::vector<uint64_t> ret(2);
 				ret[0] = deleted;
 				ret[1] = moved;
 				return ret;
@@ -592,25 +595,28 @@ namespace BK_Tree_Ns
 			 * @param baseHash hash value for the distance benchmark.
 			 * @param distance hamming distance to search within.
 			 *
-			 * @return std::pair<std::set<int64_t>, <int64_t>, where
+			 * @return std::pair<std::set<uint64_t>, <uint64_t>, where
 			 *         the first item is a set of data-values for
 			 *         hashes within the specified distance, and
 			 *         the second is the number of tree nodes touched
 			 *         during the search (for diagnostic purposes).
 			 */
-			search_ret getWithinDistance(hash_type baseHash, int distance)
+			search_ret getWithinDistance(hash_type baseHash, uint32_t distance)
 			{
 				// std::cout << "Get within distance!" << std::endl;
 				this->get_read_lock();
 
 				if (this->tree == NULL)
 				{
+					// std::cout << "Tree is null!!" << std::endl;
 					search_ret ret = {{}, 0};
 					this->free_read_lock();
 					return ret;
 				}
 				else
 				{
+
+					// std::cout << "Non null tree. Doing search!!" << std::endl;
 					auto ret = this->tree->search(baseHash, distance);
 					this->free_read_lock();
 					return ret;
@@ -619,7 +625,7 @@ namespace BK_Tree_Ns
 
 			/**
 			 * @brief Get all items in the tree. Mostly for testing.
-			 * @return std::deque<std::pair<hash_type, int64_t> > containing every
+			 * @return std::deque<std::pair<hash_type, uint64_t> > containing every
 			 *         hash<->data pair in the entire tree.
 			 *         Largely useful for unit testing, and probably not much else.
 			 */

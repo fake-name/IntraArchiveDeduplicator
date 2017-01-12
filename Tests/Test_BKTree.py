@@ -27,7 +27,7 @@ def b2i(binaryStringIn):
 		raise ValueError("Input strings must be 64 chars long!")
 
 	val = Bits(bin=binaryStringIn)
-	return val.int
+	return val.uint
 
 
 
@@ -50,6 +50,28 @@ TEST_DATA = [
 	# "0000000000000000000000000101000000000001111111111111111000000000",  # 14
 	# "0000000000000000000000001101000000000001111111111111111000000000",  # 15
 ]
+
+class TestSequenceFunctions2(unittest.TestCase):
+
+	def __init__(self, *args, **kwargs):
+		logSetup.initLogging()
+		super().__init__(*args, **kwargs)
+
+	def buildTestTree(self):
+		for nodeId, node_hash in enumerate(TEST_DATA):
+			print("Inserting node id: ", nodeId, "hash", node_hash, "value: ", b2i(node_hash))
+			node_hash = b2i(node_hash)
+			self.tree.unlocked_insert(node_hash, nodeId)
+
+	def setUp(self):
+		# We set up and tear down the tree a few times to validate the dropTree function
+		self.tree = hamDb.BkHammingTree()
+		for x in range(4):
+			with self.tree.writer_context():
+				self.tree.dropTree()
+				self.buildTestTree()
+
+
 
 class TestSequenceFunctions(unittest.TestCase):
 
@@ -107,12 +129,6 @@ class TestSequenceFunctions(unittest.TestCase):
 		ret = self.tree.getWithinDistance(tgtHash, 17)
 		self.assertEqual(ret, set((0, 2, 5, 6, 7, 8)))
 
-	def test_7(self):
-		tgtHash = "0000000000000000000000000000000000000001111111111111111000000000"
-		tgtHash = b2i(tgtHash)
-		ret = self.tree.getWithinDistance(tgtHash, 18)
-		self.assertEqual(ret, set((0, 2, 4, 5, 6, 7, 8)))
-
 	def test_8(self):
 		tgtHash = "1000000000000000000000000000000000000000000000000000000000000000"
 		tgtHash = b2i(tgtHash)
@@ -131,6 +147,15 @@ class TestSequenceFunctions(unittest.TestCase):
 	def test_insert(self):
 		key = len(TEST_DATA) + 1
 		self.tree.insert(b2i('0000000000000000000000000000000000000001111111111111111000000001'), key)
+
+	def test_7(self):
+		tgtHash = "0000000000000000000000000000000000000001111111111111111000000000"
+		tgtHash = b2i(tgtHash)
+		ret = self.tree.getWithinDistance(tgtHash, 18)
+		expect = set((0, 2, 4, 5, 6, 7, 8))
+		print("ret", ret)
+		print("expect", expect)
+		self.assertEqual(ret, expect)
 
 	def test_insertErr(self):
 		key = len(TEST_DATA) + 2

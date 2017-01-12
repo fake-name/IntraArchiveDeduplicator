@@ -27,7 +27,7 @@ def b2i(binaryStringIn):
 		raise ValueError("Input strings must be 64 chars long!")
 
 	val = Bits(bin=binaryStringIn)
-	return val.int
+	return val.uint
 
 # Node ID numbers are derived from the list ordering.
 # This will generate a single node with 64 children.

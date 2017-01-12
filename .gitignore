@@ -9,3 +9,4 @@ __pycache__
 *.pyc
 /Tests/test_ptree
 /venv
+/.vagrant

@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
 
 # enable the multiverse package repositories.
-sed -i "/^# deb.*multiverse/ s/^# //" /etc/apt/sources.list
+sudo sed -i "/^# deb.*multiverse/ s/^# //" /etc/apt/sources.list
 
-apt-get update
-apt-get dist-upgrade -y
+if [[ `lsb_release -rs` == "14.04" ]] # replace 8.04 by the number of release you want
+then
+	sudo add-apt-repository --yes ppa:fkrull/deadsnakes
+	sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main" >> /etc/apt/sources.list.d/pgdg.list'
+	wget -q https://www.postgresql.org/media/keys/ACCC4CF8.asc -O - | sudo apt-key add -
+fi
+
+
+sudo apt-get update
+sudo apt-get dist-upgrade -y
 
 echo Creating 2GB swap file \(this is occationally required when fetching extremely large files\).
 
@@ -14,8 +22,8 @@ echo Creating 2GB swap file \(this is occationally required when fetching extrem
 /sbin/swapon /swapfile
 /bin/echo '/swapfile          swap            swap    defaults        0 0' >> /etc/fstab
 
-sudo apt-get install -y python3.5 python3.5-dev build-essential postgresql-client postgresql-common libpq-dev postgresql-9.5 unrar
-sudo apt-get install -y postgresql-server-dev-9.5 postgresql-contrib libyaml-dev git wget
+sudo apt-get install -y python3.5 python3.5-dev build-essential postgresql-client postgresql-common libpq-dev postgresql-9.6 unrar
+sudo apt-get install -y postgresql-server-dev-9.6 postgresql-contrib libyaml-dev git wget
 
 # PIL/Pillow support stuff
 sudo apt-get install -y libtiff5-dev libjpeg-turbo8-dev zlib1g-dev liblcms2-dev libwebp-dev libxml2 libxslt1-dev
@@ -27,29 +35,29 @@ sudo apt-get install -y gfortran libopenblas-dev liblapack-dev
 echo Installing required python libraries
 # Install pip (You cannot use the ubuntu repos for this, because they will also install python3.2)
 wget https://bootstrap.pypa.io/get-pip.py -nv
-sudo python3 get-pip.py
+sudo python3.5 get-pip.py
 rm get-pip.py
 
 
 # And numpy itself
-pip3 install numpy
-pip3 install scipy
+sudo pip3 install numpy
+sudo pip3 install scipy
 
 # Install the libraries we actually need
-pip3 install rarfile python-magic cython psycopg2 Colorama
-pip3 install python-sql rpyc server_reloader
-pip3 install Coverage Bitstring nose
-pip3 install pytz apscheduler
-pip3 install git+https://github.com/fake-name/UniversalArchiveInterface.git
+sudo pip3 install rarfile python-magic cython psycopg2 Colorama
+sudo pip3 install python-sql rpyc server_reloader
+sudo pip3 install Coverage Bitstring nose
+sudo pip3 install pytz apscheduler
+sudo pip3 install git+https://github.com/fake-name/UniversalArchiveInterface.git
 
 # So pillow keeps changing the behaviour of image.resize. Arrrgh.
-pip3 install pillow=='3.3.1'
+sudo pip3 install pillow=='3.3.1'
 
 
 
 echo Setting up Database
 
-echo 'local   test_db         all                                     md5' >> /etc/postgresql/9.3/main/pg_hba.conf
+echo 'local   test_db         all                                     md5' | sudo tee -a /etc/postgresql/9.6/main/pg_hba.conf
 service postgresql reload
 
 sudo -u postgres psql -c 'CREATE DATABASE test_db;'

@@ -3,7 +3,7 @@
 # enable the multiverse package repositories.
 sudo sed -i "/^# deb.*multiverse/ s/^# //" /etc/apt/sources.list
 
-if [[ `lsb_release -rs` == "14.04" ]] # replace 8.04 by the number of release you want
+if [[ `lsb_release -rs` == "14.04" ]]
 then
 	sudo add-apt-repository --yes ppa:fkrull/deadsnakes
 	sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main" >> /etc/apt/sources.list.d/pgdg.list'
@@ -24,6 +24,15 @@ echo Creating 2GB swap file \(this is occationally required when fetching extrem
 
 sudo apt-get install -y python3.5 python3.5-dev build-essential postgresql-client postgresql-common libpq-dev postgresql-9.6 unrar
 sudo apt-get install -y postgresql-server-dev-9.6 postgresql-contrib libyaml-dev git wget
+
+# Replace system python on 14.04
+# Probably not the best idea if you use the system seriously, but
+# I don't care for testing.
+if [[ `lsb_release -rs` == "14.04" ]]
+then
+	sudo mv /usr/bin/python3 /usr/bin/python3-old
+	sudo ln -s /usr/bin/python3.5 /usr/bin/python3
+fi
 
 # PIL/Pillow support stuff
 sudo apt-get install -y libtiff5-dev libjpeg-turbo8-dev zlib1g-dev liblcms2-dev libwebp-dev libxml2 libxslt1-dev

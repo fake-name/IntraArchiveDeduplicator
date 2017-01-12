@@ -142,3 +142,5 @@ class TestSequenceFunctions(unittest.TestCase):
 			self.assertEqual(b2i(st), val)
 			self.assertEqual(valStr, st)
 
+
+

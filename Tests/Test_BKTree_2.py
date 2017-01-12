@@ -1,5 +1,6 @@
 
 import unittest
+import random
 import scanner.logSetup as logSetup
 from bitstring import Bits
 
@@ -28,6 +29,15 @@ def b2i(binaryStringIn):
 
 	val = Bits(bin=binaryStringIn)
 	return val.int
+
+def b2u(binaryStringIn):
+	if len(binaryStringIn) != 64:
+		print("ERROR: Passed string not 64 characters. String length = %s" % len(binaryStringIn))
+		print("ERROR: String value '%s'" % binaryStringIn)
+		raise ValueError("Input strings must be 64 chars long!")
+
+	val = Bits(bin=binaryStringIn)
+	return val.uint
 
 # Node ID numbers are derived from the list ordering.
 # This will generate a single node with 64 children.
@@ -247,3 +257,36 @@ class TestSequenceFunctions_TallTree(unittest.TestCase):
 		tgtHash = b2i(tgtHash)
 		ret = self.tree.getWithinDistance(tgtHash, 0)
 		self.assertEqual(ret, set((64, )))
+
+class TestSignConversion(unittest.TestCase):
+
+	def __init__(self, *args, **kwargs):
+		logSetup.initLogging()
+		super().__init__(*args, **kwargs)
+
+
+	def test_signModification_1(self):
+		for val in TEST_DATA_Narrow:
+			tgtHash = b2i(val)
+			x = hamDb.explicitUnsignCast(tgtHash)
+			self.assertEqual(x, b2u(val))
+			x = hamDb.explicitSignCast(x)
+			self.assertEqual(x, tgtHash)
+
+	def test_signModification_2(self):
+		for val in TEST_DATA_FLAT:
+			tgtHash = b2i(val)
+			x = hamDb.explicitUnsignCast(tgtHash)
+			self.assertEqual(x, b2u(val))
+			x = hamDb.explicitSignCast(x)
+			self.assertEqual(x, tgtHash)
+
+	def test_signModification_3(self):
+		random.seed(500000)
+		for x in range(50000):
+			val = "".join([random.choice(("1", "0")) for z in range(64)])
+			tgtHash = b2i(val)
+			x = hamDb.explicitUnsignCast(tgtHash)
+			self.assertEqual(x, b2u(val))
+			x = hamDb.explicitSignCast(x)
+			self.assertEqual(x, tgtHash)

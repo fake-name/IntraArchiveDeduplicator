@@ -105,7 +105,7 @@ def resident(since=0.0):
 class TestTreeLeaks(unittest.TestCase):
 	def __init__(self, *args, **kwargs):
 		logSetup.initLogging()
-		self.tree_size = 1 * 1000 * 1000
+		self.tree_size = 100 * 1000
 		super().__init__(*args, **kwargs)
 
 	def setUp(self):
@@ -144,7 +144,7 @@ class TestSequenceFunctions_ConcurrentModification(unittest.TestCase):
 
 	def __init__(self, *args, **kwargs):
 		logSetup.initLogging()
-		self.tree_size = 1 * 1000 * 1000
+		self.tree_size = 100 * 1000
 		super().__init__(*args, **kwargs)
 
 	def setUp(self):

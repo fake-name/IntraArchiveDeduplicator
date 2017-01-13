@@ -207,7 +207,15 @@ class ArchChecker(ProxyDbBase):
 			Boolean: True if the file is garbage, False if it is not.
 		'''
 
-		if fileN.endswith("Thumbs.db") and (fileType == 'application/CDFV2' or fileType == 'application/CDFV2-corrupt'):
+		thumbs_file_types = [
+			# So debian wheezy is so out of date their libmagick
+			# doesn't appear to have the mimetype parameter.
+			'Composite Document File V2 Document, No summary info',
+			'application/CDFV2-corrupt',
+			'application/CDFV2',
+		]
+
+		if fileN.endswith("Thumbs.db") and fileType in thumbs_file_types:
 			self.log.info("Windows thumbnail database. Ignoring")
 			return True
 

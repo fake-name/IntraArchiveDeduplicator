@@ -6,57 +6,65 @@
 # backwards compatibility). Please don't change it unless you know what
 # you're doing.
 Vagrant.configure(2) do |config|
-  config.vm.define "ubuntu-14" do |web|
+
+  config.vm.define "ubuntu-14" do |ubuntu14|
+
+    config.vm.provider "virtualbox" do |vb|
+      vb.customize ["modifyvm", :id, "--memory", 2048]
+      vb.customize ["modifyvm", :id, "--cpus", 3]
+    end
 
     # Every Vagrant development environment requires a box. You can search for
     # boxes at https://atlas.hashicorp.com/search.
-    config.vm.box = "ubuntu/trusty64"
+    ubuntu14.vm.box = "ubuntu/trusty64"
 
     # Enable provisioning with a shell script. Additional provisioners such as
     # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
     # documentation for more information about their specific syntax and use.
-    # config.vm.provi sion "shell", inline: <<-SHELL
+    # ubuntu14.vm.provi sion "shell", inline: <<-SHELL
     #   sudo apt-get update
     #   sudo apt-get install -y apache2
     # SHELL
 
-    config.vm.provision :shell, path: "bootstrap.sh"
+    ubuntu14.vm.provision :shell, path: "bootstrap.sh"
 
   end
-  config.vm.define "ubuntu-16" do |web|
+
+  config.vm.define "ubuntu-16" do |ubuntu16|
+    config.vm.provider "virtualbox" do |vb|
+      vb.customize ["modifyvm", :id, "--memory", 2048]
+      vb.customize ["modifyvm", :id, "--cpus", 3]
+    end
+
 
     # Every Vagrant development environment requires a box. You can search for
     # boxes at https://atlas.hashicorp.com/search.
-    config.vm.box = "ubuntu/xenial64"
+    ubuntu16.vm.box = "ubuntu/xenial64"
 
     # Enable provisioning with a shell script. Additional provisioners such as
     # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
     # documentation for more information about their specific syntax and use.
-    # config.vm.provi sion "shell", inline: <<-SHELL
+    # ubuntu16.vm.provi sion "shell", inline: <<-SHELL
     #   sudo apt-get update
     #   sudo apt-get install -y apache2
     # SHELL
 
-    config.vm.provision :shell, path: "bootstrap.sh"
+    ubuntu16.vm.provision :shell, path: "bootstrap.sh"
 
   end
 
-  # config.vm.define "debian" do |db|
+  config.vm.define "debian" do |deb|
+    config.vm.provider "virtualbox" do |vb|
+      vb.customize ["modifyvm", :id, "--memory", 2048]
+      vb.customize ["modifyvm", :id, "--cpus", 3]
+    end
 
-  #   # Every Vagrant development environment requires a box. You can search for
-  #   # boxes at https://atlas.hashicorp.com/search.
-  #   config.vm.box = "debian/wheezy64"
+    # Every Vagrant development environment requires a box. You can search for
+    # boxes at https://atlas.hashicorp.com/search.
+    deb.vm.box = "debian/wheezy64"
 
-  #   # Enable provisioning with a shell script. Additional provisioners such as
-  #   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
-  #   # documentation for more information about their specific syntax and use.
-  #   # config.vm.provi sion "shell", inline: <<-SHELL
-  #   #   sudo apt-get update
-  #   #   sudo apt-get install -y apache2
-  #   # SHELL
+    deb.vm.provision :shell, path: "bootstrap.sh"
 
-  #   config.vm.provision :shell, path: "bootstrap.sh"
-
-  # end
+  end
 
 end

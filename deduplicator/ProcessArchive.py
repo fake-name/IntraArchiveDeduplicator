@@ -425,6 +425,85 @@ class ArchChecker(ProxyDbBase):
 
 		return matches
 
+	def _loadFileContents(self):
+
+		ret = []
+
+		for fileN, infoDict in self.arch.iterHashes():
+
+			if self._shouldSkipFile(fileN, infoDict['type']):
+				continue
+
+			ret.append((fileN, infoDict))
+
+		return ret
+
+	def _doRowLookup(self, matchids, res):
+
+		keys = ["dbid", "fspath", "internalpath", "itemhash", "phash", "itemkind", "imgx", "imgy"]
+
+		ret_rows = []
+		for matchid in matchids:
+
+			row = self.db.getItem(dbId=matchid)
+			# Sometimes a row has been deleted without being removed from the tree.
+			# If this has happened, getItem() will return an empty list.
+			# Don't return that, if it happens
+			if not row:
+				self.log.info("Row deleted without updating tree")
+				continue
+
+			row = dict(zip(keys, row))
+
+			# Mask out items on the same path.
+			if row['fspath'] == self.archPath:
+				continue
+
+			# I genuinely cannot see how this line would get hit, but whatever.
+			if row['phash'] == None:      #pragma: no cover
+				raise ValueError("Line is missing phash, yet in phash database? DbId = '%s'", row['dbid'])
+
+			if not row['imgx'] or not row['imgy']:
+				self.log.warning("Image with no resolution stats! Wat?.")
+				self.log.warning("Image: '%s', '%s'", row['fspath'], row['internalpath'])
+				continue
+
+			if res and len(res) == 2 and (res[0] > row['imgx'] or res[1] > row['imgy']):
+				continue
+
+
+			ret_rows.append(row)
+
+		# Pack returned row tuples into nice dicts for easy access
+
+		return ret_rows
+
+	def _doHashSearches(self, filelist, searchDistance, getAllCommon):
+		# Do the normal binary lookup
+		for dummy_fileN, infoDict in filelist:
+			# get a dict->set of the matching items
+			infoDict['binMatches'] = self._getBinaryMatchesForHash(infoDict['hexHash'])
+
+		# Then, atomically do the phash searches
+		# I really don't like reaching into the class this far, but
+		# it means I don't need to import the contextlib library into the phashdbapi file.
+		with self.db.tree.reader_context():
+			for fileN, infoDict in filelist:
+				if infoDict['pHash'] is not None:
+					infoDict['pMatchIds'] = self.db.unlocked_getWithinDistance(infoDict['pHash'], searchDistance)
+
+		# Finally, resolve out the row returns from the p-hash searches out
+		# too db rows.
+		for fileN, infoDict in filelist:
+			if getAllCommon:
+				imgDims = None
+			else:
+				imgDims = (infoDict['imX'], infoDict['imY'])
+			if 'pMatchIds' in infoDict:
+				infoDict['pMatches'] = self._doRowLookup(infoDict['pMatchIds'], imgDims)
+
+		return filelist
+
 
 	# This really, /really/ feels like it should be several smaller functions, but I cannot see any nice ways to break it up.
 	# It's basically like 3 loops rolled together to reduce processing time and lookups, and there isn't much I can do about that.
@@ -448,6 +527,11 @@ class ArchChecker(ProxyDbBase):
 
 		self.log.info("Scanning for phash duplicates.")
 		matches = {}
+
+
+		# fc = self._loadFileContents()
+		# matches = self._doHashSearches(fc, searchDistance, getAllCommon)
+
 
 		for fileN, infoDict in self.arch.iterHashes():
 
@@ -480,6 +564,10 @@ class ArchChecker(ProxyDbBase):
 			# There are 79 THOUSAND of these in my collection. As a result, the existence check is prohibitively slow, so
 			# we just short-circuit and ignore it.
 			elif infoDict['pHash'] == 0:
+				self.log.warning("Skipping any checks for hash value of '%s', as it's uselessly common.", infoDict['pHash'])
+				continue
+			# I don't know what this is from, but there are 40K of them.
+			elif infoDict['pHash'] == -24019198012642646:
 				self.log.warning("Skipping any checks for hash value of '%s', as it's uselessly common.", infoDict['pHash'])
 				continue
 

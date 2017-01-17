@@ -544,6 +544,36 @@ namespace BK_Tree_Ns
 
 
 			/**
+			 * @brief Fetch all data values within a specified hamming distance
+			 *        of the specified hash.
+			 *
+			 * @param baseHash hash value for the distance benchmark.
+			 * @param distance hamming distance to search within.
+			 *
+			 * @return std::pair<std::set<int64_t>, <int64_t>, where
+			 *         the first item is a set of data-values for
+			 *         hashes within the specified distance, and
+			 *         the second is the number of tree nodes touched
+			 *         during the search (for diagnostic purposes).
+			 */
+			search_ret unlocked_getWithinDistance(hash_type baseHash, int distance)
+			{
+				// std::cout << "Get within distance!" << std::endl;
+
+				if (this->tree == NULL)
+				{
+					search_ret ret = {{}, 0};
+					return ret;
+				}
+				else
+				{
+					auto ret = this->tree->search(baseHash, distance);
+					return ret;
+				}
+			}
+
+
+			/**
 			 * @brief Given the hash and data-value for a item,
 			 *        find and remove it from the tree.
 			 * @details Removes an item from the tree by hash and

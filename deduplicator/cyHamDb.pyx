@@ -31,6 +31,7 @@ cdef extern from "./deduplicator/bktree.hpp" namespace "BK_Tree_Ns":
 		void            unlocked_insert(int64_t nodeHash, int64_t nodeData) nogil
 		vector[int64_t] remove(int64_t nodeHash, int64_t nodeData) nogil
 		search_ret      getWithinDistance(int64_t baseHash, int distance) nogil
+		search_ret      unlocked_getWithinDistance(int64_t baseHash, int distance) nogil
 		void            get_read_lock() nogil
 		void            get_write_lock() nogil
 		void            free_read_lock() nogil
@@ -103,12 +104,20 @@ cdef class CPP_BkHammingTree(object):
 
 		return had, touched
 
+	cpdef unlocked_getWithinDistance(self, int64_t baseHash, int distance):
+		cdef search_ret have
+		cdef BK_Tree *root_ptr = self.treeroot_p
+		with nogil:
+			have = root_ptr.unlocked_getWithinDistance(baseHash, distance)
+		had = set(have.first)
+		touched = int(have.second)
+
+		return had, touched
+
 	# Wrap the lock calls.
 	cpdef get_read_lock(self):
 		self.treeroot_p.get_read_lock()
 	cpdef get_write_lock(self):
-		# print("Getting write lock?")
-		# traceback.print_stack()
 		self.treeroot_p.get_write_lock()
 	cpdef free_read_lock(self):
 		self.treeroot_p.free_read_lock()
@@ -198,6 +207,22 @@ class CPPBkHammingTree(object):
 
 
 		ret, touched = self.root.getWithinDistance(baseHash, distance)
+		percent = (touched/self.nodes) * 100
+		self.log.info("Search for '%s', distance '%s', Touched %s tree nodes, or %1.3f%%. Discovered %s match(es)" % (baseHash, distance, touched, percent, len(ret)))
+
+		return ret
+
+	def unlocked_getWithinDistance(self, baseHash, distance):
+
+		# print("Search for %s within distance of %s" % (baseHash, distance))
+		if not isinstance(baseHash, int):
+			raise ValueError("Hashes must be an integer! Passed value '%s', type '%s'" % (baseHash, type(baseHash)))
+
+		if self.nodes == 0:
+			raise ValueError("Search on empty tree!")
+
+
+		ret, touched = self.root.unlocked_getWithinDistance(baseHash, distance)
 		percent = (touched/self.nodes) * 100
 		self.log.info("Search for '%s', distance '%s', Touched %s tree nodes, or %1.3f%%. Discovered %s match(es)" % (baseHash, distance, touched, percent, len(ret)))
 

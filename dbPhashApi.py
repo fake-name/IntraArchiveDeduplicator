@@ -146,7 +146,9 @@ class PhashDbApi(dbApi.DbApi):
 				self.log.critical("Ignoring error")
 
 
-
+	def unlocked_getWithinDistance(self, inPhash, distance=2):
+		ids = self.tree.getWithinDistance(inPhash, distance)
+		return ids
 
 	def getWithinDistance(self, inPhash, distance=2, wantCols=None):
 		ids = self.tree.getWithinDistance(inPhash, distance)

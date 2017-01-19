@@ -22,7 +22,7 @@ def hamming(a, b):
 THREADS = 12
 RANDOM_INIT = 6461351
 
-TEST_SAMPLE_SIZE = 10 * 1000
+TEST_SAMPLE_SIZE = 1 * 1000
 
 def lookup_call(tree, nlookups, offset):
 	local_random = random.Random()

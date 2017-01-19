@@ -15,6 +15,16 @@ import multiprocessing
 import dbApi
 import sys
 
+from pympler import muppy
+from pympler import summary
+from pympler import tracker
+
+import datetime
+import pytz
+
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.executors.pool        import ThreadPoolExecutor
+
 
 
 class DbInterfaceServer(rpyc.Service):
@@ -62,13 +72,6 @@ def before_exit():
 	print("Caught exit! Exiting")
 
 
-import datetime
-import pytz
-
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.executors.pool        import ThreadPoolExecutor
-
-
 
 # Convenience functions to make intervals clearer.
 def days(num):
@@ -83,8 +86,32 @@ def reload_tree():
 	treeProx = dbPhashApi.PhashDbApi()
 	treeProx.forceReload()
 
+TRACKER = None
+
+def dump_objs():
+	global TRACKER
+	if TRACKER is None:
+		TRACKER = tracker.SummaryTracker()
+
+	all_objects = muppy.get_objects()
+	sum1 = summary.summarize(all_objects)
+	str_sum  = summary.format_(sum1)
+	str_diff = TRACKER.format_diff()
+	with open("obj_log.txt", "a") as fp:
+		fp.write("Memory at {}\n".format(str(datetime.datetime.now())))
+
+		fp.write("Summary:\n")
+		for line in str_sum:
+			fp.write("	{}\n".format(line))
+		fp.write("Diff:\n")
+		for line in str_diff:
+			fp.write("	{}\n".format(line))
+		fp.write("\n")
 
 def configure_scheduler():
+
+	dump_objs()
+	dump_objs()
 
 	sched = BackgroundScheduler({
 			'apscheduler.jobstores.default': {
@@ -109,6 +136,17 @@ def configure_scheduler():
 				max_instances      = 1,
 				coalesce           = True,
 				misfire_grace_time = 2**30)
+
+	sched.add_job(dump_objs,
+				trigger            = 'interval',
+				seconds            = minutes(30),
+				next_run_time      = startTime,
+				id                 = "leak-tracker",
+				replace_existing   = True,
+				max_instances      = 1,
+				coalesce           = True,
+				misfire_grace_time = 2**30)
+
 
 	return sched
 

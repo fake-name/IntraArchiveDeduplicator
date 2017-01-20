@@ -1,5 +1,6 @@
 
 
+import traceback
 import rpyc
 from rpyc.utils.server import ThreadPoolServer
 import dbPhashApi
@@ -93,19 +94,31 @@ def dump_objs():
 	if TRACKER is None:
 		TRACKER = tracker.SummaryTracker()
 
-	all_objects = muppy.get_objects()
-	sum1 = summary.summarize(all_objects)
-	str_sum  = summary.format_(sum1)
-	str_diff = TRACKER.format_diff()
 	with open("obj_log.txt", "a") as fp:
 		fp.write("Memory at {}\n".format(str(datetime.datetime.now())))
+		try:
+			all_objects = muppy.get_objects()
+			sum1 = summary.summarize(all_objects)
+			str_sum  = summary.format_(sum1)
 
-		fp.write("Summary:\n")
-		for line in str_sum:
-			fp.write("	{}\n".format(line))
-		fp.write("Diff:\n")
-		for line in str_diff:
-			fp.write("	{}\n".format(line))
+			fp.write("Summary:\n")
+			for line in str_sum:
+				fp.write("	{}\n".format(line))
+		except Exception:
+			err = traceback.format_exc()
+			fp.write("Error: \n")
+			fp.write(err)
+
+		try:
+			str_diff = TRACKER.format_diff()
+			fp.write("Diff:\n")
+			for line in str_diff:
+				fp.write("	{}\n".format(line))
+		except Exception:
+			err = traceback.format_exc()
+			fp.write("Error: \n")
+			fp.write(err)
+
 		fp.write("\n")
 
 def configure_scheduler():

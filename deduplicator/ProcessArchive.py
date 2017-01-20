@@ -18,6 +18,16 @@ import scanner.fileHasher
 
 PHASH_DISTANCE_THRESHOLD = 2
 
+BAD_PHASHES = [
+	# Phash value of '0' is commonly a result of an image where there is no content, such as a blank page.
+	# There are 79 THOUSAND of these in my collection. As a result, the existence check is prohibitively slow, so
+	# we just short-circuit and ignore it.
+	                 0,
+
+	-24019198012642646,
+]
+
+
 
 class ProxyDbBase(object):
 	def __init__(self):
@@ -98,7 +108,6 @@ class ArchChecker(ProxyDbBase):
 			return False
 		return True
 
-
 	def getBestBinaryMatch(self):
 		'''
 		Get the filesystem path of the "best" matching archive.
@@ -116,7 +125,6 @@ class ArchChecker(ProxyDbBase):
 		'''
 		ret = self.getMatchingArchives()
 		return self._getBestMatchingArchive(ret)
-
 	def getBestPhashMatch(self, distance=None):
 		'''
 		Get the filesystem path of the "best" matching archive.
@@ -139,7 +147,6 @@ class ArchChecker(ProxyDbBase):
 
 		ret = self.getPhashMatchingArchives(distance)
 		return self._getBestMatchingArchive(ret)
-
 	def getSignificantlySimilarArches(self, searchDistance=None):
 		'''
 		This function returns a dict of lists containing archives with files in common with
@@ -174,7 +181,6 @@ class ArchChecker(ProxyDbBase):
 		if 1 in ret:
 			ret.pop(1)
 		return ret
-
 	def _processMatchesIntoRet(self, matches):
 		'''
 		This takes a dict of items where each key is a filesystem path, and the value
@@ -192,8 +198,6 @@ class ArchChecker(ProxyDbBase):
 		for key in ret.keys():
 			ret[key].sort()
 		return ret
-
-
 	def _shouldSkipFile(self, fileN, fileType):
 		'''
 		Internal method call. Is used to filter out files that are considered
@@ -442,8 +446,12 @@ class ArchChecker(ProxyDbBase):
 
 		keys = ["dbid", "fspath", "internalpath", "itemhash", "phash", "itemkind", "imgx", "imgy"]
 
+
+
 		ret_rows = []
 		for matchid in matchids:
+
+
 
 			row = self.db.getItem(dbId=matchid)
 			# Sometimes a row has been deleted without being removed from the tree.
@@ -460,16 +468,20 @@ class ArchChecker(ProxyDbBase):
 				continue
 
 			# I genuinely cannot see how this line would get hit, but whatever.
-			if row['phash'] == None:      #pragma: no cover
+			if row['phash'] is None and res:      #pragma: no cover
 				raise ValueError("Line is missing phash, yet in phash database? DbId = '%s'", row['dbid'])
 
-			if not row['imgx'] or not row['imgy']:
+			if (not row['imgx'] or not row['imgy']) and res:
 				self.log.warning("Image with no resolution stats! Wat?.")
 				self.log.warning("Image: '%s', '%s'", row['fspath'], row['internalpath'])
 				continue
 
 			if res and len(res) == 2 and (res[0] > row['imgx'] or res[1] > row['imgy']):
 				continue
+
+			if not os.path.exists(row['fspath']):
+				self.log.info("File deleted without updating tree")
+
 
 
 			ret_rows.append(row)
@@ -478,11 +490,17 @@ class ArchChecker(ProxyDbBase):
 
 		return ret_rows
 
+	def _isBadPee(self, phash):
+		return phash in BAD_PHASHES
+
 	def _doHashSearches(self, filelist, searchDistance, getAllCommon):
+		for fileN, infoDict in filelist:
+			infoDict["fileN"] = fileN
+
 		# Do the normal binary lookup
 		for dummy_fileN, infoDict in filelist:
 			# get a dict->set of the matching items
-			infoDict['binMatches'] = self._getBinaryMatchesForHash(infoDict['hexHash'])
+			infoDict['binMatchIds'] = [tmp for tmp, in self.db.getByHash(infoDict['hexHash'], wantCols=['dbid'])]
 
 		# Then, atomically do the phash searches
 		# I really don't like reaching into the class this far, but
@@ -492,6 +510,9 @@ class ArchChecker(ProxyDbBase):
 				if infoDict['pHash'] is not None:
 					infoDict['pMatchIds'] = self.db.unlocked_getWithinDistance(infoDict['pHash'], searchDistance)
 
+		# print("Data:")
+		# print(infoDict)
+
 		# Finally, resolve out the row returns from the p-hash searches out
 		# too db rows.
 		for fileN, infoDict in filelist:
@@ -500,14 +521,122 @@ class ArchChecker(ProxyDbBase):
 			else:
 				imgDims = (infoDict['imX'], infoDict['imY'])
 			if 'pMatchIds' in infoDict:
-				infoDict['pMatches'] = self._doRowLookup(infoDict['pMatchIds'], imgDims)
+				if self._isBadPee(infoDict['pHash']):
+					self.log.warning("Skipping any checks for hash value of '%s', as it's uselessly common.", infoDict['pHash'])
+				elif len(infoDict['pMatchIds']) > 100:
+					self.log.info("Skipping existence check due to quantity of candidate matches.")
+				else:
+					infoDict['pMatches'] = self._doRowLookup(infoDict['pMatchIds'], imgDims)
 
-		return filelist
+			if 'binMatchIds' in infoDict:
+				if self._isBadPee(infoDict['pHash']):
+					self.log.warning("Skipping any checks for hash value of '%s', as it's uselessly common.", infoDict['pHash'])
+				elif len(infoDict['binMatchIds']) > 100:
+					self.log.info("Skipping existence check due to quantity of candidate matches.")
+				else:
+					infoDict['bMatches'] = self._doRowLookup(infoDict['binMatchIds'], False)
+
+		return [infoDict for fileN, infoDict in filelist]
 
 
 	# This really, /really/ feels like it should be several smaller functions, but I cannot see any nice ways to break it up.
 	# It's basically like 3 loops rolled together to reduce processing time and lookups, and there isn't much I can do about that.
 	def getPhashMatchingArchives(self, searchDistance=None, getAllCommon=False):
+		'''
+		This function effectively mirrors the functionality of `getMatchingArchives()`,
+		except that it uses phash-duplicates to identify matches as well as
+		simple binary equality.
+
+		The additional `getAllCommon` parameter overrides the early-return behaviour if
+		one of the scanned items is unique. As such, if `getAllCommon` is True,
+		it will phash search for every item in the archive, even if they're all unique.
+		It also disables the resolution filtering of the match results.
+		This is necessary for finding commonalities between archives, which is intended
+		to return archives that the current archive has potentially superceded.
+
+		'''
+
+		if searchDistance == None:
+			searchDistance = PHASH_DISTANCE_THRESHOLD
+
+		self.log.info("Scanning for phash duplicates.")
+		matches = {}
+
+
+		fc = self._loadFileContents()
+		hashMatches = self._doHashSearches(fc, searchDistance, getAllCommon)
+
+		print("Matches: ", type(hashMatches))
+		print("Match1: ", type(hashMatches[0]))
+
+		for infoDict in hashMatches:
+			fileN = infoDict['fileN']
+
+			if self._shouldSkipFile(fileN, infoDict['type']):
+				continue
+
+
+			# Handle cases where an internal file is not an image
+			if infoDict['pHash'] is None:
+				self.log.warning("No phash for file '%s'! Wat?", fileN)
+				self.log.warning("Returned pHash: '%s'", infoDict['pHash'])
+				self.log.warning("Guessed file type: '%s'", infoDict['type'])
+				self.log.warning("Should skip: '%s'", self._shouldSkipFile(fileN, infoDict['type']))
+				self.log.warning("Using binary dup checking for file!")
+
+
+				# If we have a phash, and yet pMatches is not present,
+				# the duper skipped loading the matching files because
+				# of quantity.
+				# As such, just continue on.
+				if 'binMatchIds' in infoDict and not 'bMatches' in infoDict:
+					continue
+
+				# get a dict->set of the matching items
+				matchList = infoDict['bMatches']
+
+				if matchList:
+					for matchDict in matchList:
+						# If we have matching items, merge them into the matches dict->set
+						matches.setdefault(matchDict['fspath'], set()).add(matchDict['internalpath'])
+
+				elif not getAllCommon:
+					# Short circuit on unique item, since we are only checking if ANY item is unique
+					self.log.info("It contains at least one unique file(s).")
+					return {}
+
+
+			# Any non-none and non-0 matches get the normal lookup behaviour.
+			else:
+				# If we have a phash, and yet pMatches is not present,
+				# the duper skipped loading the matching files because
+				# of quantity.
+				# As such, just continue on.
+				if 'pHash' in infoDict and 'pMatchIds' in infoDict and not 'pMatches' in infoDict:
+					continue
+
+				matchList = infoDict['pMatches']
+				if matchList:
+					for matchDict in matchList:
+						# If we have matching items, merge them into the matches dict->set
+						matches.setdefault(matchDict['fspath'], set()).add(matchDict['internalpath'])
+
+				elif not getAllCommon:
+					# Short circuit on unique item, since we are only checking if ANY item is unique
+					self.log.info("It contains at least one unique file(s).")
+					self.log.info("Archive contains at least one unique phash(es).")
+					self.log.info("First unique file: '%s'", fileN)
+					return {}
+
+
+		self.log.info("Archive does not contain any unique phashes.")
+		return matches
+
+
+
+	# This really, /really/ feels like it should be several smaller functions, but I cannot see any nice ways to break it up.
+	# It's basically like 3 loops rolled together to reduce processing time and lookups, and there isn't much I can do about that.
+	def getPhashMatchingArchives_old(self, searchDistance=None, getAllCommon=False):
 		'''
 		This function effectively mirrors the functionality of `getMatchingArchives()`,
 		except that it uses phash-duplicates to identify matches as well as

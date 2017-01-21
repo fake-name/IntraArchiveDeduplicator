@@ -1,5 +1,6 @@
 
 import unittest
+import pprint
 import scanner.logSetup as logSetup
 
 import deduplicator.ProcessArchive
@@ -66,6 +67,7 @@ class TestArchChecker(unittest.TestCase):
 		if items != expect:
 			self._reprDatabase(items)
 		self.assertEqual(items, expect)
+
 
 	def test_getItemsSimple(self):
 		self.verifyDatabaseLoaded()
@@ -200,7 +202,7 @@ class TestArchChecker(unittest.TestCase):
 		ck = TestArchiveChecker('{cwd}/test_ptree/small.zip'.format(cwd=cwd))
 		self.assertEqual(ck.getMatchingArchives(),      {})
 
-		match = {
+		expect = {
 			'{cwd}/test_ptree/regular.zip'.format(cwd=cwd):
 				{
 					'e61ec521-155d-4a3a-956d-2544d4367e02.jpg',
@@ -209,7 +211,8 @@ class TestArchChecker(unittest.TestCase):
 					'funny-pictures-kitten-rules-a-tower.jpg'
 				}
 			}
-		self.assertEqual(ck.getPhashMatchingArchives(), match)
+		match = ck.getPhashMatchingArchives()
+		self.assertEqual(expect, match)
 
 		ck = TestArchiveChecker('{cwd}/test_ptree/z_sml.zip'.format(cwd=cwd))
 		match = {
@@ -244,7 +247,13 @@ class TestArchChecker(unittest.TestCase):
 		}
 
 		self.assertEqual(ck.getMatchingArchives(),      match)
-		self.assertEqual(ck.getPhashMatchingArchives(), pmatch)
+
+		actual_pmatch = ck.getPhashMatchingArchives()
+		# print("Expected:")
+		# pprint.pprint(pmatch)
+		# print("Actual:")
+		# pprint.pprint(actual_pmatch)
+		self.assertEqual(actual_pmatch, pmatch)
 
 
 		# The `notQuiteAllArch` has both binary and phash duplicates (since phash duplicates
@@ -297,7 +306,9 @@ class TestArchChecker(unittest.TestCase):
 		# Verify the match now fails
 		ck = TestArchiveChecker('{cwd}/test_ptree/small.zip'.format(cwd=cwd))
 		self.assertFalse(ck.getBestBinaryMatch())
-		self.assertFalse(ck.getBestPhashMatch())
+		val = ck.getBestPhashMatch()
+		pprint.pprint(val)
+		self.assertFalse(val)
 
 
 		# For a different archive.

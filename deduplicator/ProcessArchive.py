@@ -531,7 +531,7 @@ class ArchChecker(ProxyDbBase):
 				imgDims = None
 			else:
 				imgDims = (infoDict['imX'], infoDict['imY'])
-			print("Searcing for imgDims: ", imgDims)
+			# print("Searcing for imgDims: ", imgDims)
 			if 'pMatchIds' in infoDict:
 				if self._isBadPee(infoDict['pHash']):
 					self.log.warning("Skipping any checks for hash value of '%s', as it's uselessly common.", infoDict['pHash'])
@@ -539,7 +539,7 @@ class ArchChecker(ProxyDbBase):
 					self.log.info("Skipping existence check due to quantity of candidate matches.")
 				else:
 					infoDict['pMatches'] = self._doRowLookup(infoDict['pMatchIds'], imgDims)
-					print("PHash Matches: ", infoDict['pMatches'])
+					# print("PHash Matches: ", infoDict['pMatches'])
 
 			if 'binMatchIds' in infoDict:
 				if self._isBadPee(infoDict['pHash']):
@@ -548,7 +548,7 @@ class ArchChecker(ProxyDbBase):
 					self.log.info("Skipping existence check due to quantity of candidate matches.")
 				else:
 					infoDict['bMatches'] = self._doRowLookup(infoDict['binMatchIds'], False)
-					print("Binary Matches: ", infoDict['bMatches'])
+					# print("Binary Matches: ", infoDict['bMatches'])
 		return [infoDict for fileN, infoDict in filelist]
 
 
@@ -579,8 +579,8 @@ class ArchChecker(ProxyDbBase):
 		fc = self._loadFileContents()
 		hashMatches = self._doHashSearches(fc, searchDistance, getAllCommon)
 
-		print("Matches: ", type(hashMatches))
-		print("Match1: ", type(hashMatches[0]))
+		# print("Matches: ", type(hashMatches))
+		# print("Match1: ", type(hashMatches[0]))
 
 		for infoDict in hashMatches:
 			fileN = infoDict['fileN']
@@ -720,7 +720,7 @@ class ArchChecker(ProxyDbBase):
 
 def getSignificantlySimilarArches(filePath, distance=4):
 	log = logging.getLogger("Main.DedupServer")
-	print("Args:", (filePath, distance))
+	# print("Args:", (filePath, distance))
 	status = ''
 	bestMatch = None
 	common = {}
@@ -793,9 +793,9 @@ def processDownload(filePath, pathFilter=None, distance=None, moveToPath=None, c
 def commandLineReloadTree(scanConf):
 	import rpyc
 	remote = rpyc.connect("localhost", 12345)
-	print("Forcing reload of phash tree. Search functionality will block untill load is complete.")
+	# print("Forcing reload of phash tree. Search functionality will block untill load is complete.")
 	remote.root.reloadTree()
-	print("Tree reloaded!")
+	# print("Tree reloaded!")
 
 def commandLineProcess(scanConf):
 	import scanner.logSetup
@@ -804,10 +804,10 @@ def commandLineProcess(scanConf):
 	scanner.logSetup.initLogging()
 
 	if not os.path.exists(scanConf.sourcePath):
-		print("ERROR: Source file does not exist!")
+		# print("ERROR: Source file does not exist!")
 		return
 	if not os.path.isfile(scanConf.sourcePath):
-		print("ERROR: Source is not a file!")
+		# print("ERROR: Source is not a file!")
 		return
 
 	if scanConf.noContext:
@@ -823,8 +823,8 @@ def commandLineProcess(scanConf):
 		distance=6,
 		moveToPath=None,
 		locked=True)
-	print("Processed archive. Return status '%s'", status)
+	# print("Processed archive. Return status '%s'", status)
 	if bestMatch:
-		print("Matching archive '%s'", bestMatch)
+		# print("Matching archive '%s'", bestMatch)
 	return status, bestMatch, intersections
 

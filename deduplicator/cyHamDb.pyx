@@ -17,6 +17,7 @@ from contextlib import contextmanager
 import errno
 import gc
 import os
+from deduplicator.rwlock import RWLock
 
 cdef extern from "./deduplicator/bktree.hpp" namespace "BK_Tree_Ns":
 	# ctypedef cset[int64_t] set_64
@@ -76,8 +77,12 @@ cdef int64_t hamming(int64_t a, int64_t b):
 cdef class CPP_BkHammingTree(object):
 	cdef BK_Tree *treeroot_p
 
+	# This is such a hack
+	cdef object lock
+
 	def __init__(self):
 		self.treeroot_p = new BK_Tree()
+		self.lock = RWLock()
 
 	cpdef insert(self, int64_t nodeHash, int64_t nodeData):
 		cdef BK_Tree *root_ptr = self.treeroot_p
@@ -119,79 +124,106 @@ cdef class CPP_BkHammingTree(object):
 
 	# Wrap the lock calls.
 	cpdef try_get_read_lock(self):
-		print("Calling try_get_read_lock from thread: {}".format(os.getpid()))
-		retval = self.treeroot_p.try_get_read_lock()
-		print("try_get_read_lock return val: {}".format(retval))
-		if retval == 0:
-			return True
-		if retval == errno.EBUSY:
-			return False
-		if retval in errno.errorcode:
-			raise RuntimeError("Exception in lock management (try_get_read_lock): {}".format(errno.errorcode[retval]))
-		else:
-			raise RuntimeError("Unknown Exception in lock management (try_get_read_lock): {}".format(retval))
-
+		self.lock.reader_acquire(blocking=False)
 
 	cpdef try_get_write_lock(self):
-		print("Calling try_get_write_lock from thread: {}".format(os.getpid()))
-		retval = self.treeroot_p.try_get_write_lock()
-		print("try_get_write_lock return val: {}".format(retval))
-		if retval == 0:
-			return True
-		if retval in errno.errorcode:
-			raise RuntimeError("Exception in lock management (try_get_write_lock): {}".format(errno.errorcode[retval]))
-		else:
-			raise RuntimeError("Unknown Exception in lock management (try_get_write_lock): {}".format(retval))
-
+		self.lock.writer_acquire(blocking=False)
 
 	cpdef get_read_lock(self):
-		print("Calling get_read_lock from thread: {}".format(os.getpid()))
-		retval = self.treeroot_p.get_read_lock()
-		print("get_read_lock return val: {}".format(retval))
-		if retval == 0:
-			return
-		if retval == errno.EBUSY:
-			return False
-		if retval in errno.errorcode:
-			raise RuntimeError("Exception in lock management (get_read_lock): {}".format(errno.errorcode[retval]))
-		else:
-			raise RuntimeError("Unknown Exception in lock management (get_read_lock): {}".format(retval))
-
+		self.lock.reader_acquire()
 
 	cpdef get_write_lock(self):
-		print("Calling get_write_lock from thread: {}".format(os.getpid()))
-		retval = self.treeroot_p.get_write_lock()
-		print("get_write_lock return val: {}".format(retval))
-		if retval == 0:
-			return
-		if retval in errno.errorcode:
-			raise RuntimeError("Exception in lock management (get_write_lock): {}".format(errno.errorcode[retval]))
-		else:
-			raise RuntimeError("Unknown Exception in lock management (get_write_lock): {}".format(retval))
-
+		self.lock.writer_acquire()
 
 	cpdef free_read_lock(self):
-		print("Calling free_read_lock from thread: {}".format(os.getpid()))
-		retval = self.treeroot_p.free_read_lock()
-		print("free_read_lock return val: {}".format(retval))
-		if retval == 0:
-			return
-		if retval in errno.errorcode:
-			raise RuntimeError("Exception in lock management (free_read_lock): {}".format(errno.errorcode[retval]))
-		else:
-			raise RuntimeError("Unknown Exception in lock management (free_read_lock): {}".format(retval))
-
+		self.lock.reader_release()
 
 	cpdef free_write_lock(self):
-		print("Calling free_write_lock from thread: {}".format(os.getpid()))
-		retval = self.treeroot_p.free_write_lock()
-		print("free_write_lock return val: {}".format(retval))
-		if retval == 0:
-			return
-		if retval in errno.errorcode:
-			raise RuntimeError("Exception in lock management (free_write_lock): {}".format(errno.errorcode[retval]))
-		else:
-			raise RuntimeError("Unknown Exception in lock management (free_write_lock): {}".format(retval))
+		self.lock.writer_release()
+
+
+
+	# # Wrap the lock calls.
+	# cpdef try_get_read_lock(self):
+	# 	print("Calling try_get_read_lock from thread: {}".format(os.getpid()))
+	# 	with nogil:
+	# 		retval = self.treeroot_p.try_get_read_lock()
+	# 	print("try_get_read_lock return val: {}".format(retval))
+	# 	if retval == 0:
+	# 		return True
+	# 	if retval == errno.EBUSY:
+	# 		return False
+	# 	if retval in errno.errorcode:
+	# 		raise RuntimeError("Exception in lock management (try_get_read_lock): {}".format(errno.errorcode[retval]))
+	# 	else:
+	# 		raise RuntimeError("Unknown Exception in lock management (try_get_read_lock): {}".format(retval))
+
+
+	# cpdef try_get_write_lock(self):
+	# 	print("Calling try_get_write_lock from thread: {}".format(os.getpid()))
+	# 	with nogil:
+	# 		retval = self.treeroot_p.try_get_write_lock()
+	# 	print("try_get_write_lock return val: {}".format(retval))
+	# 	if retval == 0:
+	# 		return True
+	# 	if retval in errno.errorcode:
+	# 		raise RuntimeError("Exception in lock management (try_get_write_lock): {}".format(errno.errorcode[retval]))
+	# 	else:
+	# 		raise RuntimeError("Unknown Exception in lock management (try_get_write_lock): {}".format(retval))
+
+
+	# cpdef get_read_lock(self):
+	# 	print("Calling get_read_lock from thread: {}".format(os.getpid()))
+	# 	with nogil:
+	# 		retval = self.treeroot_p.get_read_lock()
+	# 	print("get_read_lock return val: {}".format(retval))
+	# 	if retval == 0:
+	# 		return
+	# 	if retval == errno.EBUSY:
+	# 		return False
+	# 	if retval in errno.errorcode:
+	# 		raise RuntimeError("Exception in lock management (get_read_lock): {}".format(errno.errorcode[retval]))
+	# 	else:
+	# 		raise RuntimeError("Unknown Exception in lock management (get_read_lock): {}".format(retval))
+
+
+	# cpdef get_write_lock(self):
+	# 	print("Calling get_write_lock from thread: {}".format(os.getpid()))
+	# 	with nogil:
+	# 		retval = self.treeroot_p.get_write_lock()
+	# 	print("get_write_lock return val: {}".format(retval))
+	# 	if retval == 0:
+	# 		return
+	# 	if retval in errno.errorcode:
+	# 		raise RuntimeError("Exception in lock management (get_write_lock): {}".format(errno.errorcode[retval]))
+	# 	else:
+	# 		raise RuntimeError("Unknown Exception in lock management (get_write_lock): {}".format(retval))
+
+
+	# cpdef free_read_lock(self):
+	# 	print("Calling free_read_lock from thread: {}".format(os.getpid()))
+	# 	with nogil:
+	# 		retval = self.treeroot_p.free_read_lock()
+	# 	print("free_read_lock return val: {}".format(retval))
+	# 	if retval == 0:
+	# 		return
+	# 	if retval in errno.errorcode:
+	# 		raise RuntimeError("Exception in lock management (free_read_lock): {}".format(errno.errorcode[retval]))
+	# 	else:
+	# 		raise RuntimeError("Unknown Exception in lock management (free_read_lock): {}".format(retval))
+
+
+	# cpdef free_write_lock(self):
+	# 	print("Calling free_write_lock from thread: {}".format(os.getpid()))
+	# 	with nogil:
+	# 		retval = self.treeroot_p.free_write_lock()
+	# 	print("free_write_lock return val: {}".format(retval))
+	# 	if retval == 0:
+	# 		return
+	# 	if retval in errno.errorcode:
+	# 		raise RuntimeError("Exception in lock management (free_write_lock): {}".format(errno.errorcode[retval]))
+	# 	else:
+	# 		raise RuntimeError("Unknown Exception in lock management (free_write_lock): {}".format(retval))
 
 
 	cpdef get_all(self):

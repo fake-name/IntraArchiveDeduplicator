@@ -65,21 +65,6 @@ class RWLock:
 		self.__no_writers.release()
 		self.__write_switch.release(self.__no_readers)
 
-	@contextmanager
-	def reader_context(self):
-		self.reader_acquire()
-		try:
-			yield
-		finally:
-			self.reader_release()
-
-	@contextmanager
-	def writer_context(self):
-		self.writer_acquire()
-		try:
-			yield
-		finally:
-			self.writer_release()
 
 class _LightSwitch:
 	"""An auxiliary "light switch"-like object. The first thread turns on the

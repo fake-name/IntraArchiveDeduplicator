@@ -673,32 +673,31 @@ namespace BK_Tree_Ns
 			 *        own locks.
 			 */
 
-			void get_read_lock(void)
+			int get_read_lock(void)
 			{
-				// std::cout << "Read-lock acquisition!" << std::endl;
-				pthread_rwlock_rdlock(&(this->lock_rw));
+				return pthread_rwlock_rdlock(&(this->lock_rw));
 			}
-			void get_write_lock(void)
+			int get_write_lock(void)
 			{
-				pthread_rwlock_wrlock(&(this->lock_rw));
-				// std::cout << "Write-lock acquisition -> " << this->recursed << "." << std::endl;
-				if (this->recursed > 0)
-				{
-					throw std::runtime_error("Reentrant lock acquisition!");
-				}
-				this->recursed += 1;
+				return pthread_rwlock_wrlock(&(this->lock_rw));
 			}
 
-			void free_read_lock(void)
+			int try_get_read_lock(void)
 			{
-				// std::cout << "Read-lock free!" << std::endl;
-				pthread_rwlock_unlock(&(this->lock_rw));
+				return pthread_rwlock_tryrdlock(&(this->lock_rw));
 			}
-			void free_write_lock(void)
+			int try_get_write_lock(void)
 			{
-				this->recursed -= 1;
-				// std::cout << "Write-lock free -> " << this->recursed << "." << std::endl;
-				pthread_rwlock_unlock(&(this->lock_rw));
+				return pthread_rwlock_trywrlock(&(this->lock_rw));
+			}
+
+			int free_read_lock(void)
+			{
+				return pthread_rwlock_unlock(&(this->lock_rw));
+			}
+			int free_write_lock(void)
+			{
+				return pthread_rwlock_unlock(&(this->lock_rw));
 			}
 
 

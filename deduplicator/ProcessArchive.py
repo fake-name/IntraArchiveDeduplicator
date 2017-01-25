@@ -825,6 +825,6 @@ def commandLineProcess(scanConf):
 		locked=True)
 	# print("Processed archive. Return status '%s'", status)
 	if bestMatch:
-		# print("Matching archive '%s'", bestMatch)
+		print("Matching archive '%s'", bestMatch)
 	return status, bestMatch, intersections
 

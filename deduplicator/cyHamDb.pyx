@@ -14,7 +14,9 @@ from libcpp.set cimport set as cset
 from contextlib import contextmanager
 # import traceback
 
+import errno
 import gc
+import os
 
 cdef extern from "./deduplicator/bktree.hpp" namespace "BK_Tree_Ns":
 	# ctypedef cset[int64_t] set_64
@@ -32,14 +34,14 @@ cdef extern from "./deduplicator/bktree.hpp" namespace "BK_Tree_Ns":
 		vector[int64_t] remove(int64_t nodeHash, int64_t nodeData) nogil
 		search_ret      getWithinDistance(int64_t baseHash, int distance) nogil
 		search_ret      unlocked_getWithinDistance(int64_t baseHash, int distance) nogil
-		void            get_read_lock() nogil
-		void            get_write_lock() nogil
-		void            free_read_lock() nogil
-		void            free_write_lock() nogil
-		int             clear_tree() nogil
-		return_deque    get_all() nogil
-
-
+		int            get_read_lock()      nogil
+		int            get_write_lock()     nogil
+		int            try_get_read_lock()  nogil
+		int            try_get_write_lock() nogil
+		int            free_read_lock()     nogil
+		int            free_write_lock()    nogil
+		int            clear_tree()         nogil
+		return_deque   get_all()            nogil
 
 
 cdef int64_t hamming(int64_t a, int64_t b):
@@ -114,15 +116,83 @@ cdef class CPP_BkHammingTree(object):
 
 		return had, touched
 
+
 	# Wrap the lock calls.
+	cpdef try_get_read_lock(self):
+		print("Calling try_get_read_lock from thread: {}".format(os.getpid()))
+		retval = self.treeroot_p.try_get_read_lock()
+		print("try_get_read_lock return val: {}".format(retval))
+		if retval == 0:
+			return True
+		if retval == errno.EBUSY:
+			return False
+		if retval in errno.errorcode:
+			raise RuntimeError("Exception in lock management (try_get_read_lock): {}".format(errno.errorcode[retval]))
+		else:
+			raise RuntimeError("Unknown Exception in lock management (try_get_read_lock): {}".format(retval))
+
+
+	cpdef try_get_write_lock(self):
+		print("Calling try_get_write_lock from thread: {}".format(os.getpid()))
+		retval = self.treeroot_p.try_get_write_lock()
+		print("try_get_write_lock return val: {}".format(retval))
+		if retval == 0:
+			return True
+		if retval in errno.errorcode:
+			raise RuntimeError("Exception in lock management (try_get_write_lock): {}".format(errno.errorcode[retval]))
+		else:
+			raise RuntimeError("Unknown Exception in lock management (try_get_write_lock): {}".format(retval))
+
+
 	cpdef get_read_lock(self):
-		self.treeroot_p.get_read_lock()
+		print("Calling get_read_lock from thread: {}".format(os.getpid()))
+		retval = self.treeroot_p.get_read_lock()
+		print("get_read_lock return val: {}".format(retval))
+		if retval == 0:
+			return
+		if retval == errno.EBUSY:
+			return False
+		if retval in errno.errorcode:
+			raise RuntimeError("Exception in lock management (get_read_lock): {}".format(errno.errorcode[retval]))
+		else:
+			raise RuntimeError("Unknown Exception in lock management (get_read_lock): {}".format(retval))
+
+
 	cpdef get_write_lock(self):
-		self.treeroot_p.get_write_lock()
+		print("Calling get_write_lock from thread: {}".format(os.getpid()))
+		retval = self.treeroot_p.get_write_lock()
+		print("get_write_lock return val: {}".format(retval))
+		if retval == 0:
+			return
+		if retval in errno.errorcode:
+			raise RuntimeError("Exception in lock management (get_write_lock): {}".format(errno.errorcode[retval]))
+		else:
+			raise RuntimeError("Unknown Exception in lock management (get_write_lock): {}".format(retval))
+
+
 	cpdef free_read_lock(self):
-		self.treeroot_p.free_read_lock()
+		print("Calling free_read_lock from thread: {}".format(os.getpid()))
+		retval = self.treeroot_p.free_read_lock()
+		print("free_read_lock return val: {}".format(retval))
+		if retval == 0:
+			return
+		if retval in errno.errorcode:
+			raise RuntimeError("Exception in lock management (free_read_lock): {}".format(errno.errorcode[retval]))
+		else:
+			raise RuntimeError("Unknown Exception in lock management (free_read_lock): {}".format(retval))
+
+
 	cpdef free_write_lock(self):
-		self.treeroot_p.free_write_lock()
+		print("Calling free_write_lock from thread: {}".format(os.getpid()))
+		retval = self.treeroot_p.free_write_lock()
+		print("free_write_lock return val: {}".format(retval))
+		if retval == 0:
+			return
+		if retval in errno.errorcode:
+			raise RuntimeError("Exception in lock management (free_write_lock): {}".format(errno.errorcode[retval]))
+		else:
+			raise RuntimeError("Unknown Exception in lock management (free_write_lock): {}".format(retval))
+
 
 	cpdef get_all(self):
 		cdef return_deque ret
@@ -241,6 +311,29 @@ class CPPBkHammingTree(object):
 
 		assert self.root is not None
 
+
+	def get_read_lock(self, blocking=True):
+		if blocking:
+			self.root.get_read_lock()
+		else:
+			self.root.try_get_read_lock()
+
+
+	def free_read_lock(self):
+		self.root.free_read_lock()
+
+	def get_write_lock(self, blocking=True):
+		if blocking:
+			self.root.get_write_lock()
+		else:
+			self.root.try_get_write_lock()
+
+
+	def free_write_lock(self):
+		self.root.free_write_lock()
+
+
+
 	@contextmanager
 	def reader_context(self):
 		self.root.get_read_lock()
@@ -299,7 +392,6 @@ def f_hamming_dist(a, b):
 
 
 import threading
-import rwlock
 import logging
 
 BkHammingTree = CPPBkHammingTree

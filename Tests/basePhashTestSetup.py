@@ -49,28 +49,29 @@ class TestDb(TestDbBare):
 
 	streamChunkSize = 5
 
-	def __init__(self, tableName = None, *args, **kwargs):
+	def __init__(self, tableName = None, load_database = True, *args, **kwargs):
 
 		if tableName:
 			self.tableName = self.tableName+"_"+tableName
 		super().__init__(*args, **kwargs)
 
-
-		self.copy_zips()
-
 		self.hasher = TestHasher()
-		self.tree.dropTree()
 
-		self.log.info("sync()ing")
-		# You need an explicit sync call or the load_zips call can sometimes miss the new files.
-		# Yes, this was actually an issue.
-		os.sync()
+		if load_database:
+			self.copy_zips()
 
-		self.load_zips(TEST_ZIP_PATH)
+			self.tree.dropTree()
 
-		# Since the tree deliberately persists (it's a singleton), we have to /explicitly/ clobber it.
-		self.tree.dropTree()
-		self.doLoad()
+			self.log.info("sync()ing")
+			# You need an explicit sync call or the load_zips call can sometimes miss the new files.
+			# Yes, this was actually an issue.
+			os.sync()
+
+			self.load_zips(TEST_ZIP_PATH)
+
+			# Since the tree deliberately persists (it's a singleton), we have to /explicitly/ clobber it.
+			self.tree.dropTree()
+			self.doLoad()
 
 	def copy_zips(self):
 		cwd = os.path.dirname(os.path.realpath(__file__))

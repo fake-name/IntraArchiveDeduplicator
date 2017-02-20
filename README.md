@@ -51,3 +51,6 @@ There are fairly extensive unit tests for the DB API, as well as the BK-tree and
 
 TODO:
 Moved counter in CPPBKTree delete operation doesn't work.
+
+Long filenames break hasher?
+Bad filename: "00PGw6sr1r7fBlHub52mIRCQ4Nd5jTn0n31_2B3HvgCJTHDJcBK3qV0H7k7gdTwYTiaowENq0D8vK0hBDL_5d88vcInWqPRs4H8GZQYHRlzrHWUYNKiD0QRoeEOz2AztX4nF8v0=w1600"

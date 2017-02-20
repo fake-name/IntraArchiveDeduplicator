@@ -37,6 +37,9 @@ The tree reload facility is mostly intended for refreshing the tree when the db 
 external tools, such as the hash scanner.
 '''
 
+def hammingDistance(v1, v2):
+	return hamDb.hamming_dist(v1, v2)
+
 class PhashDbApi(dbApi.DbApi):
 
 	# Read in phash/dbId values in chunks of 50K rows

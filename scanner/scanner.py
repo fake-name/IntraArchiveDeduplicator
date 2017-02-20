@@ -4,6 +4,7 @@
 import os
 import os.path
 import sys
+import time
 import scanner.logSetup
 
 import multiprocessing
@@ -120,6 +121,8 @@ class DedupScanTool(object):
 					wholePath = os.path.join(root, fileN)
 					# print("File", wholePath)
 					self.toProcessQueue.put((wholePath, fileN))
+					if self.toProcessQueue.qsize() > 10000:
+						time.sleep(1)
 
 		except (KeyboardInterrupt, SystemExit, GeneratorExit):
 

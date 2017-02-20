@@ -27,7 +27,20 @@ BAD_PHASHES = [
 	-24019198012642646,
 ]
 
+class ArchiveProcessorException(Exception):
+	pass
 
+class DatabaseDesynchronizedError(ArchiveProcessorException):
+	pass
+
+class InvalidArchiveContentsException(ArchiveProcessorException):
+	pass
+
+class InvalidArchivePhashContentsException(InvalidArchiveContentsException):
+	pass
+
+class InvalidArchiveMd5ContentsException(InvalidArchiveContentsException):
+	pass
 
 class ProxyDbBase(object):
 	def __init__(self):
@@ -551,6 +564,53 @@ class ArchChecker(ProxyDbBase):
 					# print("Binary Matches: ", infoDict['bMatches'])
 		return [infoDict for fileN, infoDict in filelist]
 
+	def _checkHashesOk(self, fileContent, searchDistance):
+		'''
+		Do some integrity checks against the loaded file content, to catch some possible
+		issues.
+
+		Primarily, this detects issues where the files in an archive are mis-hashed due to
+		library issues.
+
+		The idea is that a single archive should be at least ~75% unique. If an archive has
+		10 images, yet only 5 of them are unique even within the archive, something is
+		probably wrong somewhere.
+		'''
+
+		md5s = [filed['hexHash'] for filen, filed in fileContent if not filed['pHash']]
+
+		muniqueratio = len(set(md5s)) / max(1, len(md5s))
+		phashes = [filed['pHash'] for filen, filed in fileContent if filed['pHash']]
+
+		so_far = []
+		unique = 0
+		for phash in phashes:
+			similarity = [dbApi.hammingDistance(phash, other) for other in so_far]
+			coincides = [tmp for tmp in similarity if tmp <= searchDistance]
+			so_far.append(phash)
+			if not coincides:
+				unique += 1
+
+		puniqratio = unique / max(1, len(phashes))
+
+
+		hashratio = len(phashes) / max(1, len(md5s))
+
+		# print("phashes", len(phashes))
+		# print("muniqueratio", muniqueratio)
+		# print("unique", unique)
+		# print("puniqratio", puniqratio)
+		# print("hashratio", hashratio)
+		# print("len(md5s)", len(md5s))
+		# print("len(set(md5s))", len(set(md5s)))
+
+		if len(phashes) and puniqratio < 0.5:
+			raise InvalidArchivePhashContentsException("Too many identical images (phash-search) in the archive!")
+
+		# If there are any md5-only files, check they're at least 50% unique
+		# Only do this if there are more md5s then images
+		if len(md5s) and muniqueratio <= 0.6 and hashratio <= 1:
+			raise InvalidArchiveMd5ContentsException("Too many identical files in the archive!")
 
 	# This really, /really/ feels like it should be several smaller functions, but I cannot see any nice ways to break it up.
 	# It's basically like 3 loops rolled together to reduce processing time and lookups, and there isn't much I can do about that.
@@ -577,10 +637,14 @@ class ArchChecker(ProxyDbBase):
 
 
 		fc = self._loadFileContents()
+
+		# self._checkHashesOk(fc, searchDistance)
+
 		hashMatches = self._doHashSearches(fc, searchDistance, getAllCommon)
 
 		# print("Matches: ", type(hashMatches))
 		# print("Match1: ", type(hashMatches[0]))
+
 
 		for infoDict in hashMatches:
 			fileN = infoDict['fileN']

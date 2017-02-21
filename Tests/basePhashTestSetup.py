@@ -71,7 +71,7 @@ class TestDb(TestDbBare):
 
 			# Since the tree deliberately persists (it's a singleton), we have to /explicitly/ clobber it.
 			self.tree.dropTree()
-			self.doLoad()
+			self.unlocked_doLoad()
 
 	def copy_zips(self):
 		cwd = os.path.dirname(os.path.realpath(__file__))

@@ -33,9 +33,7 @@ def rawHashFile(archPath):
 
 	try:
 		for fName, fp in archIterator:
-
 			fCont = fp.read()
-
 			fName, hexHash, pHash, imX, imY = hasher.hashFile(archPath, fName, fCont)
 
 			insertArgs = {
@@ -59,13 +57,28 @@ def doListDupes(on_file):
 	print("Finding files similar to: '{}'".format(on_file))
 	remote = rpyc.connect("localhost", 12345)
 	commons = remote.root.listDupes(filePath=on_file)
+	print("result:")
 	pprint.pprint(commons)
 	print("Wut?")
 
+def doSingleSearch(phash):
+	print("Search for: ", phash)
+	phash = int(phash)
+	print(phash)
+
+	print("Finding files similar to: '{}'".format(phash))
+	remote = rpyc.connect("localhost", 12345)
+	commons = remote.root.single_phash_search(phash=phash)
+
+	print("Common:")
+	print(commons)
 
 def go(scanConf):
 	if scanConf.testScan:
 		doTestScan(scanConf.testScan)
 	elif scanConf.listSimilar:
 		doListDupes(scanConf.listSimilar)
+	elif scanConf.phashLookup:
+		doSingleSearch(scanConf.phashLookup)
+
 

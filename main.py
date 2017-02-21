@@ -53,6 +53,7 @@ if __name__ == "__main__":
 	testProc = subparsers.add_parser('test', help="test-functions")
 	testProc.add_argument('-f', '--test-file',    required=False,  dest="testScan",    help="Scan an archive, and print it's resulting hashes to the console.")
 	testProc.add_argument('-s', '--list-similar', required=False,  dest="listSimilar", help="Scan an archive, and print archives with many phash-results in common.")
+	testProc.add_argument('-p', '--phash-lookup', required=False,  dest="phashLookup", help="Given a single phash integer, look up all similar items.")
 	testProc.set_defaults(func=interactive_tests.test_interface.go)
 	testProc.set_defaults(subproc=testProc)
 

@@ -53,7 +53,7 @@ class TestSequenceFunctions(unittest.TestCase):
 
 	def test_loadFromDb(self):
 		self.db.tree.dropTree()
-		self.db.doLoad()
+		self.db.unlocked_doLoad()
 
 
 	# Verify the structure of the tree
@@ -63,7 +63,7 @@ class TestSequenceFunctions(unittest.TestCase):
 
 		self.db.tree.dropTree()
 
-		self.db.doLoad()
+		self.db.unlocked_doLoad()
 
 		self.assertEqual(list(self.db.tree), loadedTree)
 

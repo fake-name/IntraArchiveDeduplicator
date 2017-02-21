@@ -48,11 +48,21 @@ class DbInterfaceServer(rpyc.Service):
 			print("Acquiring lock")
 			self.lock.acquire()
 		try:
-			return deduplicator.ProcessArchive.getSignificantlySimilarArches(*args, **kwargs)
+			ret = deduplicator.ProcessArchive.getSignificantlySimilarArches(*args, **kwargs)
+			print(ret)
+			return ret
 		finally:
 			if locked:
 				print("Releasing lock")
 				self.lock.release()
+
+	def exposed_single_phash_search(self, phash, distance=4):
+		db = dbPhashApi.PhashDbApi()
+
+		matchids = db.getWithinDistance(phash, distance)
+		print(matchids)
+
+		return matchids
 
 	def exposed_reloadTree(self):
 		treeProx = dbPhashApi.PhashDbApi()

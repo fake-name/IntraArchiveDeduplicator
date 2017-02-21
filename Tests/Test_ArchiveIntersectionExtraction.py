@@ -65,11 +65,13 @@ class TestArchChecker(unittest.TestCase):
 		items.sort()
 		if items != expect:
 			self._reprDatabase(items)
+
 		self.assertEqual(items, expect)
 
 
 
-	def test_isBinaryUnique(self):
+class TestArchChecker_1(TestArchChecker):
+	def test_significantlySimilar_1(self):
 		cwd = os.path.dirname(os.path.realpath(__file__))
 
 		ck = TestArchiveChecker('{cwd}/test_ptree/notQuiteAllArch.zip'.format(cwd=cwd))
@@ -82,30 +84,19 @@ class TestArchChecker(unittest.TestCase):
 		}
 		self.assertEqual(ret, expect)
 
+	def test_significantlySimilar_2(self):
+		cwd = os.path.dirname(os.path.realpath(__file__))
 
 		ck = TestArchiveChecker('{cwd}/test_ptree/regular.zip'.format(cwd=cwd))
 		ret = ck.getSignificantlySimilarArches(searchDistance=2)
 
 		expect = {
-			4:
+			8:
 				[
-					'{cwd}/test_ptree/small.zip'.format(cwd=cwd)
+					'{cwd}/test_ptree/small_and_regular.zip'.format(cwd=cwd)
 				]
 		}
 		self.assertEqual(ret, expect)
-
-		# Check that we are properly matching larger images
-		ck = TestArchiveChecker('{cwd}/test_ptree/small.zip'.format(cwd=cwd))
-		ret = ck.getSignificantlySimilarArches(searchDistance=2)
-
-		expect = {
-			4:
-				[
-					'{cwd}/test_ptree/regular.zip'.format(cwd=cwd)
-				]
-		}
-		self.assertEqual(ret, expect)
-
 
 
 
@@ -127,5 +118,22 @@ class TestArchChecker(unittest.TestCase):
 				]
 		}
 
+		self.assertEqual(ret, expect)
+
+
+
+class TestArchChecker_2(TestArchChecker):
+	def test_significantlySimilar_3(self):
+		cwd = os.path.dirname(os.path.realpath(__file__))
+		# Check that we are properly matching larger images
+		ck = TestArchiveChecker('{cwd}/test_ptree/small.zip'.format(cwd=cwd))
+		ret = ck.getSignificantlySimilarArches(searchDistance=2)
+
+		expect = {
+			8:
+				[
+					'{cwd}/test_ptree/small_and_regular.zip'.format(cwd=cwd)
+				]
+		}
 		self.assertEqual(ret, expect)
 

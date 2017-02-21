@@ -7,7 +7,7 @@ import sys
 import os.path
 import logging
 import time
-import magic
+import pprint
 import shutil
 import traceback
 
@@ -184,6 +184,12 @@ class ArchChecker(ProxyDbBase):
 		# This is a preventative measure against things like scanlators which
 		# have a credit page they put EVERYWHERE, and we therefor want to
 		# disregard.
+
+		print("Common:")
+		pprint.pprint(common)
+		print("Ret:")
+		pprint.pprint(ret)
+
 		keys = list(ret.keys())
 		if not keys:
 			return ret

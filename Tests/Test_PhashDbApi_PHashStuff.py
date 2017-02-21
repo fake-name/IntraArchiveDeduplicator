@@ -29,7 +29,7 @@ class TestDb(dbPhashApi.PhashDbApi):
 
 		# Since the tree deliberately persists (it's a singleton), we have to /explicitly/ clobber it.
 		self.tree.dropTree()
-		self.doLoad()
+		self.unlocked_doLoad()
 
 	def tearDown(self):
 		self.log.info("Dropping testing table '{table}'".format(table=self.tableName))
@@ -99,7 +99,12 @@ class TestSequenceFunctions(unittest.TestCase):
 
 	def test_loadFromDb(self):
 		self.db.tree.dropTree()
-		self.db.doLoad()
+		self.db.unlocked_doLoad()
+
+	def test_loadFromDb_2(self):
+		self.db.tree.dropTree()
+		with self.db.tree.writer_context():
+			self.db.unlocked_doLoad()
 
 
 	# Verify the structure of the tree
@@ -108,7 +113,7 @@ class TestSequenceFunctions(unittest.TestCase):
 		loadedTree = list(self.db.tree)
 
 		self.db.tree.dropTree()
-		self.db.doLoad()
+		self.db.unlocked_doLoad()
 
 		self.assertEqual(list(self.db.tree), loadedTree)
 

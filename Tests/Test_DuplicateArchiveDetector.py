@@ -341,6 +341,8 @@ class TestArchChecker(unittest.TestCase):
 
 	def test_skipSolid(self):
 		'''
+		test_skipSolid()
+
 		z_sml_w is a solid-color image, which produces a phash of 0.
 		since there are LOTS of empty page images, this is basically a useless match, so it's
 		special-case skipped in the ProcessArchive tool. Otherwise, we'd be waiting on

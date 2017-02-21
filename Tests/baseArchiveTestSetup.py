@@ -8,6 +8,9 @@ All test images are lolcats. AS GOD INTENDED.
 
 import os
 import os.path
+import tempfile
+
+TEST_ZIP_PATH = tempfile.mkdtemp()
 
 def insertCwd(inStr):
 	cwd = os.path.dirname(os.path.realpath(__file__))

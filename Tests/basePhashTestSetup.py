@@ -3,6 +3,7 @@ import dbPhashApi
 import scanner.fileHasher
 
 import os
+import time
 import os.path
 import logging
 import shutil
@@ -37,6 +38,24 @@ class TestHasher(scanner.fileHasher.HashThread):
 	# Nop the progress bar output
 	def putProgQueue(self, value):
 		pass
+
+def delete_item(item_path):
+	failed = 0
+	while os.path.exists(item_path):
+		try:
+			shutil.rmtree(item_path)
+		except Exception as e:
+			failed += 1
+			if failed > 10:
+				raise e
+
+			# You need an explicit sync call or the load_zips call can sometimes miss the new files.
+			# Yes, this was actually an issue.
+			os.sync()
+			time.sleep(0.1)
+
+			if not os.path.exists(item_path):
+				return
 
 class TestDb(TestDbBare):
 
@@ -112,7 +131,5 @@ class TestDb(TestDbBare):
 
 		cwd = os.path.dirname(os.path.realpath(__file__))
 		tmpPath = os.path.join(cwd, TEST_ZIP_PATH)
-		for item in os.listdir(tmpPath):
-			dstitem = os.path.join(tmpPath, item)
-			os.remove(dstitem)
-		os.rmdir(tmpPath)
+
+		delete_item(tmpPath)

@@ -530,7 +530,7 @@ class ArchChecker(ProxyDbBase):
 		# I really don't like reaching into the class this far, but
 		# it means I don't need to import the contextlib library into the phashdbapi file.
 
-		matches = self.db.searchPhashSet([infoDict['pHash'] for fileN, infoDict in filelist if infoDict['pHash']], searchDistance)
+		matches = self.db.searchPhashSet([infoDict['pHash'] for fileN, infoDict in filelist if infoDict['pHash'] is not None], searchDistance)
 
 		for fileN, infoDict in filelist:
 			if infoDict['pHash'] is not None:

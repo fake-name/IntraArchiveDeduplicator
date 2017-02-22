@@ -87,8 +87,9 @@ class TestSequenceFunctions(unittest.TestCase):
 			(9,  '{cwd}/test_ptree/notQuiteAllArch.zip',  'Lolcat_this_is_mah_job.jpg',       'd9ceeb6b43c2d7d096532eabfa6cf482', 27427800275512429, None, 493, 389),
 			(10, '{cwd}/test_ptree/notQuiteAllArch.zip',  'Lolcat_this_is_mah_job.png',       '1268e704908cc39299d73d6caafc23a0', 27427800275512429, None, 493, 389),
 			(11, '{cwd}/test_ptree/notQuiteAllArch.zip',  'Lolcat_this_is_mah_job_small.jpg', '40d39c436e14282dcda06e8aff367307', 27427800275512429, None, 300, 237),
-			(25, '{cwd}/test_ptree/testArch.zip',         'Lolcat_this_is_mah_job.png',       '1268e704908cc39299d73d6caafc23a0', 27427800275512429, None, 493, 389),
-			(26, '{cwd}/test_ptree/testArch.zip',         'Lolcat_this_is_mah_job_small.jpg', '40d39c436e14282dcda06e8aff367307', 27427800275512429, None, 300, 237),
+			(43, '{cwd}/test_ptree/testArch.zip',         'Lolcat_this_is_mah_job_small.jpg', '40d39c436e14282dcda06e8aff367307', 27427800275512429, None, 300, 237),
+			(42, '{cwd}/test_ptree/testArch.zip',         'Lolcat_this_is_mah_job.png',       '1268e704908cc39299d73d6caafc23a0', 27427800275512429, None, 493, 389),
+
 		}
 
 		expect = fix_paths(expect)

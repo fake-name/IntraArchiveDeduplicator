@@ -185,10 +185,10 @@ class ArchChecker(ProxyDbBase):
 		# have a credit page they put EVERYWHERE, and we therefor want to
 		# disregard.
 
-		print("Common:")
-		pprint.pprint(common)
-		print("Ret:")
-		pprint.pprint(ret)
+		# print("Common:")
+		# pprint.pprint(common)
+		# print("Ret:")
+		# pprint.pprint(ret)
 
 		keys = list(ret.keys())
 		if not keys:
@@ -201,6 +201,11 @@ class ArchChecker(ProxyDbBase):
 		# And pop all items which have only one item in common
 		if 1 in ret:
 			ret.pop(1)
+
+		# Sort the return, to make it deterministic
+		for item in ret.values():
+			item.sort()
+
 		return ret
 
 	def _processMatchesIntoRet(self, matches):
@@ -334,79 +339,7 @@ class ArchChecker(ProxyDbBase):
 		return matches
 
 
-	def _getPhashMatchesForPhash(self, phash, imgDims, searchDistance):
-		'''
-		Params:
-			phash (integer): The phash to match against.
-			searchDistance (integer): The phash search distance.
 
-		Returns:
-			dict of sets: Dict keys are filesystem paths, and the set contains
-				the internal path of each item that is `searchDistance` or less
-				away from `phash`
-
-
-		This function searches for all items within `searchDistance` of `phash`, masks out
-		any paths in `self.maskedPaths`, and then checks for file existence. If the file exists,
-		it's inserted into a local dictionary with the key being the filesystem path,
-		and the value being a set into which the internal path is inserted.
-
-		'''
-
-
-		srcX, srcY = imgDims
-
-		matches = {}
-
-		proximateFiles = self.db.getWithinDistance(phash, searchDistance)
-
-		# Pack returned row tuples into nice dicts for easy access
-		keys = ["dbid", "fspath", "internalpath", "itemhash", "phash", "itemkind", "imgx", "imgy"]
-		rows = [dict(zip(keys, row)) for row in proximateFiles]
-
-		# Filter returned scan results by the maskedPaths context
-		# This is done early-on, so we don't get extraPath garbage
-		# when the actual scan is done.
-		rows = [row for row in rows if any([row['fspath'].startswith(maskedPath) for maskedPath in self.maskedPaths])]
-
-
-		# for row in [match for match in proximateFiles if (match and match[1] != self.archPath)]:
-
-		if len(rows) > 100:
-			self.log.info("Skipping existence check due to quantity of candidate matches.")
-
-		for row in rows:
-
-			# Mask out items on the same path.
-			if row['fspath'] == self.archPath:
-				continue
-
-			# I genuinely cannot see how this line would get hit, but whatever.
-			if row['phash'] == None:      #pragma: no cover
-				raise ValueError("Line is missing phash, yet in phash database? DbId = '%s'", row['dbid'])
-
-			if not row['imgx'] or not row['imgy']:
-				self.log.warn("Image with no resolution stats! Wat?.")
-				self.log.warn("Image: '%s', '%s'", row['fspath'], row['internalpath'])
-				continue
-
-			if srcX > row['imgx'] or srcY > row['imgy']:
-				# self.log.info("Filtering phash match due to lower resolution.")
-				continue
-
-
-			# If we had more then 100 returnd matches, skip the existence check as
-			# it'll take too long, and it's probably safe to assume that /some/ of
-			# the found matches exist..
-			if len(rows) > 100 or os.path.exists(row['fspath']) :
-				matches.setdefault(row['fspath'], set()).add(row['internalpath'])
-
-			else:
-				self.log.warn("Item '%s' no longer exists!", row['fspath'])
-				self.db.deleteDbRows(fspath=row['fspath'])
-
-
-		return matches
 
 	def getMatchingArchives(self):
 		'''
@@ -469,8 +402,7 @@ class ArchChecker(ProxyDbBase):
 	def _doRowLookup(self, matchids, resolution):
 
 		keys = ["dbid", "fspath", "internalpath", "itemhash", "phash", "itemkind", "imgx", "imgy"]
-
-
+		# self.log.info("Row lookup for %s (%s)", matchids, resolution)
 
 		ret_rows = []
 		for matchid in matchids:
@@ -500,14 +432,13 @@ class ArchChecker(ProxyDbBase):
 				self.log.warning("Image: '%s', '%s'", row['fspath'], row['internalpath'])
 				continue
 
-
-			if resolution and len(resolution) == 2 and ():
-				continue
-
 			if resolution and len(resolution) == 2:
 				res_x, res_y = resolution
 				if res_x > row['imgx'] or res_y > row['imgy']:
+					# self.log.info("Filtering phash match due to lower resolution.")
 					continue
+				# else:
+				# 	self.log.info("Image not resolution filtered: (%s x %s) - (%s x %s).", res_x, res_y, row['imgx'], row['imgy'])
 
 			if not os.path.exists(row['fspath']):
 				self.log.info("File deleted without updating tree")
@@ -523,7 +454,7 @@ class ArchChecker(ProxyDbBase):
 	def _isBadPee(self, phash):
 		return phash in BAD_PHASHES
 
-	def _doHashSearches(self, filelist, searchDistance, getAllCommon):
+	def _doHashSearches(self, filelist, searchDistance, resolutionFilter):
 		for fileN, infoDict in filelist:
 			infoDict["fileN"] = fileN
 
@@ -542,17 +473,15 @@ class ArchChecker(ProxyDbBase):
 			if infoDict['pHash'] is not None:
 				infoDict['pMatchIds'] = matches[infoDict['pHash']]
 
-		# print("Data:")
-		# print(infoDict)
 
 		# Finally, resolve out the row returns from the p-hash searches out
 		# too db rows.
 		for fileN, infoDict in filelist:
-			if getAllCommon:
-				imgDims = None
-			else:
+			if resolutionFilter:
 				imgDims = (infoDict['imX'], infoDict['imY'])
-			# print("Searcing for imgDims: ", imgDims)
+			else:
+				imgDims = None
+
 			if 'pMatchIds' in infoDict:
 				if self._isBadPee(infoDict['pHash']):
 					self.log.warning("Skipping any checks for hash value of '%s', as it's uselessly common.", infoDict['pHash'])
@@ -568,9 +497,10 @@ class ArchChecker(ProxyDbBase):
 				elif len(infoDict['binMatchIds']) > 100:
 					self.log.info("Skipping existence check due to quantity of candidate matches.")
 				else:
+					# Resolution filtering is pointless here, since we matched on the MD5s, rather then file hashes
 					infoDict['bMatches'] = self._doRowLookup(infoDict['binMatchIds'], False)
 					# print("Binary Matches: ", infoDict['bMatches'])
-		return [infoDict for fileN, infoDict in filelist]
+		return filelist
 
 	def _checkHashesOk(self, fileContent, searchDistance):
 		'''
@@ -622,7 +552,7 @@ class ArchChecker(ProxyDbBase):
 
 	# This really, /really/ feels like it should be several smaller functions, but I cannot see any nice ways to break it up.
 	# It's basically like 3 loops rolled together to reduce processing time and lookups, and there isn't much I can do about that.
-	def getPhashMatchingArchives(self, searchDistance=None, getAllCommon=False):
+	def getPhashMatchingArchives(self, searchDistance=None, getAllCommon=False, resolutionFilter=True):
 		'''
 		This function effectively mirrors the functionality of `getMatchingArchives()`,
 		except that it uses phash-duplicates to identify matches as well as
@@ -646,15 +576,11 @@ class ArchChecker(ProxyDbBase):
 
 		fc = self._loadFileContents()
 
-		# self._checkHashesOk(fc, searchDistance)
+		self._checkHashesOk(fc, searchDistance)
 
-		hashMatches = self._doHashSearches(fc, searchDistance, getAllCommon)
+		hashMatches = self._doHashSearches(fc, searchDistance, resolutionFilter)
 
-		# print("Matches: ", type(hashMatches))
-		# print("Match1: ", type(hashMatches[0]))
-
-
-		for infoDict in hashMatches:
+		for container_filen, infoDict in hashMatches:
 			fileN = infoDict['fileN']
 
 			if self._shouldSkipFile(fileN, infoDict['type']):
@@ -683,7 +609,7 @@ class ArchChecker(ProxyDbBase):
 				if matchList:
 					for matchDict in matchList:
 						# If we have matching items, merge them into the matches dict->set
-						matches.setdefault(matchDict['fspath'], set()).add(matchDict['internalpath'])
+						matches.setdefault(matchDict['fspath'], {})[(container_filen, fileN)] = True
 
 				elif not getAllCommon:
 					# Short circuit on unique item, since we are only checking if ANY item is unique
@@ -703,8 +629,18 @@ class ArchChecker(ProxyDbBase):
 				matchList = infoDict['pMatches']
 				if matchList:
 					for matchDict in matchList:
+
 						# If we have matching items, merge them into the matches dict->set
-						matches.setdefault(matchDict['fspath'], set()).add(matchDict['internalpath'])
+						# These are stored with the key being the item in the /original archive/ they
+						# match to. This way, if one file in the current archive matches
+						# to many images another archive, it will only get counted as a single
+						# match.
+						# This is because there are some archives with many, many white pages in them.
+						# Therefore, if a deduplicated archive has a single white page, it was
+						# resulting in an errant high similarity rating with the archive containing
+						# many duplicate files, which produces a mis-link in the post-deduplication
+						# relinking.
+						matches.setdefault(matchDict['fspath'], {})[(container_filen, fileN)] = True
 
 				elif not getAllCommon:
 					# Short circuit on unique item, since we are only checking if ANY item is unique

@@ -27,10 +27,12 @@ class TestArchiveChecker(deduplicator.ProcessArchive.ArchChecker):
 		return Tests.basePhashTestSetup.TestDbBare()
 
 class TestArchChecker(unittest.TestCase):
+	maxDiff = None
 
 	def __init__(self, *args, **kwargs):
 		logSetup.initLogging()
 		super().__init__(*args, **kwargs)
+
 
 	def setUp(self):
 
@@ -84,20 +86,6 @@ class TestArchChecker_1(TestArchChecker):
 		}
 		self.assertEqual(ret, expect)
 
-	def test_significantlySimilar_2(self):
-		cwd = os.path.dirname(os.path.realpath(__file__))
-
-		ck = TestArchiveChecker('{cwd}/test_ptree/regular.zip'.format(cwd=cwd))
-		ret = ck.getSignificantlySimilarArches(searchDistance=2)
-
-		expect = {
-			8:
-				[
-					'{cwd}/test_ptree/small_and_regular.zip'.format(cwd=cwd)
-				]
-		}
-		self.assertEqual(ret, expect)
-
 
 
 	def test_junkFileFiltering(self):
@@ -114,15 +102,30 @@ class TestArchChecker_1(TestArchChecker):
 			2:
 				[
 					'{cwd}/test_ptree/z_reg.zip'.format(cwd=cwd),
-					'{cwd}/test_ptree/z_sml.zip'.format(cwd=cwd)
 				]
 		}
+		self.assertEqual(ret, expect)
 
+	def test_sizeFiltering2(self):
+
+		cwd = os.path.dirname(os.path.realpath(__file__))
+
+		# Remove junk zip so z_reg is actually unique
+		ck = TestArchiveChecker('{cwd}/test_ptree/z_sml.zip'.format(cwd=cwd))
+
+
+		ret = ck.getSignificantlySimilarArches()
+
+		expect = {
+			2:
+				[
+					'{cwd}/test_ptree/z_reg.zip'.format(cwd=cwd),
+					'{cwd}/test_ptree/z_reg_junk.zip'.format(cwd=cwd),
+				]
+		}
 		self.assertEqual(ret, expect)
 
 
-
-class TestArchChecker_2(TestArchChecker):
 	def test_significantlySimilar_3(self):
 		cwd = os.path.dirname(os.path.realpath(__file__))
 		# Check that we are properly matching larger images
@@ -130,10 +133,29 @@ class TestArchChecker_2(TestArchChecker):
 		ret = ck.getSignificantlySimilarArches(searchDistance=2)
 
 		expect = {
-			8:
+			4:
 				[
-					'{cwd}/test_ptree/small_and_regular.zip'.format(cwd=cwd)
+					'{cwd}/test_ptree/regular.zip'.format(cwd=cwd),
+					'{cwd}/test_ptree/small_and_regular.zip'.format(cwd=cwd),
 				]
 		}
 		self.assertEqual(ret, expect)
 
+class TestArchChecker_2(TestArchChecker):
+
+
+	def test_significantlySimilar_2(self):
+		cwd = os.path.dirname(os.path.realpath(__file__))
+
+		ck = TestArchiveChecker('{cwd}/test_ptree/regular.zip'.format(cwd=cwd))
+		ret = ck.getSignificantlySimilarArches(searchDistance=2)
+
+		expect = {
+			4:
+				[
+					'{cwd}/test_ptree/small_and_regular.zip'.format(cwd=cwd),
+				]
+		}
+		print("ret:", ret)
+		print("expect:", expect)
+		self.assertEqual(ret, expect)

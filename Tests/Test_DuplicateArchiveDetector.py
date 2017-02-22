@@ -32,6 +32,7 @@ class TestArchChecker(unittest.TestCase):
 	def __init__(self, *args, **kwargs):
 		logSetup.initLogging()
 		super().__init__(*args, **kwargs)
+		self.maxDiff = None
 
 	def setUp(self):
 
@@ -57,7 +58,9 @@ class TestArchChecker(unittest.TestCase):
 		easier when new files are added to the test-suite.
 		'''
 		for row in db:
-			print('%s, ' % list(row))
+			row = list(row)
+			row[1] = row[1].replace("/media/Storage/Scripts/Deduper/Tests", "{cwd}")
+			print('	%s, ' % list(row))
 
 	def verifyDatabaseLoaded(self):
 		expect = list(CONTENTS)
@@ -79,7 +82,7 @@ class TestArchChecker(unittest.TestCase):
 		ck = TestArchiveChecker('{cwd}/test_ptree/notQuiteAllArch.zip'.format(cwd=cwd))
 		self.assertFalse(ck.isBinaryUnique())
 
-		ck = TestArchiveChecker('{cwd}/test_ptree/regular.zip'.format(cwd=cwd))
+		ck = TestArchiveChecker('{cwd}/test_ptree/regular-u.zip'.format(cwd=cwd))
 		self.assertTrue(ck.isBinaryUnique())
 
 
@@ -88,7 +91,7 @@ class TestArchChecker(unittest.TestCase):
 
 
 		# Check that we're not mis-matching smaller images.
-		ck = TestArchiveChecker('{cwd}/test_ptree/regular.zip'.format(cwd=cwd))
+		ck = TestArchiveChecker('{cwd}/test_ptree/regular-u.zip'.format(cwd=cwd))
 		self.assertTrue(ck.isPhashUnique())
 
 		# Remove junk zip so z_reg is actually unique
@@ -113,7 +116,7 @@ class TestArchChecker(unittest.TestCase):
 		os.remove('{cwd}/test_ptree/z_reg_junk.zip'.format(cwd=cwd))
 
 		# Check that we're not mis-matching smaller images.
-		ck = TestArchiveChecker('{cwd}/test_ptree/regular.zip'.format(cwd=cwd))
+		ck = TestArchiveChecker('{cwd}/test_ptree/regular-u.zip'.format(cwd=cwd))
 		self.assertFalse(ck.getBestBinaryMatch())
 		self.assertFalse(ck.getBestPhashMatch())
 
@@ -124,7 +127,9 @@ class TestArchChecker(unittest.TestCase):
 		# Check that we are properly matching larger images
 		ck = TestArchiveChecker('{cwd}/test_ptree/small.zip'.format(cwd=cwd))
 		self.assertFalse(ck.getBestBinaryMatch())
-		self.assertEqual(ck.getBestPhashMatch(), '{cwd}/test_ptree/regular.zip'.format(cwd=cwd))
+		# We default towards the file with the largest common set.
+		# if two files have the same common set, the larger file is picked.
+		self.assertEqual(ck.getBestPhashMatch(), '{cwd}/test_ptree/regular-u.zip'.format(cwd=cwd))
 
 
 		ck = TestArchiveChecker('{cwd}/test_ptree/z_sml.zip'.format(cwd=cwd))
@@ -181,7 +186,7 @@ class TestArchChecker(unittest.TestCase):
 
 
 
-	def test_getAllMatches(self):
+	def test_getAllMatches_1(self):
 		self.verifyDatabaseLoaded()
 		cwd = os.path.dirname(os.path.realpath(__file__))
 
@@ -190,32 +195,119 @@ class TestArchChecker(unittest.TestCase):
 
 		# Check that we're not mis-matching smaller images.
 		ck = TestArchiveChecker('{cwd}/test_ptree/regular.zip'.format(cwd=cwd))
-		self.assertEqual(ck.getMatchingArchives(),      {})
-		self.assertEqual(ck.getPhashMatchingArchives(), {})
+		self.assertEqual(ck.getMatchingArchives(),
+			{
+				'{cwd}/test_ptree/regular-u.zip'.format(cwd=cwd):
+				{
+					'e61ec521-155d-4a3a-956d-2544d4367e02.jpg',
+					'funny-pictures-cat-looks-like-an-owl.jpg',
+					'funny-pictures-cat-will-do-science.jpg',
+					'funny-pictures-kitten-rules-a-tower.jpg'
+				},
+				'{cwd}/test_ptree/small_and_regular.zip'.format(cwd=cwd):
+				{
+					'e61ec521-155d-4a3a-956d-2544d4367e02.jpg',
+					'funny-pictures-cat-looks-like-an-owl.jpg',
+					'funny-pictures-cat-will-do-science.jpg',
+					'funny-pictures-kitten-rules-a-tower.jpg'
+				},
+				'{cwd}/test_ptree/small_and_regular_half_common.zip'.format(cwd=cwd):
+				{
+					'e61ec521-155d-4a3a-956d-2544d4367e02.jpg',
+					'funny-pictures-cat-looks-like-an-owl.jpg'
+				}
+			}
+		)
+		expect = ck.getPhashMatchingArchives()
+		self.assertEqual(expect,
+			{
+				'{cwd}/test_ptree/regular-u.zip'.format(cwd=cwd):
+				{
+					('e61ec521-155d-4a3a-956d-2544d4367e02.jpg', 'e61ec521-155d-4a3a-956d-2544d4367e02.jpg'): True,
+					('funny-pictures-cat-looks-like-an-owl.jpg', 'funny-pictures-cat-looks-like-an-owl.jpg'): True,
+					('funny-pictures-cat-will-do-science.jpg', 'funny-pictures-cat-will-do-science.jpg'): True,
+					('funny-pictures-kitten-rules-a-tower.jpg', 'funny-pictures-kitten-rules-a-tower.jpg'): True
+				},
+				'{cwd}/test_ptree/small_and_regular.zip'.format(cwd=cwd):
+				{
+					('e61ec521-155d-4a3a-956d-2544d4367e02.jpg', 'e61ec521-155d-4a3a-956d-2544d4367e02.jpg'): True,
+					('funny-pictures-cat-looks-like-an-owl.jpg', 'funny-pictures-cat-looks-like-an-owl.jpg'): True,
+					('funny-pictures-cat-will-do-science.jpg', 'funny-pictures-cat-will-do-science.jpg'): True,
+					('funny-pictures-kitten-rules-a-tower.jpg', 'funny-pictures-kitten-rules-a-tower.jpg'): True
+				},
+				'{cwd}/test_ptree/small_and_regular_half_common.zip'.format(cwd=cwd):
+				{
+					('e61ec521-155d-4a3a-956d-2544d4367e02.jpg', 'e61ec521-155d-4a3a-956d-2544d4367e02.jpg'): True,
+					('funny-pictures-cat-looks-like-an-owl.jpg', 'funny-pictures-cat-looks-like-an-owl.jpg'): True
+				}}
+			)
 
 		ck = TestArchiveChecker('{cwd}/test_ptree/z_reg.zip'.format(cwd=cwd))
 		self.assertEqual(ck.getMatchingArchives(),      {})
 		self.assertEqual(ck.getPhashMatchingArchives(), {})
 
 
+
+	def test_getAllMatches_2(self):
+		self.verifyDatabaseLoaded()
+		cwd = os.path.dirname(os.path.realpath(__file__))
+
+		# Remove junk zip so z_reg is actually unique
+		os.remove('{cwd}/test_ptree/z_reg_junk.zip'.format(cwd=cwd))
+
 		# Check that we are properly matching larger images
 		ck = TestArchiveChecker('{cwd}/test_ptree/small.zip'.format(cwd=cwd))
 		self.assertEqual(ck.getMatchingArchives(),      {})
 
 		expect = {
+			'{cwd}/test_ptree/regular-u.zip'.format(cwd=cwd):
+				{
+					('superheroes-batman-superman-i-would-watch-the-hell-out-of-this.jpg', 'superheroes-batman-superman-i-would-watch-the-hell-out-of-this.jpg'): True,
+					('funny-pictures-kitten-rules-a-tower-ps.png', 'funny-pictures-kitten-rules-a-tower-ps.png'): True,
+					('funny-pictures-cat-will-do-science-ps.png', 'funny-pictures-cat-will-do-science-ps.png'): True,
+					('e61ec521-155d-4a3a-956d-2544d4367e02-ps.png', 'e61ec521-155d-4a3a-956d-2544d4367e02-ps.png'): True,
+					('funny-pictures-cat-looks-like-an-owl-ps.png', 'funny-pictures-cat-looks-like-an-owl-ps.png'): True
+				},
+			'{cwd}/test_ptree/small_and_regular.zip'.format(cwd=cwd):
+				{
+					('funny-pictures-kitten-rules-a-tower-ps.png', 'funny-pictures-kitten-rules-a-tower-ps.png'): True,
+					('funny-pictures-cat-will-do-science-ps.png', 'funny-pictures-cat-will-do-science-ps.png'): True,
+					('e61ec521-155d-4a3a-956d-2544d4367e02-ps.png', 'e61ec521-155d-4a3a-956d-2544d4367e02-ps.png'): True,
+					('funny-pictures-cat-looks-like-an-owl-ps.png', 'funny-pictures-cat-looks-like-an-owl-ps.png'): True
+				},
 			'{cwd}/test_ptree/regular.zip'.format(cwd=cwd):
 				{
-					'e61ec521-155d-4a3a-956d-2544d4367e02.jpg',
-					'funny-pictures-cat-looks-like-an-owl.jpg',
-					'funny-pictures-cat-will-do-science.jpg',
-					'funny-pictures-kitten-rules-a-tower.jpg'
-				}
-			}
+					('funny-pictures-kitten-rules-a-tower-ps.png', 'funny-pictures-kitten-rules-a-tower-ps.png'): True,
+					('funny-pictures-cat-will-do-science-ps.png', 'funny-pictures-cat-will-do-science-ps.png'): True,
+					('e61ec521-155d-4a3a-956d-2544d4367e02-ps.png', 'e61ec521-155d-4a3a-956d-2544d4367e02-ps.png'): True,
+					('funny-pictures-cat-looks-like-an-owl-ps.png', 'funny-pictures-cat-looks-like-an-owl-ps.png'): True
+				},
+			'{cwd}/test_ptree/small_and_regular_half_common.zip'.format(cwd=cwd):
+				{
+					('e61ec521-155d-4a3a-956d-2544d4367e02-ps.png', 'e61ec521-155d-4a3a-956d-2544d4367e02-ps.png'): True,
+					('funny-pictures-cat-looks-like-an-owl-ps.png', 'funny-pictures-cat-looks-like-an-owl-ps.png'): True}
+
+
+
+		}
+
 		match = ck.getPhashMatchingArchives()
+		print("Match:")
+		print(match)
+		print()
 		self.assertEqual(expect, match)
 
+
+
+	def test_getAllMatches_3(self):
+		self.verifyDatabaseLoaded()
+		cwd = os.path.dirname(os.path.realpath(__file__))
+
+		# Remove junk zip so z_reg is actually unique
+		os.remove('{cwd}/test_ptree/z_reg_junk.zip'.format(cwd=cwd))
+
 		ck = TestArchiveChecker('{cwd}/test_ptree/z_sml.zip'.format(cwd=cwd))
-		match = {
+		match_expected = {
 			'{cwd}/test_ptree/z_sml_u.zip'.format(cwd=cwd):
 			{
 				'129165237051396578(s).jpg'
@@ -230,37 +322,43 @@ class TestArchChecker(unittest.TestCase):
 			}
 		}
 
-		pmatch = {
-			'{cwd}/test_ptree/z_sml_u.zip'.format(cwd=cwd):
-			{
-				'129165237051396578(s).jpg'
-			},
-			'{cwd}/test_ptree/z_sml_w.zip'.format(cwd=cwd):
-			{
-				'test.txt'
-			},
-			'{cwd}/test_ptree/z_reg.zip'.format(cwd=cwd):
-			{
-				'test.txt',
-				'129165237051396578.jpg'
+		pmatch_expected = {
+				'{cwd}/test_ptree/z_reg.zip'.format(cwd=cwd):
+					{
+						('129165237051396578(s).jpg', '129165237051396578(s).jpg'): True,
+						('test.txt', 'test.txt'): True
+					},
+				'{cwd}/test_ptree/z_sml_u.zip'.format(cwd=cwd):
+					{
+						('129165237051396578(s).jpg', '129165237051396578(s).jpg'): True
+					},
+				'{cwd}/test_ptree/z_sml_w.zip'.format(cwd=cwd):
+					{
+						('test.txt', 'test.txt'): True
+					}
 			}
-		}
 
-		self.assertEqual(ck.getMatchingArchives(),      match)
+
+
+		match = ck.getMatchingArchives()
+		self.assertEqual(match,      match_expected)
 
 		actual_pmatch = ck.getPhashMatchingArchives()
-		# print("Expected:")
-		# pprint.pprint(pmatch)
-		# print("Actual:")
-		# pprint.pprint(actual_pmatch)
-		self.assertEqual(actual_pmatch, pmatch)
+		self.assertEqual(actual_pmatch, pmatch_expected)
 
+
+	def test_getAllMatches_4(self):
+		self.verifyDatabaseLoaded()
+		cwd = os.path.dirname(os.path.realpath(__file__))
+
+		# Remove junk zip so z_reg is actually unique
+		os.remove('{cwd}/test_ptree/z_reg_junk.zip'.format(cwd=cwd))
 
 		# The `notQuiteAllArch` has both binary and phash duplicates (since phash duplicates
 		# are a superset of binary duplicates, if you have binary duplicates, you by definition
 		# must have phash duplicates.)
 		ck = TestArchiveChecker('{cwd}/test_ptree/notQuiteAllArch.zip'.format(cwd=cwd))
-		match = {
+		match_expected = {
 			'{cwd}/test_ptree/testArch.zip'.format(cwd=cwd):
 				{
 					'Lolcat_this_is_mah_job.png',
@@ -275,8 +373,31 @@ class TestArchChecker(unittest.TestCase):
 					'lolcat-oregon-trail.jpg'
 				}
 			}
-		self.assertEqual(ck.getMatchingArchives(),      match)
-		self.assertEqual(ck.getPhashMatchingArchives(), match)
+		pmatch_expected = {
+			'{cwd}/test_ptree/testArch.zip'.format(cwd=cwd):
+				{
+					('Lolcat_this_is_mah_job.jpg', 'Lolcat_this_is_mah_job.jpg'): True,
+					('Lolcat_this_is_mah_job.png', 'Lolcat_this_is_mah_job.png'): True,
+					('Lolcat_this_is_mah_job_small.jpg', 'Lolcat_this_is_mah_job_small.jpg'): True
+				},
+			'{cwd}/test_ptree/allArch.zip'.format(cwd=cwd):
+				{
+					('Lolcat_this_is_mah_job.jpg', 'Lolcat_this_is_mah_job.jpg'): True,
+					('Lolcat_this_is_mah_job.png', 'Lolcat_this_is_mah_job.png'): True,
+					('Lolcat_this_is_mah_job_small.jpg', 'Lolcat_this_is_mah_job_small.jpg'): True,
+					('lolcat-crocs.jpg', 'lolcat-crocs.jpg'): True,
+					('lolcat-oregon-trail.jpg', 'lolcat-oregon-trail.jpg'): True
+				}
+			}
+
+
+		match  = ck.getMatchingArchives()
+		pmatch = ck.getPhashMatchingArchives()
+
+		pprint.pprint(pmatch)
+
+		self.assertEqual(match,  match_expected)
+		self.assertEqual(pmatch, pmatch_expected)
 
 	def test_noMatch(self):
 		self.verifyDatabaseLoaded()
@@ -298,10 +419,11 @@ class TestArchChecker(unittest.TestCase):
 		# Check archive matches normally.
 		ck = TestArchiveChecker('{cwd}/test_ptree/small.zip'.format(cwd=cwd))
 		self.assertFalse(ck.getBestBinaryMatch())
-		self.assertEqual(ck.getBestPhashMatch(), '{cwd}/test_ptree/regular.zip'.format(cwd=cwd))
+		self.assertEqual(ck.getBestPhashMatch(), '{cwd}/test_ptree/regular-u.zip'.format(cwd=cwd))
 
 		# Remove the matching arch
 		os.remove('{cwd}/test_ptree/regular.zip'.format(cwd=cwd))
+		os.remove('{cwd}/test_ptree/regular-u.zip'.format(cwd=cwd))
 
 		# Verify the match now fails
 		ck = TestArchiveChecker('{cwd}/test_ptree/small.zip'.format(cwd=cwd))
@@ -361,15 +483,15 @@ class TestArchChecker(unittest.TestCase):
 		p_expect = {
 			'{cwd}/test_ptree/z_reg.zip'.format(cwd=cwd):
 			{
-				'test.txt'
+				('test.txt', 'test.txt'): True
 			},
 			'{cwd}/test_ptree/z_reg_junk.zip'.format(cwd=cwd):
 			{
-				'test.txt'
+				('test.txt', 'test.txt'): True
 			},
 			'{cwd}/test_ptree/z_sml.zip'.format(cwd=cwd):
 			{
-				'test.txt'
+				('test.txt', 'test.txt'): True
 			},
 		}
 
@@ -494,14 +616,19 @@ class TestArchChecker(unittest.TestCase):
 		archPath = '{cwd}/test_ptree/small.zip'.format(cwd=cwd)
 
 		status, bestMatch, commonArches = deduplicator.ProcessArchive.processDownload(archPath, checkClass=TestArchiveChecker)
-		matchPath = '{cwd}/test_ptree/regular.zip'.format(cwd=cwd)
+		matchPath = '{cwd}/test_ptree/regular-u.zip'.format(cwd=cwd)
 		self.assertEqual(status, 'deleted was-duplicate phash-duplicate')
 		self.assertEqual(bestMatch, matchPath)
 		expect = {
-			4:
-				[
-					'{cwd}/test_ptree/regular.zip'.format(cwd=cwd)
-				]
+
+			4: [
+				'/media/Storage/Scripts/Deduper/Tests/test_ptree/regular.zip',
+				'/media/Storage/Scripts/Deduper/Tests/test_ptree/small_and_regular.zip'
+				],
+			 5: [
+			 		'/media/Storage/Scripts/Deduper/Tests/test_ptree/regular-u.zip'
+			 	]
+
 		}
 		self.assertEqual(commonArches, expect)
 
@@ -509,19 +636,20 @@ class TestArchChecker(unittest.TestCase):
 		self.verifyDatabaseLoaded()
 		cwd = os.path.dirname(os.path.realpath(__file__))
 
+		os.remove('{cwd}/test_ptree/regular-u.zip'.format(cwd=cwd))
+		os.remove('{cwd}/test_ptree/small_and_regular.zip'.format(cwd=cwd))
+
 		archPath = '{cwd}/test_ptree/regular.zip'.format(cwd=cwd)
 
 		status, bestMatch, commonArches = deduplicator.ProcessArchive.processDownload(archPath, checkClass=TestArchiveChecker)
 
-		self.assertFalse(status)
-		self.assertFalse(bestMatch)
 
 		expect = {
-			4:
-				[
-					'{cwd}/test_ptree/small.zip'.format(cwd=cwd)
-				]
+			2: ['{cwd}/test_ptree/small_and_regular_half_common.zip'.format(cwd=cwd)]
 		}
+
+		self.assertFalse(status)
+		self.assertFalse(bestMatch)
 		self.assertEqual(commonArches, expect)
 
 
@@ -553,9 +681,11 @@ class TestArchChecker(unittest.TestCase):
 		# Check that we are properly matching larger images
 		ck = TestArchiveChecker('{cwd}/test_ptree/small.zip'.format(cwd=cwd))
 		self.assertFalse(ck.getBestBinaryMatch())
-		self.assertEqual(ck.getBestPhashMatch(), '{cwd}/test_ptree/regular.zip'.format(cwd=cwd))
+		self.assertEqual(ck.getBestPhashMatch(), '{cwd}/test_ptree/regular-u.zip'.format(cwd=cwd))
 
-		rows = self.db.getLikeBasePath('{cwd}/test_ptree/regular.zip'.format(cwd=cwd))
+		rows = []
+		rows.extend(self.db.getLikeBasePath('{cwd}/test_ptree/regular.zip'.format(cwd=cwd)))
+		rows.extend(self.db.getLikeBasePath('{cwd}/test_ptree/regular-u.zip'.format(cwd=cwd)))
 
 		# Mask out all the rows without phash values.
 		rows = [row for row in rows if row[3]]

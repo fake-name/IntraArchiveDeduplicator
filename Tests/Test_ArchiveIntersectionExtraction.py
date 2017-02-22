@@ -32,6 +32,7 @@ class TestArchChecker(unittest.TestCase):
 	def __init__(self, *args, **kwargs):
 		logSetup.initLogging()
 		super().__init__(*args, **kwargs)
+		self.maxDiff = None
 
 
 	def setUp(self):
@@ -137,8 +138,14 @@ class TestArchChecker_1(TestArchChecker):
 				[
 					'{cwd}/test_ptree/regular.zip'.format(cwd=cwd),
 					'{cwd}/test_ptree/small_and_regular.zip'.format(cwd=cwd),
+				],
+			5:
+				[
+					'{cwd}/test_ptree/regular-u.zip'.format(cwd=cwd),
 				]
 		}
+		print(expect)
+		print(ret)
 		self.assertEqual(ret, expect)
 
 class TestArchChecker_2(TestArchChecker):
@@ -153,6 +160,7 @@ class TestArchChecker_2(TestArchChecker):
 		expect = {
 			4:
 				[
+					'{cwd}/test_ptree/regular-u.zip'.format(cwd=cwd),
 					'{cwd}/test_ptree/small_and_regular.zip'.format(cwd=cwd),
 				]
 		}

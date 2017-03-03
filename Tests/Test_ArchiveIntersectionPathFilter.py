@@ -92,7 +92,7 @@ class TestArchChecker(unittest.TestCase):
 		del ck
 
 
-	def test_pathFiltering_nofilter(self):
+	def test_pathNegativeFiltering_nofilter(self):
 		cwd = os.path.dirname(os.path.realpath(__file__))
 
 		expect = {
@@ -110,13 +110,13 @@ class TestArchChecker(unittest.TestCase):
 		del ck0
 
 
-	def test_pathFiltering_2(self):
+	def test_pathNegativeFiltering_2(self):
 		cwd = os.path.dirname(os.path.realpath(__file__))
 
 		# These paths should filter all matches.
 		pf1 = ['{cwd}/test_ptree/'.format(cwd=cwd)]
 
-		ck1 = TestArchiveChecker('{cwd}/test_ptree/notQuiteAllArch.zip'.format(cwd=cwd), pathFilter=pf1)
+		ck1 = TestArchiveChecker('{cwd}/test_ptree/notQuiteAllArch.zip'.format(cwd=cwd), pathNegativeFilter=pf1)
 		ret1 = ck1.getSignificantlySimilarArches(searchDistance=2)
 		print("ck1: ", ck1)
 		print("ret1: ", ret1)
@@ -124,13 +124,13 @@ class TestArchChecker(unittest.TestCase):
 		del ck1
 
 
-	def test_pathFiltering_3(self):
+	def test_pathNegativeFiltering_3(self):
 		cwd = os.path.dirname(os.path.realpath(__file__))
 
 		# These paths should filter all matches.
 		pf2 = ['{cwd}/test'.format(cwd=cwd)]
 
-		ck2 = TestArchiveChecker('{cwd}/test_ptree/notQuiteAllArch.zip'.format(cwd=cwd), pathFilter=pf2)
+		ck2 = TestArchiveChecker('{cwd}/test_ptree/notQuiteAllArch.zip'.format(cwd=cwd), pathNegativeFilter=pf2)
 		ret2 = ck2.getSignificantlySimilarArches(searchDistance=2)
 		print("ck2: ", ck2)
 		print("ret2: ", ret2)
@@ -138,7 +138,7 @@ class TestArchChecker(unittest.TestCase):
 		del ck2
 
 
-	def test_pathFiltering_4(self):
+	def test_pathNegativeFiltering_4(self):
 		cwd = os.path.dirname(os.path.realpath(__file__))
 
 		expect = {
@@ -152,7 +152,7 @@ class TestArchChecker(unittest.TestCase):
 		pf3 = ['{cwd}/testzzzzzzzzzz'.format(cwd=cwd)]
 
 
-		ck3 = TestArchiveChecker('{cwd}/test_ptree/notQuiteAllArch.zip'.format(cwd=cwd), pathFilter=pf3)
+		ck3 = TestArchiveChecker('{cwd}/test_ptree/notQuiteAllArch.zip'.format(cwd=cwd), pathNegativeFilter=pf3)
 		ret3 = ck3.getSignificantlySimilarArches(searchDistance=2)
 		print("ck3: ", ck3)
 		print("ret3: ", ret3)
@@ -160,7 +160,7 @@ class TestArchChecker(unittest.TestCase):
 		del ck3
 
 
-	def test_pathFiltering_5(self):
+	def test_pathNegativeFiltering_5(self):
 		cwd = os.path.dirname(os.path.realpath(__file__))
 
 		expect = {
@@ -174,7 +174,7 @@ class TestArchChecker(unittest.TestCase):
 		# And this should filter a irrelevant file.
 		pf4 = ['{cwd}/test_ptree/regular-u'.format(cwd=cwd)]
 
-		ck4 = TestArchiveChecker('{cwd}/test_ptree/notQuiteAllArch.zip'.format(cwd=cwd), pathFilter=pf4)
+		ck4 = TestArchiveChecker('{cwd}/test_ptree/notQuiteAllArch.zip'.format(cwd=cwd), pathNegativeFilter=pf4)
 		ret4 = ck4.getSignificantlySimilarArches(searchDistance=2)
 		print("ck4: ", ck4)
 		print("ret4: ", ret4)

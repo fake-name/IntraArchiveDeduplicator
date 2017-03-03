@@ -1,7 +1,6 @@
 
 
 
-import pArch
 import os
 import sys
 import os.path
@@ -10,11 +9,11 @@ import time
 import pprint
 import shutil
 import traceback
-import settings
 
+import settings
+import pArch
 import dbPhashApi as dbApi
 
-import multiprocessing
 import scanner.fileHasher
 
 PHASH_DISTANCE_THRESHOLD = 2
@@ -65,16 +64,17 @@ class ArchChecker(ProxyDbBase):
 
 	hasher = scanner.fileHasher.HashThread
 
-	def __init__(self, archPath, pathFilter=None):
+	def __init__(self, archPath, pathNegativeFilter=None, pathPositiveFilter=None):
 		'''
 		Params:
-			pathFilter (list): default =``[]``
+			pathNegativeFilter (list): default =``[]``
 				List of paths to exclude from matching.
 				By default, and empty list, leading to all possible paths being used.
 		'''
 
 		super().__init__()
-		self.maskedPaths = pathFilter or []
+		self.negativeMaskedPaths = pathNegativeFilter or []
+		self.positiveMaskedPaths = pathPositiveFilter or []
 
 		self.archPath    = archPath
 		self.arch        = pArch.PhashArchive(archPath)
@@ -112,7 +112,7 @@ class ArchChecker(ProxyDbBase):
 			Boolean: True if unique, False if not.
 		'''
 
-		if searchDistance == None:
+		if searchDistance is None:
 			searchDistance=PHASH_DISTANCE_THRESHOLD
 
 		ret = self.getPhashMatchingArchives(searchDistance, getAllCommon=False)
@@ -156,7 +156,7 @@ class ArchChecker(ProxyDbBase):
 			String: Path to archive on the local filesystem. Path is verified to
 				exist at time of return.
 		'''
-		if distance == None:
+		if distance is None:
 			distance=PHASH_DISTANCE_THRESHOLD
 
 		ret = self.getPhashMatchingArchives(distance, getAllCommon=False)
@@ -172,7 +172,7 @@ class ArchChecker(ProxyDbBase):
 		paths to the intersecting archives.
 
 		'''
-		if searchDistance == None:
+		if searchDistance is None:
 			searchDistance=PHASH_DISTANCE_THRESHOLD
 
 		common = self.getPhashMatchingArchives(getAllCommon=True, searchDistance=searchDistance)
@@ -312,7 +312,7 @@ class ArchChecker(ProxyDbBase):
 
 
 		This function searches for all items with a binary hash of `hexHash`, masks out
-		any paths in `self.maskedPaths`, and then checks for file existence. If the file exists,
+		any paths in `self.negativeMaskedPaths`, and then checks for file existence. If the file exists,
 		it's inserted into a local dictionary with the key being the filesystem path,
 		and the value being a set into which the internal path is inserted.
 
@@ -326,8 +326,11 @@ class ArchChecker(ProxyDbBase):
 			if fsPath == self.archPath:
 				continue
 
-			# And the masked-paths array
-			if any([fsPath.startswith(badpath) for badpath in self.maskedPaths]):
+			# Do negative path masking
+			if any([fsPath.startswith(badpath) for badpath in self.negativeMaskedPaths]):
+				continue
+			# And positive masking
+			if self.positiveMaskedPaths and not any([fsPath.startswith(badpath) for badpath in self.positiveMaskedPaths]):
 				continue
 
 			exists = os.path.exists(fsPath)
@@ -335,7 +338,7 @@ class ArchChecker(ProxyDbBase):
 				matches.setdefault(fsPath, set()).add(internalPath)
 
 			elif not exists:
-				self.log.warn("Item '%s' no longer exists!", fsPath)
+				self.log.warning("Item '%s' no longer exists!", fsPath)
 				self.db.deleteDbRows(fspath=fsPath)
 
 
@@ -427,8 +430,12 @@ class ArchChecker(ProxyDbBase):
 				continue
 
 			# Mask with the masked-paths array
-			if any([row['fspath'].startswith(badpath) for badpath in self.maskedPaths]):
-				print("MaskedPath: ", row['fspath'], " in ", self.maskedPaths)
+			if any([row['fspath'].startswith(badpath) for badpath in self.negativeMaskedPaths]):
+				print("(negativeMaskedPaths) MaskedPath: ", row['fspath'], " in ", self.negativeMaskedPaths)
+				continue
+			# And positive masking
+			if self.positiveMaskedPaths and not any([row['fspath'].startswith(badpath) for badpath in self.positiveMaskedPaths]):
+				print("(positiveMaskedPaths) MaskedPath: ", row['fspath'], " in ", self.negativeMaskedPaths)
 				continue
 
 			# I genuinely cannot see how this line would get hit, but whatever.
@@ -575,7 +582,7 @@ class ArchChecker(ProxyDbBase):
 
 		'''
 
-		if searchDistance == None:
+		if searchDistance is None:
 			searchDistance = PHASH_DISTANCE_THRESHOLD
 
 		self.log.info("Scanning for phash duplicates.")
@@ -738,7 +745,7 @@ def getSignificantlySimilarArches(filePath, distance=4):
 	log = logging.getLogger("Main.DedupServer")
 	# print("Args:", (filePath, distance))
 	try:
-		ck = ArchChecker(filePath, pathFilter=settings.masked_path_prefixes)
+		ck = ArchChecker(filePath, pathNegativeFilter=settings.masked_path_prefixes)
 
 		return ck.getSignificantlySimilarArches(searchDistance=distance)
 
@@ -752,7 +759,7 @@ def getSignificantlySimilarArches(filePath, distance=4):
 
 
 
-def processDownload(filePath, pathFilter=None, distance=None, moveToPath=None, checkClass=ArchChecker, cross_match=True):
+def processDownload(filePath, pathNegativeFilter=None, distance=None, moveToPath=None, checkClass=ArchChecker, cross_match=True, pathPositiveFilter=None):
 	'''
 	Process the file `filePath`. If it's a phash or binary duplicate, it is deleted.
 
@@ -772,13 +779,17 @@ def processDownload(filePath, pathFilter=None, distance=None, moveToPath=None, c
 
 	# Hackyness to work around some strange behaviour in the
 	# netref objects from rpyc.
-	pathFilter_local = []
-	if isinstance(pathFilter, (list, tuple)):
-		for item in pathFilter:
-			pathFilter_local.append(item)
-	pathFilter_local.extend(settings.masked_path_prefixes)
+	pathNegativeFilter_local = []
+	pathPositiveFilter_local = []
+	if isinstance(pathNegativeFilter, (list, tuple)):
+		for item in pathNegativeFilter:
+			pathNegativeFilter_local.append(item)
+	if isinstance(pathPositiveFilter, (list, tuple)):
+		for item in pathPositiveFilter:
+			pathPositiveFilter_local.append(item)
+	pathNegativeFilter_local.extend(settings.masked_path_prefixes)
 	try:
-		ck = checkClass(filePath, pathFilter=pathFilter_local)
+		ck = checkClass(filePath, pathNegativeFilter=pathNegativeFilter_local, pathPositiveFilter=pathPositiveFilter_local)
 
 		if cross_match:
 			common = ck.getSignificantlySimilarArches(searchDistance=distance)
@@ -840,7 +851,7 @@ def commandLineProcess(scanConf):
 
 	status, bestMatch, intersections = remote.root.processDownload(
 		scanConf.sourcePath,
-		pathFilter=scanContext,
+		pathNegativeFilter=scanContext,
 		distance=6,
 		moveToPath=None,
 		locked=True)

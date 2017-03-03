@@ -770,13 +770,15 @@ def processDownload(filePath, pathFilter=None, distance=None, moveToPath=None, c
 	bestMatch = None
 	common = {}
 
-	if pathFilter is None:
-		pathFilter = []
-	assert isinstance(pathFilter, (list, tuple))
-
-	pathFilter.extend(settings.masked_path_prefixes)
+	# Hackyness to work around some strange behaviour in the
+	# netref objects from rpyc.
+	pathFilter_local = []
+	if isinstance(pathFilter, (list, tuple)):
+		for item in pathFilter:
+			pathFilter_local.append(item)
+	pathFilter_local.extend(settings.masked_path_prefixes)
 	try:
-		ck = checkClass(filePath, pathFilter=pathFilter)
+		ck = checkClass(filePath, pathFilter=pathFilter_local)
 
 		if cross_match:
 			common = ck.getSignificantlySimilarArches(searchDistance=distance)

@@ -3,6 +3,7 @@
 import logging
 import colorama as clr
 
+import threading
 import os.path
 import sys
 import time
@@ -41,6 +42,8 @@ class ColourHandler(logging.Handler):
 		# print record.name
 
 		segments = record.name.split(".")
+		tname = threading.current_thread().name
+		segments.append(tname)
 		if segments[0] == "Main" and len(segments) > 1:
 			segments.pop(0)
 			segments[0] = "Main."+segments[0]

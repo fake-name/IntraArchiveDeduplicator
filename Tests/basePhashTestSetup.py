@@ -7,6 +7,7 @@ import time
 import os.path
 import logging
 import shutil
+import gc
 import test_settings
 
 import pyximport
@@ -45,15 +46,23 @@ def delete_item(item_path):
 		try:
 			shutil.rmtree(item_path)
 		except Exception as e:
+			print("TryDelete failed!")
+			print("Item: ", item_path)
+			print("Stat: ", os.stat(item_path))
 			failed += 1
 			if failed > 10:
-				raise e
+				print("Deletion failed!")
+				return
 
 			# You need an explicit sync call or the load_zips call can sometimes miss the new files.
 			# Yes, this was actually an issue.
 			os.sync()
-			time.sleep(0.1)
+			time.sleep(0.1 * failed)
 
+			# Force the destructors to run in case we have the handle open still, somehow.
+			gc.collect()
+
+			os.stat(item_path)
 			if not os.path.exists(item_path):
 				return
 

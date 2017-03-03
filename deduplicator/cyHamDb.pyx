@@ -295,7 +295,7 @@ class CPPBkHammingTree(object):
 
 		deleted, moved = self.root.remove(nodeHash, nodeData)
 		# Moved seems to always be 0
-		self.log.info("Deletion operation removed %s item(s)", deleted)
+		# self.log.info("Deletion operation removed %s item(s)", deleted)
 		return deleted, moved
 
 	def getWithinDistance(self, baseHash, distance):
@@ -368,18 +368,25 @@ class CPPBkHammingTree(object):
 
 	@contextmanager
 	def reader_context(self):
+		self.log.info("Acquiring reader context!")
 		self.root.get_read_lock()
+		self.log.info("Reader context acquired!")
 		try:
 			yield
 		finally:
+			self.log.info("Freeing reader context!")
 			self.root.free_read_lock()
 
 	@contextmanager
 	def writer_context(self):
+		self.log.info("Acquiring writer context!")
 		self.root.get_write_lock()
+		self.log.info("Writer context acquired!")
+
 		try:
 			yield
 		finally:
+			self.log.info("Freeing writer context!")
 			self.root.free_write_lock()
 
 

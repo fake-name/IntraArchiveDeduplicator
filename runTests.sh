@@ -16,7 +16,7 @@
 
 set -e
 
-for i in `seq 1 10`;
+for i in `seq 1`;
 do
 
 	python3 $(which nosetests)                       \

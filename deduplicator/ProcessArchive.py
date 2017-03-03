@@ -10,6 +10,7 @@ import time
 import pprint
 import shutil
 import traceback
+import settings
 
 import dbPhashApi as dbApi
 
@@ -67,14 +68,13 @@ class ArchChecker(ProxyDbBase):
 	def __init__(self, archPath, pathFilter=None):
 		'''
 		Params:
-			pathFilter (list): default =``['']``
-				Basically, if you pass a list of valid path prefixes, any matches not
-				on any of those path prefixes are not matched.
-				Default is [''], which matches every path, because "anything".startswith('') is true
+			pathFilter (list): default =``[]``
+				List of paths to exclude from matching.
+				By default, and empty list, leading to all possible paths being used.
 		'''
 
 		super().__init__()
-		self.maskedPaths = pathFilter or ['']
+		self.maskedPaths = pathFilter or []
 
 		self.archPath    = archPath
 		self.arch        = pArch.PhashArchive(archPath)
@@ -326,9 +326,12 @@ class ArchChecker(ProxyDbBase):
 			if fsPath == self.archPath:
 				continue
 
-			isNotMasked =  any([fsPath.startswith(maskedPath) for maskedPath in self.maskedPaths])
+			# And the masked-paths array
+			if any([fsPath.startswith(badpath) for badpath in self.maskedPaths]):
+				continue
+
 			exists = os.path.exists(fsPath)
-			if exists and isNotMasked:
+			if exists:
 				matches.setdefault(fsPath, set()).add(internalPath)
 
 			elif not exists:
@@ -421,6 +424,11 @@ class ArchChecker(ProxyDbBase):
 
 			# Mask out items on the same path.
 			if row['fspath'] == self.archPath:
+				continue
+
+			# Mask with the masked-paths array
+			if any([row['fspath'].startswith(badpath) for badpath in self.maskedPaths]):
+				print("MaskedPath: ", row['fspath'], " in ", self.maskedPaths)
 				continue
 
 			# I genuinely cannot see how this line would get hit, but whatever.
@@ -729,11 +737,8 @@ class ArchChecker(ProxyDbBase):
 def getSignificantlySimilarArches(filePath, distance=4):
 	log = logging.getLogger("Main.DedupServer")
 	# print("Args:", (filePath, distance))
-	status = ''
-	bestMatch = None
-	common = {}
 	try:
-		ck = ArchChecker(filePath)
+		ck = ArchChecker(filePath, pathFilter=settings.masked_path_prefixes)
 
 		return ck.getSignificantlySimilarArches(searchDistance=distance)
 
@@ -764,6 +769,12 @@ def processDownload(filePath, pathFilter=None, distance=None, moveToPath=None, c
 	status = ''
 	bestMatch = None
 	common = {}
+
+	if pathFilter is None:
+		pathFilter = []
+	assert isinstance(pathFilter, (list, tuple))
+
+	pathFilter.extend(settings.masked_path_prefixes)
 	try:
 		ck = checkClass(filePath, pathFilter=pathFilter)
 

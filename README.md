@@ -48,6 +48,13 @@ For Unit testing:
 
 There are fairly extensive unit tests for the DB API, as well as the BK-tree and the phashing systems. However, the great majority of the tests (all the DB API tests, which are 80%+ of them) require a local postgres instance, so they're not suitable for CI integration.
 
+### BK-Tree
+
+The BK-tree implementation has been broken out into an independent library installable via `pip`. It's hosted [here](https://github.com/gpip/cBKTree). Many thanks to user @gpip for doing the legwork making it portable.
+
+
+
+---
 
 TODO:
 Moved counter in CPPBKTree delete operation doesn't work.

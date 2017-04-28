@@ -29,31 +29,12 @@ from apscheduler.executors.pool        import ThreadPoolExecutor
 
 
 class DbInterfaceServer(rpyc.Service):
-	lock = multiprocessing.RLock()
 
-	def exposed_processDownload(self, *args, locked=False, **kwargs):
-		if locked:
-			print("Acquiring lock")
-			self.lock.acquire()
-		try:
-			return deduplicator.ProcessArchive.processDownload(*args, **kwargs)
-		finally:
-			if locked:
-				print("Releasing lock")
-				self.lock.release()
+	def exposed_processDownload(self, *args, **kwargs):
+		return deduplicator.ProcessArchive.processDownload(*args, **kwargs)
 
-	def exposed_listDupes(self, *args, locked=False, **kwargs):
-		print("ListDupes call: ", (args, kwargs))
-		if locked:
-			print("Acquiring lock")
-			self.lock.acquire()
-		try:
-			ret = deduplicator.ProcessArchive.getSignificantlySimilarArches(*args, **kwargs)
-			return ret
-		finally:
-			if locked:
-				print("Releasing lock")
-				self.lock.release()
+	def exposed_listDupes(self, *args, **kwargs):
+		return deduplicator.ProcessArchive.getSignificantlySimilarArches(*args, **kwargs)
 
 	def exposed_single_phash_search(self, phash, distance=4):
 		db = dbPhashApi.PhashDbApi()

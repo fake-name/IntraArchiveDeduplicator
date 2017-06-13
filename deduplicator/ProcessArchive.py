@@ -64,7 +64,7 @@ class ArchChecker(ProxyDbBase):
 
 	hasher = scanner.fileHasher.HashThread
 
-	def __init__(self, archPath, pathNegativeFilter=None, pathPositiveFilter=None):
+	def __init__(self, archPath, pathNegativeFilter=None, pathPositiveFilter=None, negativeKeywords=None):
 		'''
 		Params:
 			pathNegativeFilter (list): default =``[]``
@@ -75,7 +75,7 @@ class ArchChecker(ProxyDbBase):
 		super().__init__()
 		self.negativeMaskedPaths = pathNegativeFilter or []
 		self.positiveMaskedPaths = pathPositiveFilter or []
-
+		self.negativeKeywords    = negativeKeywords   or []
 		self.archPath    = archPath
 		self.arch        = pArch.PhashArchive(archPath)
 
@@ -331,6 +331,8 @@ class ArchChecker(ProxyDbBase):
 				continue
 			# And positive masking
 			if self.positiveMaskedPaths and not any([fsPath.startswith(badpath) for badpath in self.positiveMaskedPaths]):
+				continue
+			if self.negativeKeywords and any([tmp in fsPath for tmp in self.negativeKeywords]):
 				continue
 
 			exists = os.path.exists(fsPath)
@@ -759,7 +761,7 @@ def getSignificantlySimilarArches(filePath, distance=4):
 
 
 
-def processDownload(filePath, pathNegativeFilter=None, distance=None, moveToPath=None, checkClass=ArchChecker, cross_match=True, pathPositiveFilter=None):
+def processDownload(filePath, pathNegativeFilter=None, distance=None, moveToPath=None, checkClass=ArchChecker, cross_match=True, pathPositiveFilter=None, negativeKeywords=None):
 	'''
 	Process the file `filePath`. If it's a phash or binary duplicate, it is deleted.
 
@@ -789,7 +791,7 @@ def processDownload(filePath, pathNegativeFilter=None, distance=None, moveToPath
 			pathPositiveFilter_local.append(item)
 	pathNegativeFilter_local.extend(settings.masked_path_prefixes)
 	try:
-		ck = checkClass(filePath, pathNegativeFilter=pathNegativeFilter_local, pathPositiveFilter=pathPositiveFilter_local)
+		ck = checkClass(filePath, pathNegativeFilter=pathNegativeFilter_local, pathPositiveFilter=pathPositiveFilter_local, negativeKeywords=negativeKeywords)
 
 		if cross_match:
 			common = ck.getSignificantlySimilarArches(searchDistance=distance)

@@ -811,6 +811,11 @@ def processDownload(filePath, pathNegativeFilter=None, distance=None, moveToPath
 		ck.addArch()
 
 
+	except InvalidArchivePhashContentsException:
+		log.critical("Excessive duplicates when processing item!")
+		for line in traceback.format_exc().split("\n"):
+			log.critical(line)
+		status += " damaged phash-conflict"
 	except Exception:
 		log.critical("Exception when processing item!")
 		for line in traceback.format_exc().split("\n"):

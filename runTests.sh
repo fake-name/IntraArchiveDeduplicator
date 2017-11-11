@@ -28,7 +28,11 @@ do
 		--cover-package=deduplicator.rwlock          \
 		--cover-package=deduplicator.ProcessArchive  \
 		--stop
-		# --nocapture
+		# --nocapture \
+		# Tests.Test_db_BKTree_Issue_2
+		# Tests.Test_db_BKTree_Issue_1
+		# Tests.Test_db_BKTree_2
+		# Tests.Test_db_BKTree
 done;
 
 # python3 $(which nosetests) --with-coverage --exe --cover-package=deduplicator.ProcessArchive Tests.Test_DuplicateArchiveDetector

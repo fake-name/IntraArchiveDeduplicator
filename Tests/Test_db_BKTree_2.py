@@ -1,5 +1,6 @@
 
 import unittest
+import logging
 import random
 import scanner.logSetup as logSetup
 from bitstring import Bits
@@ -9,17 +10,7 @@ print("Have Cython")
 pyximport.install()
 
 import deduplicator.cyHamDb as hamDb
-
-def hamming(a, b):
-
-	tot = 0
-
-	x = (a ^ b)
-	while x > 0:
-		tot += x & 1
-		x >>= 1
-	return tot
-
+import Tests.baseDbBkTree
 
 def b2i(binaryStringIn):
 	if len(binaryStringIn) != 64:
@@ -183,36 +174,41 @@ class TestSequenceFunctions_FlatTree(unittest.TestCase):
 
 	def __init__(self, *args, **kwargs):
 		logSetup.initLogging()
+		self.log = logging.getLogger("Main.TestSequenceFunctions_FlatTree")
+
 		super().__init__(*args, **kwargs)
 
 	def setUp(self):
+		# We set up and tear down the tree a few times to validate the dropTree function
+		self.tree = Tests.baseDbBkTree.TestBkPhashDb()
 
-		self.tree = hamDb.BkHammingTree()
-		for x in range(4):
-			with self.tree.writer_context():
-				self.tree.dropTree()
-				self.buildTestTree()
+		self.buildTestTree()
+
+	def tearDown(self):
+		self.tree.tearDown()
 
 	def buildTestTree(self):
-		self.tree = hamDb.BkHammingTree()
-		for nodeId, node_hash in enumerate(TEST_DATA_FLAT):
-			print("Inserting node id: ", nodeId, "hash", node_hash, "value: ", b2i(node_hash))
-			node_hash = b2i(node_hash)
-			self.tree.unlocked_insert(node_hash, nodeId)
+		with self.tree.transaction() as cur:
+			for nodeId, node_hash in enumerate(TEST_DATA_FLAT):
+				node_hash = b2i(node_hash)
+				self.tree.insert(cur=cur, node_hash=node_hash, nodeId=nodeId)
 
 	def test_1(self):
+		self.log.info("test_1")
 		tgtHash = "0000000000000000000000000000000000000000000000000000000000000001"
 		tgtHash = b2i(tgtHash)
 		ret = self.tree.getWithinDistance(tgtHash, 0)
 		self.assertEqual(ret, set((1, )))
 
 	def test_2(self):
+		self.log.info("test_2")
 		tgtHash = "0000000000000000000000000000000000000000001111111111111111111111"
 		tgtHash = b2i(tgtHash)
 		ret = self.tree.getWithinDistance(tgtHash, 0)
 		self.assertEqual(ret, set((22, )))
 
 	def test_3(self):
+		self.log.info("test_3")
 		tgtHash = "1111111111111111111111111111111111111111111111111111111111111111"
 		tgtHash = b2i(tgtHash)
 		ret = self.tree.getWithinDistance(tgtHash, 0)
@@ -220,38 +216,62 @@ class TestSequenceFunctions_FlatTree(unittest.TestCase):
 
 class TestSequenceFunctions_TallTree(unittest.TestCase):
 
+	# def __init__(self, *args, **kwargs):
+	# 	logSetup.initLogging()
+	# 	super().__init__(*args, **kwargs)
+
+	# def setUp(self):
+
+	# 	self.tree = hamDb.BkHammingTree()
+	# 	for x in range(4):
+	# 		with self.tree.writer_context():
+	# 			self.tree.dropTree()
+	# 			self.buildTestTree()
+
+	# def buildTestTree(self):
+	# 	self.tree = hamDb.BkHammingTree()
+	# 	for nodeId, node_hash in enumerate(TEST_DATA_Narrow):
+	# 		print("Inserting node id: ", nodeId, "hash", node_hash, "value: ", b2i(node_hash))
+	# 		node_hash = b2i(node_hash)
+	# 		self.tree.insert(node_hash, nodeId)
+
 	def __init__(self, *args, **kwargs):
 		logSetup.initLogging()
+		self.log = logging.getLogger("Main.TestSequenceFunctions_TallTree")
+
 		super().__init__(*args, **kwargs)
 
 	def setUp(self):
+		# We set up and tear down the tree a few times to validate the dropTree function
+		self.tree = Tests.baseDbBkTree.TestBkPhashDb()
 
-		self.tree = hamDb.BkHammingTree()
-		for x in range(4):
-			with self.tree.writer_context():
-				self.tree.dropTree()
-				self.buildTestTree()
+		self.buildTestTree()
+
+	def tearDown(self):
+		self.tree.tearDown()
 
 	def buildTestTree(self):
-		self.tree = hamDb.BkHammingTree()
-		for nodeId, node_hash in enumerate(TEST_DATA_Narrow):
-			print("Inserting node id: ", nodeId, "hash", node_hash, "value: ", b2i(node_hash))
-			node_hash = b2i(node_hash)
-			self.tree.insert(node_hash, nodeId)
+		with self.tree.transaction() as cur:
+			for nodeId, node_hash in enumerate(TEST_DATA_Narrow):
+				node_hash = b2i(node_hash)
+				self.tree.insert(cur=cur, node_hash=node_hash, nodeId=nodeId)
 
 	def test_1(self):
+		self.log.info("test_1")
 		tgtHash = "0000000000000000000000000000000000000000000000000000000000000001"
 		tgtHash = b2i(tgtHash)
 		ret = self.tree.getWithinDistance(tgtHash, 0)
 		self.assertEqual(ret, set((1, )))
 
 	def test_2(self):
+		self.log.info("test_2")
 		tgtHash = "0000000000000000000000000000000000000000001000000000000000000000"
 		tgtHash = b2i(tgtHash)
 		ret = self.tree.getWithinDistance(tgtHash, 0)
 		self.assertEqual(ret, set((22, )))
 
 	def test_3(self):
+		self.log.info("test_3")
 		tgtHash = "1000000000000000000000000000000000000000000000000000000000000000"
 		tgtHash = b2i(tgtHash)
 		ret = self.tree.getWithinDistance(tgtHash, 0)
@@ -261,10 +281,13 @@ class TestSignConversion(unittest.TestCase):
 
 	def __init__(self, *args, **kwargs):
 		logSetup.initLogging()
+		self.log = logging.getLogger("Main.TestSignConversion")
+
 		super().__init__(*args, **kwargs)
 
 
 	def test_signModification_1(self):
+		self.log.info("test_signModification_1")
 		for val in TEST_DATA_Narrow:
 			tgtHash = b2i(val)
 			x = hamDb.explicitUnsignCast(tgtHash)
@@ -273,6 +296,7 @@ class TestSignConversion(unittest.TestCase):
 			self.assertEqual(x, tgtHash)
 
 	def test_signModification_2(self):
+		self.log.info("test_signModification_2")
 		for val in TEST_DATA_FLAT:
 			tgtHash = b2i(val)
 			x = hamDb.explicitUnsignCast(tgtHash)
@@ -281,6 +305,7 @@ class TestSignConversion(unittest.TestCase):
 			self.assertEqual(x, tgtHash)
 
 	def test_signModification_3(self):
+		self.log.info("test_signModification_3")
 		random.seed(500000)
 		for x in range(50000):
 			val = "".join([random.choice(("1", "0")) for z in range(64)])

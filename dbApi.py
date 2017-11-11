@@ -29,9 +29,7 @@ class DbApi():
 
 	inLargeTransaction = False
 
-
 	loggerPath = "Main.DbApi"
-
 
 	def __init__(self):
 
@@ -48,10 +46,9 @@ class DbApi():
 		# self.conn.autocommit = True
 		with self.transaction() as cur:
 
-			# print("DB opened.")
 			cur.execute("SELECT * FROM information_schema.tables WHERE table_name=%s", (self.tableName,))
-			# print("table exists = ", cur.rowcount)
-			tableExists = bool(cur.rowcount)
+			have = cur.fetchall()
+			tableExists = bool(have)
 			if not tableExists:
 				self.log.info("Need to create table!")
 				cur.execute('''CREATE TABLE IF NOT EXISTS {table} (
@@ -121,14 +118,22 @@ class DbApi():
 	def connect(self):
 
 
-		try:
-			# hook up login creds (overridden for tests)
-			self._psqlDbIpAddr = settings.PSQL_IP
-			self._psqlDbName   = settings.PSQL_DB_NAME
-			self._psqlUserName = settings.PSQL_USER
-			self._psqlUserPass = settings.PSQL_PASS
-		except:
-			print("WARNING: DB Credentials not available. Is this a test environment?")
+		if all([
+			hasattr(self, '_psqlDbIpAddr'),
+			hasattr(self, '_psqlDbName'),
+			hasattr(self, '_psqlUserName'),
+			hasattr(self, '_psqlUserPass'),
+			]):
+			pass
+		else:
+			try:
+				# hook up login creds (overridden for tests)
+				self._psqlDbIpAddr = settings.PSQL_IP
+				self._psqlDbName   = settings.PSQL_DB_NAME
+				self._psqlUserName = settings.PSQL_USER
+				self._psqlUserPass = settings.PSQL_PASS
+			except:
+				print("WARNING: DB Credentials not available. Is this a test environment?")
 
 		try:
 			self.conn = psycopg2.connect(dbname  = self._psqlDbName,
@@ -225,14 +230,17 @@ class DbApi():
 	# Insert new item into DB.
 	# MASSIVELY faster if you set commit=False (it doesn't flush the write to disk), but that can open a transaction which locks the DB.
 	# Only pass commit=False if the calling code can gaurantee it'll call commit() itself within a reasonable timeframe.
-	def insertIntoDb(self, commit=True, **kwargs):
+	def insertIntoDb(self, commit=True, cur=None, **kwargs):
 		query, queryArguments = self.sqlBuildInsertArgs(**kwargs)
 
 		self.log.debug("Query = '%s'", query)
 		self.log.debug("Args = '%s'", queryArguments)
 
-		with self.transaction(commit=commit) as cur:
+		if cur:
 			cur.execute(query, queryArguments)
+		else:
+			with self.transaction(commit=commit) as cur:
+				cur.execute(query, queryArguments)
 
 
 
@@ -513,7 +521,7 @@ class DbApi():
 		return ret
 
 
-	def deleteDbRows(self, commit=True, where=None, **kwargs):
+	def deleteDbRows(self, commit=True, where=None, cur=None, **kwargs):
 
 		if not where:
 			where = self.sqlBuildConditional(**kwargs)
@@ -528,9 +536,11 @@ class DbApi():
 		self.log.info("Query = '%s'", query)
 		self.log.info("Args = '%s'", params)
 
-
-		with self.transaction() as cur:
+		if cur:
 			cur.execute(query, params)
+		else:
+			with self.transaction(commit=commit) as cur:
+				cur.execute(query, params)
 
 
 	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

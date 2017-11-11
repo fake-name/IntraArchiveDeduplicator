@@ -6,4 +6,4 @@
 PSQL_PASS    = "2YwzyARHG8agtRdE"
 PSQL_USER    = "test_user"
 PSQL_DB_NAME = "test_db"
-PSQL_IP      = "localhost"
+PSQL_IP      = "10.1.1.61"

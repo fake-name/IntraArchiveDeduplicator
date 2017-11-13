@@ -160,9 +160,31 @@ class PhashDbApi(dbApi.DbApi):
 
 		return ret
 
-	def getWithinDistance(self, inPhash, distance=2, wantCols=None):
+	def getRandomPhashRows(self, sample_ratio=0.0005):
+		with self.transaction() as cur:
+			cur.execute("SELECT dbid, phash FROM {table} TABLESAMPLE SYSTEM(%s);".format(table=self.tableName), (sample_ratio, ))
+			ret = cur.fetchall()
+			ret = set([tmp for tmp in ret if tmp[1]])
+			return ret
+
+	def getWithinDistance_db(self, inPhash, distance=2):
+		with self.transaction() as cur:
+
+			cur.execute("SELECT dbid FROM {table} WHERE phash <@ (%s, %s);".format(table=self.tableName), (inPhash, distance))
+			ret = cur.fetchall()
+			ret = set([tmp[0] for tmp in ret])
+
+			self.log.info("Search for '%s', distance '%s'. Discovered %s match(es)" % (inPhash, distance, len(ret)))
+
+			return ret
+
+	def getIdsWithinDistance(self, inPhash, distance=2):
 		with self.tree.reader_context():
 			ids = self.tree.getWithinDistance(inPhash, distance)
+		return set(ids)
+
+	def getWithinDistance(self, inPhash, distance=2, wantCols=None):
+		ids = self.getIdsWithinDistance(inPhash, distance)
 		ret = []
 		for itemId in ids:
 			itemRow = self.getItem(dbId=itemId, wantCols=wantCols)

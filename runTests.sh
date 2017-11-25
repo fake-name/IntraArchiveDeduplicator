@@ -28,7 +28,8 @@ do
 		--cover-package=deduplicator.rwlock          \
 		--cover-package=deduplicator.ProcessArchive  \
 		--stop \
-		--nocapture \
+		Tests
+		# --nocapture \
 		Tests.Test_db_BKTree_Compare
 		# Tests.Test_db_BKTree_Issue_2
 		# Tests.Test_db_BKTree_Issue_1

@@ -40,8 +40,10 @@ class TestCompareDatabaseInterface(unittest.TestCase):
 		# print(dbid, have1)
 		if have1 != have2:
 			self.log.error("Mismatch!")
-			pprint.pprint(have1)
-			pprint.pprint(have2)
+			for line in pprint.pformat(have1).split("\n"):
+				self.log.error(line)
+			for line in pprint.pformat(have2).split("\n"):
+				self.log.error(line)
 
 		self.assertTrue(dbid in have1)
 		self.assertTrue(dbid in have2)

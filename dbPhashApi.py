@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import dbApi
+import time
 import collections
 import gc
 
@@ -48,12 +49,12 @@ class PhashDbApi(dbApi.DbApi):
 	def __init__(self, noglobal=False):
 		super().__init__()
 
-		if noglobal:
-			self.tree = hamDb.BkHammingTree()
-		else:
-			self.tree = TreeProxy.Instance()
+		# if noglobal:
+		# 	self.tree = hamDb.BkHammingTree()
+		# else:
+		# 	self.tree = TreeProxy.Instance()
 
-		assert self.tree is not None
+		# assert self.tree is not None
 		# Only load the tree if it's empty
 
 		# with self.tree.updateLock.writer_context():
@@ -62,101 +63,105 @@ class PhashDbApi(dbApi.DbApi):
 
 	def forceReload(self):
 
-		with self.tree.writer_context():
-			self.log.warning("Forcing a reload of the tree from the database!")
-			self.log.warning("Dropping Tree")
-			self.tree.dropTree()
+		pass
 
-			# Flush the dropped tree out of memory
-			collected = gc.collect()
-			self.log.info("GC collected %s items.", collected)
+		# with self.tree.writer_context():
+		# 	self.log.warning("Forcing a reload of the tree from the database!")
+		# 	self.log.warning("Dropping Tree")
+		# 	self.tree.dropTree()
 
-			self.log.warning("Tree Dropped. Rebuilding")
-			self.unlocked_doLoad(silent=False)
-			self.log.warning("Tree Rebuilt")
+		# 	# Flush the dropped tree out of memory
+		# 	collected = gc.collect()
+		# 	self.log.info("GC collected %s items.", collected)
+
+		# 	self.log.warning("Tree Dropped. Rebuilding")
+		# 	self.unlocked_doLoad(silent=False)
+		# 	self.log.warning("Tree Rebuilt")
 
 	def unlocked_doLoad(self, silent=False):
-		print("DoLoad: ", self.tree, self.tree.nodes, self.tree.root)
-		assert self.tree.root is not None
-		if self.tree.nodes > 0:
-			if not silent:
-				self.log.error("Tree already built (%s nodes). Reloading will have no effect!", self.tree.nodes)
-				raise ValueError
-			return
+		pass
 
-		cur = self.getStreamingCursor(wantCols=['dbId', 'pHash'], where=(self.table.phash != None))
-		loaded = 0
+		# print("DoLoad: ", self.tree, self.tree.nodes, self.tree.root)
+		# assert self.tree.root is not None
+		# if self.tree.nodes > 0:
+		# 	if not silent:
+		# 		self.log.error("Tree already built (%s nodes). Reloading will have no effect!", self.tree.nodes)
+		# 		raise ValueError
+		# 	return
 
-		rows = cur.fetchmany(self.streamChunkSize)
-		while rows:
-			for dbId, pHash in rows:
-				if pHash != None:
-					self.tree.unlocked_insert(pHash, dbId)
-			loaded += len(rows)
-			self.log.info("Loaded %s phash data sets.", loaded)
-			rows = cur.fetchmany(self.streamChunkSize)
+		# cur = self.getStreamingCursor(wantCols=['dbId', 'pHash'], where=(self.table.phash != None))
+		# loaded = 0
 
-		cur.close()
+		# rows = cur.fetchmany(self.streamChunkSize)
+		# while rows:
+		# 	for dbId, pHash in rows:
+		# 		if pHash != None:
+		# 			self.tree.unlocked_insert(pHash, dbId)
+		# 	loaded += len(rows)
+		# 	self.log.info("Loaded %s phash data sets.", loaded)
+		# 	rows = cur.fetchmany(self.streamChunkSize)
 
-	def insertIntoDb(self, *args, **kwargs):
-		super().insertIntoDb(*args, **kwargs)
+		# cur.close()
 
-		if 'commit' in kwargs:
-			kwargs.pop("commit")
+	# def insertIntoDb(self, *args, **kwargs):
+	# 	super().insertIntoDb(*args, **kwargs)
 
-		dbId, itemHash = self.getItem(wantCols=['dbId', 'pHash'], **kwargs)
+	# 	if 'commit' in kwargs:
+	# 		kwargs.pop("commit")
 
-		# "0" is a valid hash value, so we have to explicitly check for none,
-		# rather then allowing type coercion
-		if itemHash != None:
-			with self.tree.writer_context():
-				self.tree.insert(itemHash, dbId)
+	# 	dbId, itemHash = self.getItem(wantCols=['dbId', 'pHash'], **kwargs)
+
+	# 	# "0" is a valid hash value, so we have to explicitly check for none,
+	# 	# rather then allowing type coercion
+	# 	if itemHash != None:
+	# 		with self.tree.writer_context():
+	# 			self.tree.insert(itemHash, dbId)
 
 
-	def updateDbEntry(self, *args, **kwargs):
-		super().updateDbEntry(*args, **kwargs)
+	# def updateDbEntry(self, *args, **kwargs):
+	# 	super().updateDbEntry(*args, **kwargs)
 
-		if 'commit' in kwargs:
-			kwargs.pop("commit")
+	# 	if 'commit' in kwargs:
+	# 		kwargs.pop("commit")
 
-		# reinsert every item that would be changed
-		# Probably unnecessary.
+	# 	# reinsert every item that would be changed
+	# 	# Probably unnecessary.
 
-		ret = self.getItems(wantCols=['dbId', 'pHash'], **kwargs)
+	# 	ret = self.getItems(wantCols=['dbId', 'pHash'], **kwargs)
 
-		# "0" is a valid hash value, so we have to explicitly check for none,
-		# rather then allowing type coercion
+	# 	# "0" is a valid hash value, so we have to explicitly check for none,
+	# 	# rather then allowing type coercion
 
-		if any([item for item in ret if item[1] != None]):
-			with self.tree.writer_context():
-				for dbId, itemHash in [item for item in ret if item[1] != None]:
-					self.tree.insert(itemHash, dbId)
+	# 	if any([item for item in ret if item[1] != None]):
+	# 		with self.tree.writer_context():
+	# 			for dbId, itemHash in [item for item in ret if item[1] != None]:
+	# 				self.tree.insert(itemHash, dbId)
 
-	def deleteDbRows(self, *args, **kwargs):
+	# def deleteDbRows(self, *args, **kwargs):
 
-		if kwargs:
-			ret = self.getItems(wantCols=['dbId', 'pHash'], **kwargs)
+	# 	if kwargs:
+	# 		ret = self.getItems(wantCols=['dbId', 'pHash'], **kwargs)
 
-		super().deleteDbRows(*args, **kwargs)
+	# 	super().deleteDbRows(*args, **kwargs)
 
-		with self.tree.writer_context():
-			# If kwargs is not defined, deleteDbRows will error, so we don't
-			# care about the additional error of trying to iterate over
-			# the (then undefined) ret, since it won't happen.
-			for dbId, itemHash in [item for item in ret if item[1]]:
-				try:
-					self.tree.remove(itemHash, dbId)
-				except KeyError:
-					self.log.critical("Failure when deleting node?")
-					for line in traceback.format_exc().split("\n"):
-						self.log.critical(line)
-					self.log.critical("Ignoring error")
+	# 	with self.tree.writer_context():
+	# 		# If kwargs is not defined, deleteDbRows will error, so we don't
+	# 		# care about the additional error of trying to iterate over
+	# 		# the (then undefined) ret, since it won't happen.
+	# 		for dbId, itemHash in [item for item in ret if item[1]]:
+	# 			try:
+	# 				self.tree.remove(itemHash, dbId)
+	# 			except KeyError:
+	# 				self.log.critical("Failure when deleting node?")
+	# 				for line in traceback.format_exc().split("\n"):
+	# 					self.log.critical(line)
+	# 				self.log.critical("Ignoring error")
 
 	def searchPhashSet(self, phash_list, distance):
 		ret = {}
-		with self.tree.reader_context():
-			for phash in phash_list:
-				ret[phash] = self.tree.getWithinDistance(phash, distance)
+		# with self.tree.reader_context():
+		for phash in phash_list:
+			ret[phash] = self.getWithinDistance(phash, distance)
 
 		return ret
 
@@ -167,23 +172,24 @@ class PhashDbApi(dbApi.DbApi):
 			ret = set([tmp for tmp in ret if tmp[1]])
 			return ret
 
-	def getWithinDistance_db(self, inPhash, distance=2):
+	def getWithinDistance(self, inPhash, distance=2):
 		with self.transaction() as cur:
-
+			start = time.time()
 			cur.execute("SELECT dbid FROM {table} WHERE phash <@ (%s, %s);".format(table=self.tableName), (inPhash, distance))
 			ret = cur.fetchall()
+			stop  = time.time()
 			ret = set([tmp[0] for tmp in ret])
 
-			self.log.info("Search for '%s', distance '%s'. Discovered %s match(es)" % (inPhash, distance, len(ret)))
+			self.log.info("Search for '%s', distance '%s'. Discovered %s match(es) in %s seconds", inPhash, distance, len(ret), stop - start)
 
-			return ret
+		return ret
 
 	def getIdsWithinDistance(self, inPhash, distance=2):
-		with self.tree.reader_context():
-			ids = self.tree.getWithinDistance(inPhash, distance)
+		# with self.tree.reader_context():
+		ids = self.getWithinDistance(inPhash, distance)
 		return set(ids)
 
-	def getWithinDistance(self, inPhash, distance=2, wantCols=None):
+	def getWithinDistance_tree(self, inPhash, distance=2, wantCols=None):
 		ids = self.getIdsWithinDistance(inPhash, distance)
 		ret = []
 		for itemId in ids:

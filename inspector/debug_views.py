@@ -123,8 +123,15 @@ def high_incidence_items():
 						   common          = common,
 						   )
 
-@app.route('/debug/high_incidence_item/<int:phash>', methods=['GET'])
+@app.route('/debug/high_incidence_item/<phash>', methods=['GET'])
 def high_incidence_item(phash):
+
+	try:
+		phash = int(phash)
+	except ValueError:
+		flash('Phash %s not an integer!' % phash)
+		return redirect(url_for('high_incidence_items'))
+
 	matches = get_high_incidence_item(phash)
 
 	return render_template('overcommon_file.html',

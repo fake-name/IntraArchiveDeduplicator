@@ -7,8 +7,9 @@ import queue
 import threading
 import time
 
-
 import sys
+import tqdm
+
 
 class Spinner(object):
 	def __init__(self):

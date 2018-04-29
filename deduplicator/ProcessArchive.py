@@ -22,9 +22,11 @@ BAD_PHASHES = [
 	# Phash value of '0' is commonly a result of an image where there is no content, such as a blank page.
 	# There are 79 THOUSAND of these in my collection. As a result, the existence check is prohibitively slow, so
 	# we just short-circuit and ignore it.
-	                 0,
-
-	-24019198012642646,
+	                   0,
+	  -24019198012642646,
+	-6196953087261802496,
+	   47850746040811520,
+	      24318626963231,
 ]
 
 class ArchiveProcessorException(Exception):
@@ -789,6 +791,7 @@ def processDownload(filePath, pathNegativeFilter=None, distance=None, moveToPath
 	if isinstance(pathPositiveFilter, (list, tuple)):
 		for item in pathPositiveFilter:
 			pathPositiveFilter_local.append(item)
+
 	pathNegativeFilter_local.extend(settings.masked_path_prefixes)
 	try:
 		ck = checkClass(filePath, pathNegativeFilter=pathNegativeFilter_local, pathPositiveFilter=pathPositiveFilter_local, negativeKeywords=negativeKeywords)

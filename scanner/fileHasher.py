@@ -3,9 +3,7 @@
 
 
 import queue
-import scanner.runState
 
-import UniversalArchiveInterface as uar
 
 import multiprocessing
 
@@ -14,14 +12,18 @@ import logging
 import dbApi
 import signal
 
+import traceback
 import os.path
 
 import random
 random.seed()
 
+import tqdm
+
+import scanner.runState
+import UniversalArchiveInterface as uar
 import scanner.hashFile as hasher
 
-import traceback
 
 IMAGE_EXTS = ("bmp", "eps", "gif", "im", "jpeg", "jpg", "msp", "pcx", "png", "ppm", "spider", "tiff", "webp", "xbm")
 ARCH_EXTS = ("zip", "rar", "cbz", "cbr", "7z", "cb7")
@@ -68,13 +70,10 @@ class HashEngine(object):
 		self.manNamespace.run = False
 
 	def gracefulShutdown(self):
-
-
 		self.manNamespace.stopOnEmpty = True
 
 		self.pool.close()
 		self.pool.join()
-
 
 	def cleanPathCache(self, fqPathBase):
 
@@ -83,7 +82,7 @@ class HashEngine(object):
 		itemsCursor = self.dbApi.getUniqueOnBasePath(fqPathBase)
 		items = []
 		retItems = 0
-		for item in itemsCursor:
+		for item in tqdm.tqdm(itemsCursor):
 			retItems += 1
 			items.append(item[0])
 			if not scanner.runState.run:
@@ -96,7 +95,7 @@ class HashEngine(object):
 		self.log.info("total unique items = %s", len(items))
 
 
-		for itemPath in items:
+		for itemPath in tqdm.tqdm(items):
 			if not os.path.exists(itemPath):
 				self.log.info("Item %s does not exist. Should delete from DB", itemPath)
 				self.dbApi.deleteBasePath(itemPath)
@@ -145,8 +144,6 @@ class HashThread(object):
 		self.archIntegrity = integrity
 
 		self.dbApi         = self.getDbConnection()
-
-
 
 	def getDbConnection(self):
 		'''

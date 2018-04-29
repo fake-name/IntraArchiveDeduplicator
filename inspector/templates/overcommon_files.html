@@ -1,0 +1,39 @@
+<!-- extend base layout -->
+
+{%- extends "__base.html" -%}
+{%- block content -%}
+	{%- include '_block_flash.html' -%}
+	<div class='subdiv fuid'>
+		<h3>Common Files</h3>
+
+		<div class='contentdiv'>
+			<table>
+				<col width="400px">
+				<col width="200px">
+				<col width="100px">
+				<col width="100px">
+				<tr>
+					<th>DbID</th>
+					<th>PHash</th>
+					<th>Matches</th>
+					<th>Distance</th>
+				</tr>
+				{%- for dbid, phash, match_count, distance in common -%}
+					<tr>
+						<td>{{dbid}}</td>
+						<td>
+							<a href='/debug/high_incidence_item/{{phash}}'>
+								{{phash}}
+							</a>
+						</td>
+						<td>{{match_count}}</td>
+						<td>{{distance}}</td>
+					</tr>
+				{%- endfor -%}
+			</table>
+		</div>
+
+
+	</div>
+{%- endblock -%}
+

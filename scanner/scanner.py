@@ -145,7 +145,9 @@ class DedupScanTool(object):
 	def waitComplete(self):
 
 		self.log.info("Waiting for all queued file scans complete.")
-
+		while self.toProcessQueue.qsize():
+			self.log.info("Remaining items to process: %s", self.toProcessQueue.qsize())
+			time.sleep(1)
 		self.toProcessQueue.close()
 		self.toProcessQueue.join_thread()
 

@@ -1,0 +1,386 @@
+
+
+{%- macro gen_css() -%}
+	<style>
+
+		@-viewport
+		{
+			width: 1024px;
+		}
+
+
+		table, td
+		{
+			border-color: #006;
+			border-style: solid;
+		}
+
+		table
+		{
+			margin-top: 5px;
+			border-width: 0 0 1px 1px;
+			border-spacing: 0;
+			border-collapse: collapse;
+			table-layout: fixed;
+		}
+
+		table.fullwidth
+		{
+			width: 100%;
+		}
+
+
+		tr:nth-child(even)
+		{
+			background: #ffffff
+		}
+		tr:nth-child(odd)
+		{
+			background: #f0f0ff
+		}
+
+		td
+		{
+			margin: 0;
+			padding: 1px;
+			border-width: 1px 1px 0 0;
+			word-wrap: break-word;
+			overflow-wrap: break-word;
+			font-size:14px;
+		}
+
+		td.legend
+		{
+			 text-align: center;
+		}
+
+		img.pageDisp
+		{
+			max-width: 100%;
+			max-height: 100%;
+		}
+
+		*.uncoloured
+		{
+			background-color: #ffffff
+		}
+		td.padded
+		{
+			padding: 3px;
+		}
+
+		li  /* Space out list items */
+		{
+			margin: 1px 0 1px 0;
+		}
+
+		div
+		{
+			border-color:#555577;
+		}
+
+		div.statusdiv
+		{
+			margin: 0 auto;
+			width: 105px;
+			display: inline-block;
+			vertical-align:top;
+		}
+		div.maindiv
+		{
+			margin: 0 auto;
+			width: 882px;
+			display: inline-block;
+			overflow:hidden;
+		}
+
+
+		div.subdiv
+		{
+			border:1px solid;
+			width: 100%;
+
+			/*border-radius:25px;*/
+		}
+		div.statediv
+		{
+			border:2px solid;
+			/*border-radius:25px;*/
+			padding-left:5px;
+			padding-right:5px;
+			padding-top:3px;
+			padding-bottom:3px;
+			font-size: 14;
+
+			display: inline-block;
+			width: 100px;
+			min-height: 141px;
+			vertical-align: top;
+		}
+
+		div.extrastatediv
+		{
+			border:2px solid;
+			/*border-radius:25px;*/
+			padding-left:5px;
+			padding-right:5px;
+			padding-top:3px;
+			padding-bottom:3px;
+			font-size: 14;
+			word-wrap: break-word;
+			display: inline-block;
+			width: 150px;
+			height: 70px;
+			vertical-align: top;
+			background-color:#FFF;
+		}
+
+		div.contentdiv
+		{
+			padding-top:    0px;
+			padding-right:  5px;
+			padding-bottom: 20px;
+			padding-left:   5px;
+		}
+
+		div.legend
+		{
+			margin: 0 auto;
+			padding-top:    5px;
+			padding-right:  5px;
+			padding-bottom: 0px;
+			padding-left:   5px;
+		}
+
+		div.navId
+		{
+			background-color:#EEEEEE;
+		}
+
+		.nav
+		{
+			width:110px !important;
+			/*display: inline-block;*/
+			position: relative;
+			/*float: left;*/
+		}
+		.main
+		{
+			/*float: right;*/
+			/*display: inline-block;*/
+			position: relative;
+		}
+
+
+
+
+		h3
+		{
+			margin: 5 auto;
+			text-align: center;
+		}
+
+		hr
+		{
+			margin: 3px;
+		}
+
+		ul
+		{
+			list-style-type: square;
+			margin-left: 10px;
+			margin-top: 0px;
+			margin-right: 0px;
+			margin-bottom: 0px;
+
+			padding-left: 0px;
+			padding-top: 0px;
+			padding-right: 0px;
+			padding-bottom: 0px;
+
+		}
+
+		.pageChangeButton
+		{
+			margin: 5px;
+			padding: 5px;
+			border:2px solid;
+			background-color: #FFF;
+		}
+
+		.lightRect
+		{
+			margin: 5px;
+			padding: 5px;
+			border:1px solid;
+			background-color: #FFF;
+		}
+
+		.itemInfoBox
+		{
+			width: 200px;
+		}
+
+		div.readerInfo
+		{
+			/*position:fixed;*/
+			/*float: right;*/
+			display: inline-block;
+
+			/*position: absolute;*/
+		}
+		table.mangaFileTable
+		{
+			width: 640px;
+			/*display: inline-block;*/
+			float: left;
+		}
+
+		input[type="text"]
+		{
+			background: transparent;
+			border: 1px solid;
+
+			width: 95%;
+			/*outline: none;*/
+		}
+
+		form
+		{
+			margin-bottom: 0em;
+		}
+
+		.tooltip
+		{
+			display:none;
+			position:absolute;
+			border:1px solid #333;
+			background-color:#161616;
+			border-radius:5px;
+			padding:10px;
+			color:#fff;
+			font-size:10px Arial;
+
+		}
+
+		.errorPattern
+		{
+			background-image: -webkit-gradient(linear, left bottom, right top, color-stop(0, #fcc), color-stop(0.25, #fcc), color-stop(0.25, #fbb),
+												color-stop(0.5, #fbb), color-stop(0.5, #fcc), color-stop(0.75, #fcc), color-stop(0.75, #fbb)) !important;
+			background-image: -webkit-linear-gradient(left bottom, #fcc 0%, #fcc 25%, #fbb 25%, #fbb 50%, #fcc 50%, #fcc 75%, #fbb 75%) !important;
+			background-image: -moz-linear-gradient(left bottom, #fcc 0%, #fcc 25%, #fbb 25%, #fbb 50%, #fcc 50%, #fcc 75%, #fbb 75%) !important;
+			background-image: -ms-linear-gradient(left bottom, #fcc 0%, #fcc 25%, #fbb 25%, #fbb 50%, #fcc 50%, #fcc 75%, #fbb 75%) !important;
+			background-image: -o-linear-gradient(left bottom, #fcc 0%, #fcc 25%, #fbb 25%, #fbb 50%, #fcc 50%, #fcc 75%, #fbb 75%) !important;
+			background-image: linear-gradient(left bottom, #fcc 0%, #fcc 25%, #fbb 25%, #fbb 50%, #fcc 50%, #fcc 75%, #fbb 75%) !important;
+			background-size: 30px 30px !important;
+
+			padding-right:10px !important;
+			padding-left:10px !important;
+			padding-bottom:10px !important;
+			padding-top:5px !important;
+			border:1px solid #333 !important;
+			margin-left: 10px !important;
+			margin-right: 10px !important;
+		}
+
+		.missing
+		{
+			background-color: #FF9999
+		}
+
+
+		.body_table
+		{
+			display: table !important;
+			vertical-align: top;
+
+		}
+		.body_td_left
+		{
+			width: 110px;
+			display: table-cell !important;
+		}
+		.body_td_right
+		{
+			display: table-cell !important;
+			width: 100%;
+		}
+
+		.hentai-table b
+		{
+			color: #0B0 !important;
+		}
+		.hentai-table strike
+		{
+			color: #f00 !important;
+		}
+
+
+
+		/*manga_scrapers*/
+		{% for item in manga_scrapers %}
+			div.{{item['css_class']}}
+			{
+				background-color:{{item['baseColour']}};
+			}
+		{% endfor %}
+		/*hentai_scrapers*/
+		{% for item in hentai_scrapers %}
+			div.{{item['css_class']}}
+			{
+				background-color:{{item['baseColour']}};
+			}
+		{% endfor %}
+
+		/*other_scrapers*/
+		{% for item in other_scrapers %}
+			div.{{item['css_class']}}
+			{
+				background-color:{{item['baseColour']}};
+			}
+		{% endfor %}
+
+		/* row ID classes */
+
+
+		{% for item in manga_scrapers %}
+			tr.{{item["key"]}}_row:nth-child(even)
+			{
+				background: {{item["evenRow"]}} !important;
+			}
+
+			tr.{{item["key"]}}_row:nth-child(odd)
+			{
+				background: {{item["oddRow"]}} !important;
+			}
+		{% endfor %}
+		{% for item in hentai_scrapers %}
+			tr.{{item["key"]}}_row:nth-child(even)
+			{
+				background: {{item["evenRow"]}} !important;
+			}
+
+			tr.{{item["key"]}}_row:nth-child(odd)
+			{
+				background: {{item["oddRow"]}} !important;
+			}
+		{% endfor %}
+		{% for item in other_scrapers %}
+			tr.{{item["key"]}}_row:nth-child(even)
+			{
+				background: {{item["evenRow"]}} !important;
+			}
+
+			tr.{{item["key"]}}_row:nth-child(odd)
+			{
+				background: {{item["oddRow"]}} !important;
+			}
+
+		{% endfor %}
+
+
+
+	</style>
+
+
+{%- endmacro -%}

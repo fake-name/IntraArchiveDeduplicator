@@ -182,6 +182,13 @@ class PhashDbApi(dbApi.DbApi):
 
 			self.log.info("Search for '%s', distance '%s'. Discovered %s match(es) in %s seconds", inPhash, distance, len(ret), stop - start)
 
+			if len(ret) > 500:
+				self.log.warning("Lots of return values!")
+				cur.execute('''
+						INSERT INTO high_incidence_hashes (phash, match_count, distance)
+						VALUES (%s, %s, %s)
+						ON CONFLICT DO NOTHING
+					''', (inPhash, len(ret), distance))
 		return ret
 
 	def getIdsWithinDistance(self, inPhash, distance=2):

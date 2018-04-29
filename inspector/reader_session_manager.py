@@ -35,7 +35,6 @@ class ViewerSession(object):
 	def checkOpenArchive(self, archPath):
 		if not self.archHandle or self.archHandle.archPath != archPath:
 			self.archHandle = ArchiveReader(archPath)
-			self.buildImageLookupDict()
 
 		self.lastAccess = time.time()
 

@@ -13,28 +13,9 @@ import traceback
 
 
 from inspector import app
-import inspector.sub_views
+import inspector.debug_views
 
 
-
-# @app.before_request
-# def before_request():
-# 	g.locale = 'en'
-# 	g.session = database.session()
-
-
-# # @app.teardown_appcontext
-# @app.teardown_request
-# def teardown_request(response):
-# 	print("Closing request!")
-# 	try:
-# 		g.session.commit()
-# 	except Exception:
-# 		g.session.rollback()
-
-# 	g.session.close()
-
-# 	database.session.remove()
 
 
 @app.errorhandler(404)

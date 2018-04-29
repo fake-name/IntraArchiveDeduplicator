@@ -7,10 +7,7 @@
 
 		<div class="subdiv skId" id="manga_div">
 			<div class="contentdiv">
-				<h3>Manga (distinct)</h3>
-				<div id='mangatable'>
-					<center><img src='/static/img/loading-bar.gif' /></center>
-				</div>
+				<h3>Wat</h3>
 			</div>
 		</div>
 
@@ -23,35 +20,5 @@
 {%- block footer -%}
 
 
-	<script type="text/javascript">
-		$(document).ready(function() {
-			$('#manga_div').load("/manga/ #manga_block",
-				function( response, status, xhr )
-				{
-					if ( status == "error" )
-					{
-						var msg = "Sorry but there was an error: ";
-						$( "#error" ).html( msg + xhr.status + " " + xhr.statusText );
-					}
-				}
-			);
-			$('#pron_div').load("/hentai/ #hentai_block",
-				function( response, status, xhr )
-				{
-					if ( status == "error" )
-					{
-						var msg = "Sorry but there was an error: ";
-						$( "#error" ).html( msg + xhr.status + " " + xhr.statusText );
-					}
-				}
-			);
-
-		});
-	</script>
-
-	<script>
-		{{util_macros.mouseOverJs(key='showTT')}}
-		{{util_macros.mouseOverJs(key='showHT')}}
-	</script>
 
 {%- endblock -%}

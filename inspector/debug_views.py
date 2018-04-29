@@ -1,8 +1,5 @@
 
 import mimetypes
-import contextlib
-import psycopg2
-import psycopg2.pool
 from flask import g
 from flask import render_template
 from flask import make_response
@@ -18,28 +15,9 @@ import time
 import datetime
 from calendar import timegm
 
-from sqlalchemy.sql import text
-
 from . import reader_session_manager
 from inspector import app
-import settings
-
-cpool = psycopg2.pool.ThreadedConnectionPool(
-							minconn  = 2,
-							maxconn  = 5,
-							dbname   = settings.PSQL_DB_NAME,
-							host     = settings.PSQL_IP,
-							password = settings.PSQL_PASS,
-							user     = settings.PSQL_USER,
-	)
-
-@contextlib.contextmanager
-def db_cursor(key=None):
-	try:
-		with cpool.getconn(key) as conn, conn.cursor() as cur:
-			yield cur
-	finally:
-		cpool.putconn(conn, key)
+from inspector import db_pool
 
 def guessItemMimeType(itemName):
 	mime_type = mimetypes.guess_type(itemName)
@@ -50,7 +28,7 @@ def guessItemMimeType(itemName):
 
 def get_high_incidence_issues():
 
-	with db_cursor() as cur:
+	with db_pool.db_cursor() as cur:
 		cur.execute('''
 			SELECT
 				dbid,
@@ -70,7 +48,7 @@ def get_high_incidence_issues():
 
 def get_high_incidence_item(phash):
 	matches = {}
-	with db_cursor() as cur:
+	with db_pool.db_cursor() as cur:
 		for dist in [0, 1, 2]:
 			print("Doing search for %s with distance %s" % (phash, dist))
 			cur.execute("""
@@ -94,7 +72,7 @@ def get_high_incidence_item(phash):
 
 def get_deduper_resource(rowid):
 	matches = {}
-	with db_cursor() as cur:
+	with db_pool.db_cursor() as cur:
 		cur.execute("""
 			SELECT
 				fspath,

@@ -92,13 +92,17 @@ Implementation follows http://www.hackerfactor.com/blog/index.php?/archives/432-
 
 @image must be a PIL instance.
 """
-def phash(image, hash_size=32):
-	image = image.convert("L").resize((hash_size, hash_size), Image.ANTIALIAS)
-	pixels = numpy.array(image.getdata(), dtype=numpy.float).reshape((hash_size, hash_size))
-	dct = scipy.fftpack.dct(pixels)
-	dctlowfreq = dct[:8, 1:9]
-	avg = dctlowfreq.mean()
-	diff = dctlowfreq > avg
+def phash(image, hash_size=8, highfreq_factor=4):
+	if hash_size < 2:
+		raise ValueError("Hash size must be greater than or equal to 2")
+
+	img_size = hash_size * highfreq_factor
+	image = image.convert("L").resize((img_size, img_size), Image.ANTIALIAS)
+	pixels = numpy.asarray(image)
+	dct = scipy.fftpack.dct(scipy.fftpack.dct(pixels, axis=0), axis=1)
+	dctlowfreq = dct[:hash_size, :hash_size]
+	med = numpy.median(dctlowfreq)
+	diff = dctlowfreq > med
 	return ImageHash(diff), image
 
 """

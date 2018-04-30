@@ -15,15 +15,21 @@
 				<tr>
 					<th>DbID</th>
 					<th>PHash</th>
+					<th>Binary PHash</th>
 					<th>Matches</th>
 					<th>Distance</th>
 				</tr>
-				{%- for dbid, phash, match_count, distance in common -%}
+				{%- for dbid, phash, phash_bin, match_count, distance in common -%}
 					<tr>
 						<td>{{dbid}}</td>
+						<td style='text-align: right;'>
+							<a href='/debug/high_incidence_item/{{phash}}'>
+								<code>{{phash}}</code>
+							</a>
+						</td>
 						<td>
 							<a href='/debug/high_incidence_item/{{phash}}'>
-								{{phash}}
+								<code>{{phash_bin}}</code>
 							</a>
 						</td>
 						<td>{{match_count}}</td>

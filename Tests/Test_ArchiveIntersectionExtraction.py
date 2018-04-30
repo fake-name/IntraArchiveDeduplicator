@@ -48,7 +48,6 @@ class TestArchChecker(unittest.TestCase):
 
 
 	def dropDatabase(self):
-		self.db.tree.dropTree()
 		self.db.tearDown()
 		self.db.close()
 

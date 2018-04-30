@@ -14,6 +14,7 @@ import traceback
 
 from inspector import app
 import inspector.debug_views
+import inspector.image_views
 
 
 

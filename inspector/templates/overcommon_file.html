@@ -3,9 +3,9 @@
 
 
 {%- macro common_block(block_dist, block) -%}
-	<div>
+	<div style="max-width: 1000px">
 		<h4>Search for distance: {{block_dist}}: {{block | length}} items</h4>
-		<table>
+		<table style="max-width: 1000px">
 			<col width="100px">
 			<col >
 			<col >
@@ -16,9 +16,13 @@
 			</tr>
 			{%- for dbid, fspath, internalpath in block -%}
 				<tr>
-					<td><a href='/debug/scraper_resource/{{dbid}}'>{{dbid}}</a></td>
-					<td>{{fspath}}<br><img src='/debug/scraper_resource/{{dbid}}'></td>
+					<td><a href='/debug/single_item/{{dbid}}'>{{dbid}}</a></td>
+					<td>{{fspath}}</td>
 					<td>{{internalpath}}</td>
+				</tr>
+				<tr>
+					<td></td>
+					<td colspan="2"><img style="display: inline-block; max-width: 500px;" src='/debug/scraper_resource/whole_image/{{dbid}}'></td>
 				</tr>
 			{%- endfor -%}
 		</table>

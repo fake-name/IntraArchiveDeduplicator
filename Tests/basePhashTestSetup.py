@@ -88,7 +88,6 @@ class TestDb(TestDbBare):
 		if load_database:
 			self.copy_zips()
 
-			self.tree.dropTree()
 
 			self.log.info("sync()ing")
 			# You need an explicit sync call or the load_zips call can sometimes miss the new files.
@@ -98,7 +97,6 @@ class TestDb(TestDbBare):
 			self.load_zips(TEST_ZIP_PATH)
 
 			# Since the tree deliberately persists (it's a singleton), we have to /explicitly/ clobber it.
-			self.tree.dropTree()
 			self.unlocked_doLoad()
 
 	def copy_zips(self):
@@ -126,7 +124,6 @@ class TestDb(TestDbBare):
 	def tearDown(self):
 		# Have to explicitly delete the tree and the hasher objects, so they don't prevent the table from
 		# dropping.
-		del self.tree
 		del self.hasher
 
 		self.log.info("Dropping testing table '{table}'".format(table=self.tableName))

@@ -53,7 +53,6 @@ class TestSequenceFunctions(unittest.TestCase):
 
 
 	def test_loadFromDb(self):
-		self.db.tree.dropTree()
 		self.db.unlocked_doLoad()
 
 
@@ -62,7 +61,6 @@ class TestSequenceFunctions(unittest.TestCase):
 	def test_testLoadingDeterminsm(self):
 		loadedTree = list(self.db.tree)
 
-		self.db.tree.dropTree()
 
 		self.db.unlocked_doLoad()
 

@@ -98,11 +98,9 @@ class TestSequenceFunctions(unittest.TestCase):
 
 
 	def test_loadFromDb(self):
-		self.db.tree.dropTree()
 		self.db.unlocked_doLoad()
 
 	def test_loadFromDb_2(self):
-		self.db.tree.dropTree()
 		with self.db.tree.writer_context():
 			self.db.unlocked_doLoad()
 
@@ -112,7 +110,6 @@ class TestSequenceFunctions(unittest.TestCase):
 	def test_testLoadingDeterminsm(self):
 		loadedTree = list(self.db.tree)
 
-		self.db.tree.dropTree()
 		self.db.unlocked_doLoad()
 
 		self.assertEqual(list(self.db.tree), loadedTree)

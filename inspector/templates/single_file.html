@@ -1,0 +1,48 @@
+<!-- extend base layout -->
+
+
+
+{%- macro common_block(block_dist, block) -%}
+	<div>
+		<h4>Search for distance: {{block_dist}}: {{block | length}} items</h4>
+		<table>
+			<col width="100px">
+			<col >
+			<col >
+			<tr>
+				<th>DbID</th>
+				<th>FSPath</th>
+				<th>InternalPath</th>
+			</tr>
+			{%- for dbid, fspath, internalpath in block -%}
+				<tr>
+					<td><a href='/debug/single_item/{{dbid}}'>{{dbid}}</a></td>
+					<td>{{fspath}}<br><img src='/debug/scraper_resource/whole_image/{{dbid}}'></td>
+					<td>{{internalpath}}</td>
+				</tr>
+			{%- endfor -%}
+		</table>
+	</div>
+{%- endmacro -%}
+
+
+{%- extends "__base.html" -%}
+{%- block content -%}
+	{%- include '_block_flash.html' -%}
+	<div class='subdiv fuid'>
+		<h3>Hash steps for {{rowid}}</h3>
+		<div><img style='display: inline-block; max-width: 500px;' src='/debug/scraper_resource/whole_image/{{rowid}}'></div>
+		<div><img style='display: inline-block; max-width: 500px;' src='/debug/scraper_resource/step_1/{{rowid}}'></div>
+		<div><img style='display: inline-block; max-width: 500px;' src='/debug/scraper_resource/step_2/{{rowid}}'></div>
+		<div><img style='display: inline-block; max-width: 500px;' src='/debug/scraper_resource/step_3/{{rowid}}'></div>
+		<div><img style='display: inline-block; max-width: 500px;' src='/debug/scraper_resource/step_4/{{rowid}}'></div>
+		<div><img style='display: inline-block; max-width: 500px;' src='/debug/scraper_resource/step_5/{{rowid}}'></div>
+
+	</div>
+{%- endblock -%}
+
+
+{%- block footer -%}
+
+
+{%- endblock -%}

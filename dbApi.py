@@ -59,6 +59,7 @@ class DbApi():
 
 													itemHash        text,
 													pHash           bigint,
+													wHash           bigint,
 													itemKind        text,
 
 													imgx            INTEGER,

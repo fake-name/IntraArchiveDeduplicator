@@ -42,7 +42,6 @@ class TestArchChecker(unittest.TestCase):
 
 		self.db = Tests.basePhashTestSetup.TestDb()
 
-
 		# Check the table is set up
 		self.verifyDatabaseLoaded()
 
@@ -58,7 +57,7 @@ class TestArchChecker(unittest.TestCase):
 		easier when new files are added to the test-suite.
 		'''
 		for row in db:
-			print('%s, ' % list(row))
+			print('{},   # phash: {:b}'.format(list(row), row[4] if row[4] else 0))
 
 	def verifyDatabaseLoaded(self):
 		expect = list(CONTENTS)

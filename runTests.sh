@@ -27,10 +27,13 @@ do
 		--cover-package=dbPhashApi                   \
 		--cover-package=deduplicator.rwlock          \
 		--cover-package=deduplicator.ProcessArchive  \
-		--stop \
 		Tests
+
+		# Tests.Test_DbHashingSystem.TestSequenceFunctions
+		# --stop \
 		# --nocapture \
-		Tests.Test_db_BKTree_Compare
+		# Tests.Test_db_BKTree_Compare
+		# Tests.Test_db_BKTree_Compare
 		# Tests.Test_db_BKTree_Issue_2
 		# Tests.Test_db_BKTree_Issue_1
 		# Tests.Test_db_BKTree_2

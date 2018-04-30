@@ -50,7 +50,7 @@ def delete_item(item_path):
 			print("Item: ", item_path)
 			print("Stat: ", os.stat(item_path))
 			failed += 1
-			if failed > 10:
+			if failed > 20:
 				print("Deletion failed!")
 				return
 

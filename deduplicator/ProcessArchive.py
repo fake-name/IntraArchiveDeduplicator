@@ -23,10 +23,7 @@ BAD_PHASHES = [
 	# There are 79 THOUSAND of these in my collection. As a result, the existence check is prohibitively slow, so
 	# we just short-circuit and ignore it.
 	                   0,
-	  -24019198012642646,
-	-6196953087261802496,
-	   47850746040811520,
-	      24318626963231,
+	-9223372036854775808,    # 0x8000000000000000
 ]
 
 class ArchiveProcessorException(Exception):

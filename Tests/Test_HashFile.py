@@ -26,7 +26,7 @@ class TestSequenceFunctions(unittest.TestCase):
 		self.assertEqual(intName, fname)
 
 		self.assertEqual(hexHash, "dcd6097eeac911efed3124374f44085b" )
-		self.assertEqual(pHash,   -149413575039568585 )
+		self.assertEqual(pHash,   -7813072021139921681 )
 		self.assertEqual(imX,     325 )
 		self.assertEqual(imY,     307)
 
@@ -44,7 +44,7 @@ class TestSequenceFunctions(unittest.TestCase):
 		self.assertEqual(intName, fname)
 
 		self.assertEqual(hexHash, "d9ceeb6b43c2d7d096532eabfa6cf482" )
-		self.assertEqual(pHash,   27427800275512429 )
+		self.assertEqual(pHash,   -4992890192511777340 )
 		self.assertEqual(imX,     493 )
 		self.assertEqual(imY,     389)
 
@@ -63,7 +63,7 @@ class TestSequenceFunctions(unittest.TestCase):
 		self.assertEqual(intName, fname)
 
 		self.assertEqual(hexHash, "1268e704908cc39299d73d6caafc23a0" )
-		self.assertEqual(pHash,   27427800275512429 )
+		self.assertEqual(pHash,   -4992890192511777340 )
 		self.assertEqual(imX,     493 )
 		self.assertEqual(imY,     389)
 
@@ -82,7 +82,7 @@ class TestSequenceFunctions(unittest.TestCase):
 		self.assertEqual(intName, fname)
 
 		self.assertEqual(hexHash, "40d39c436e14282dcda06e8aff367307" )
-		self.assertEqual(pHash,   27427800275512429 )
+		self.assertEqual(pHash,   -4992890192511777340 )
 		self.assertEqual(imX,     300 )
 		self.assertEqual(imY,     237)
 
@@ -100,7 +100,7 @@ class TestSequenceFunctions(unittest.TestCase):
 		self.assertEqual(intName, fname)
 
 		self.assertEqual(hexHash, "6d0a977694630ac9d1d33a7f068e10f8" )
-		self.assertEqual(pHash,   -5569898607211671279 )
+		self.assertEqual(pHash,   -7472365462264617431 )
 		self.assertEqual(imX,     500 )
 		self.assertEqual(imY,     363)
 
@@ -118,7 +118,7 @@ class TestSequenceFunctions(unittest.TestCase):
 		self.assertEqual(intName, fname)
 
 		self.assertEqual(hexHash, "7227289a017988b6bdcf61fd4761f6b9")
-		self.assertEqual(pHash,   -4955310669995365332)
+		self.assertEqual(pHash,   -3164295607292040329)
 		self.assertEqual(imX,     501)
 		self.assertEqual(imY,     356)
 

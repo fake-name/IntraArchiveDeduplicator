@@ -13,12 +13,12 @@ import hashlib
 HASH_SIZE = 32
 
 files = [
-	('dangerous-to-go-alone.jpg',        ('dcd6097eeac911efed3124374f44085b', '407bc3580af7a999b340145a997e5bc7')),
-	('Lolcat_this_is_mah_job.jpg',       ('d9ceeb6b43c2d7d096532eabfa6cf482', '1798dbdf54498f7b6d2e6adc9f00b423')),
-	('Lolcat_this_is_mah_job.png',       ('1268e704908cc39299d73d6caafc23a0', '822c823d4e3bd49a35da06a86cb6231e')),
-	('Lolcat_this_is_mah_job_small.jpg', ('40d39c436e14282dcda06e8aff367307', 'a28a0a9253ad1aa2dcbb22309f91721d')),
-	('lolcat-crocs.jpg',                 ('6d0a977694630ac9d1d33a7f068e10f8', '83aec17425e9d6720bc27efde7d0f2d0')),
-	('lolcat-oregon-trail.jpg',          ('7227289a017988b6bdcf61fd4761f6b9', 'ed69c0db2493e0eba18d378b22335342')),
+	('dangerous-to-go-alone.jpg',        ('dcd6097eeac911efed3124374f44085b', 'd958d47e04812e34746b9c36f40e0385')),
+	('Lolcat_this_is_mah_job.jpg',       ('d9ceeb6b43c2d7d096532eabfa6cf482', 'f238cfe1c2262cc5fea335dc85c3d8ba')),
+	('Lolcat_this_is_mah_job.png',       ('1268e704908cc39299d73d6caafc23a0', '766744a9d5a4c3ae9a14f5b4218bc3af')),
+	('Lolcat_this_is_mah_job_small.jpg', ('40d39c436e14282dcda06e8aff367307', 'a1a5ca5f755b9a340f52c16a41fddc6d')),
+	('lolcat-crocs.jpg',                 ('6d0a977694630ac9d1d33a7f068e10f8', '63d4a41d74397ae8b58b70ec880ea66b')),
+	('lolcat-oregon-trail.jpg',          ('7227289a017988b6bdcf61fd4761f6b9', '013936aadb798634d26a8d3df4a1d90a')),
 
 ]
 

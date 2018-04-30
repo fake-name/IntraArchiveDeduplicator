@@ -74,6 +74,49 @@ class TestArchChecker(unittest.TestCase):
 	def test_getItemsSimple(self):
 		self.verifyDatabaseLoaded()
 
+	def test_skipSolid(self):
+		'''
+		test_skipSolid()
+
+		z_sml_w is a solid-color image, which produces a phash of 0.
+		since there are LOTS of empty page images, this is basically a useless match, so it's
+		special-case skipped in the ProcessArchive tool. Otherwise, we'd be waiting on
+		10K+ file existence checks, which is slow.
+
+		Only the phash-system has this special-case behaviour, so we expect no matches for
+		the normal binary match, and lots of matches for the text file.
+		'''
+
+		self.verifyDatabaseLoaded()
+		cwd = os.path.dirname(os.path.realpath(__file__))
+
+		ck = TestArchiveChecker('{cwd}/test_ptree/z_sml_w.zip'.format(cwd=cwd))
+		self.assertEqual(ck.getMatchingArchives(),      {})
+
+		p_expect = {
+			'{cwd}/test_ptree/z_reg.zip'.format(cwd=cwd):
+			{
+				('test.txt', 'test.txt'): True
+			},
+			'{cwd}/test_ptree/z_reg_junk.zip'.format(cwd=cwd):
+			{
+				('test.txt', 'test.txt'): True
+			},
+			'{cwd}/test_ptree/z_sml.zip'.format(cwd=cwd):
+			{
+				('test.txt', 'test.txt'): True
+			},
+		}
+
+		matching = ck.getPhashMatchingArchives()
+
+		print("Expected")
+		pprint.pprint(p_expect)
+		print("Matching")
+		pprint.pprint(matching)
+
+		self.assertEqual(matching, p_expect)
+
 
 	def test_isBinaryUnique(self):
 		cwd = os.path.dirname(os.path.realpath(__file__))
@@ -460,41 +503,6 @@ class TestArchChecker(unittest.TestCase):
 		self.assertFalse(ck.getBestBinaryMatch())
 
 
-	def test_skipSolid(self):
-		'''
-		test_skipSolid()
-
-		z_sml_w is a solid-color image, which produces a phash of 0.
-		since there are LOTS of empty page images, this is basically a useless match, so it's
-		special-case skipped in the ProcessArchive tool. Otherwise, we'd be waiting on
-		10K+ file existence checks, which is slow.
-
-		Only the phash-system has this special-case behaviour, so we expect no matches for
-		the normal binary match, and lots of matches for the text file.
-		'''
-
-		self.verifyDatabaseLoaded()
-		cwd = os.path.dirname(os.path.realpath(__file__))
-
-		ck = TestArchiveChecker('{cwd}/test_ptree/z_sml_w.zip'.format(cwd=cwd))
-		self.assertEqual(ck.getMatchingArchives(),      {})
-
-		p_expect = {
-			'{cwd}/test_ptree/z_reg.zip'.format(cwd=cwd):
-			{
-				('test.txt', 'test.txt'): True
-			},
-			'{cwd}/test_ptree/z_reg_junk.zip'.format(cwd=cwd):
-			{
-				('test.txt', 'test.txt'): True
-			},
-			'{cwd}/test_ptree/z_sml.zip'.format(cwd=cwd):
-			{
-				('test.txt', 'test.txt'): True
-			},
-		}
-
-		self.assertEqual(ck.getPhashMatchingArchives(), p_expect)
 
 	def test_junkFileFiltering(self):
 		self.verifyDatabaseLoaded()

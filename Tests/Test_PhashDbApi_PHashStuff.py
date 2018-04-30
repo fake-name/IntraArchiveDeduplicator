@@ -27,8 +27,6 @@ class TestDb(dbPhashApi.PhashDbApi):
 			self.tableName = self.tableName+"_"+tableName
 		super().__init__(*args, **kwargs)
 
-		# Since the tree deliberately persists (it's a singleton), we have to /explicitly/ clobber it.
-		self.tree.dropTree()
 		self.unlocked_doLoad()
 
 	def tearDown(self):
@@ -81,8 +79,8 @@ class TestSequenceFunctions(unittest.TestCase):
 
 		self.addCleanup(self.dropDatabase)
 
-
 		self.db = TestDb()
+
 		for testRow in TEST_DATA:
 			self.db.insertIntoDb(**testRow)
 
@@ -93,26 +91,9 @@ class TestSequenceFunctions(unittest.TestCase):
 	def dropDatabase(self):
 		self.db.tearDown()
 
-	def test_treeExists(self):
-		self.assertIsInstance(self.db.tree, hamDb.BkHammingTree)
-
 
 	def test_loadFromDb(self):
 		self.db.unlocked_doLoad()
-
-	def test_loadFromDb_2(self):
-		with self.db.tree.writer_context():
-			self.db.unlocked_doLoad()
-
-
-	# Verify the structure of the tree
-	# does not change across reloading.
-	def test_testLoadingDeterminsm(self):
-		loadedTree = list(self.db.tree)
-
-		self.db.unlocked_doLoad()
-
-		self.assertEqual(list(self.db.tree), loadedTree)
 
 
 	def test_getItemsSimple(self):
@@ -132,11 +113,11 @@ class TestSequenceFunctions(unittest.TestCase):
 	def test_searchByPhash1(self):
 
 		expect = [
-			(1, '/test/dir1',      'item1', 'DEAD',                    0, 'N/A', 50, 50),
-			(3, '/test/dir1',      'item3', 'CAFE', -9223372036854775808, 'N/A', 50, 50),
-			(11, '/lol/test1/WAT', 'DURR',  '6666',  4611686018427387904, 'N/A', 50, 50),
-			(5, '/test/dir3',      'item0', 'BABE', -4611686018427387904, 'N/A', 50, 50),
-			(6, '/test/dir4',      'item0', 'BABC', -4611686018427387904, 'N/A', 50, 50),
+			1,
+			3,
+			11,
+			5,
+			6,
 		]
 
 		ret = self.db.getWithinDistance(H_5)
@@ -147,13 +128,13 @@ class TestSequenceFunctions(unittest.TestCase):
 
 	def test_searchByPhash2(self):
 		ret = self.db.getWithinDistance(H_9)
-		self.assertEqual(ret, [])
+		self.assertEqual(ret, set())
 
 
 	def test_searchByPhash3(self):
 		expect = [
-			(2, '/test/dir1', 'item2', 'BEEF',                  -1, 'N/A', 50, 50),
-			(4, '/test/dir1', 'item4', 'BABE', 9223372036854775807, 'N/A', 50, 50)
+			2,
+			4
 		]
 
 		ret = self.db.getWithinDistance(H_4)

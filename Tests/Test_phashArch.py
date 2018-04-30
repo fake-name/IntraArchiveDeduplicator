@@ -29,7 +29,7 @@ class TestSequenceFunctions(unittest.TestCase):
 					'hexHash' : 'd9ceeb6b43c2d7d096532eabfa6cf482',
 					'type'    : 'image/jpeg',
 					'imY'     : 389,
-					'pHash'   : 27427800275512429,
+					'pHash'   : -4992890192511777340,
 					# 'dHash'   : -4504585791368671746,
 					'imX'     : 493
 				}
@@ -40,7 +40,7 @@ class TestSequenceFunctions(unittest.TestCase):
 					'hexHash' : '1268e704908cc39299d73d6caafc23a0',
 					'type'    : 'image/png',
 					'imY'     : 389,
-					'pHash'   : 27427800275512429,
+					'pHash'   : -4992890192511777340,
 					# 'dHash'   : -4504585791368671746,
 					'imX'     : 493
 				}
@@ -51,7 +51,7 @@ class TestSequenceFunctions(unittest.TestCase):
 					'hexHash' : '40d39c436e14282dcda06e8aff367307',
 					'type'    : 'image/jpeg',
 					'imY'     : 237,
-					'pHash'   : 27427800275512429,
+					'pHash'   : -4992890192511777340,
 					# 'dHash'   : -4504585791368671746,
 					'imX'     : 300
 				}
@@ -62,7 +62,7 @@ class TestSequenceFunctions(unittest.TestCase):
 					'hexHash' : 'dcd6097eeac911efed3124374f44085b',
 					'type'    : 'image/jpeg',
 					'imY'     : 307,
-					'pHash'   : -149413575039568585,
+					'pHash'   : -7813072021139921681,
 					# 'dHash'   : 4576150637722077151,
 					'imX'     : 325
 				}
@@ -73,7 +73,7 @@ class TestSequenceFunctions(unittest.TestCase):
 					'hexHash' : '6d0a977694630ac9d1d33a7f068e10f8',
 					'type'    : 'image/jpeg',
 					'imY'     : 363,
-					'pHash'   : -5569898607211671279,
+					'pHash'   : -7472365462264617431,
 					# 'dHash'   : 167400391896309758,
 					'imX'     : 500
 				}
@@ -84,7 +84,7 @@ class TestSequenceFunctions(unittest.TestCase):
 					'hexHash' : '7227289a017988b6bdcf61fd4761f6b9',
 					'type'    : 'image/jpeg',
 					'imY'     : 356,
-					'pHash'   : -4955310669995365332,
+					'pHash'   : -3164295607292040329,
 					# 'dHash'   : -8660145558008088574,
 					'imX'     : 501
 				}
@@ -111,7 +111,7 @@ class TestSequenceFunctions(unittest.TestCase):
 			# 'dHash': 4576150637722077151,
 			'hexHash': 'dcd6097eeac911efed3124374f44085b',
 			'imX': 325,
-			'pHash': -149413575039568585,
+			'pHash': -7813072021139921681,
 			'type': 'image/jpeg',
 			'imY': 307
 		}
@@ -130,7 +130,7 @@ class TestSequenceFunctions(unittest.TestCase):
 			('Lolcat_this_is_mah_job.jpg',
 				{
 					'type': 'image/jpeg',
-					'pHash': 27427800275512429,
+					'pHash': -4992890192511777340,
 					# 'dHash': -4504585791368671746,
 					'imY': 389,
 					'hexHash': 'd9ceeb6b43c2d7d096532eabfa6cf482',
@@ -140,7 +140,7 @@ class TestSequenceFunctions(unittest.TestCase):
 			('Lolcat_this_is_mah_job.png',
 				{
 					'type': 'image/png',
-					'pHash': 27427800275512429,
+					'pHash': -4992890192511777340,
 					# 'dHash': -4504585791368671746,
 					'imY': 389,
 					'hexHash': '1268e704908cc39299d73d6caafc23a0',
@@ -150,7 +150,7 @@ class TestSequenceFunctions(unittest.TestCase):
 			('Lolcat_this_is_mah_job_small.jpg',
 				{
 					'type': 'image/jpeg',
-					'pHash': 27427800275512429,
+					'pHash': -4992890192511777340,
 					# 'dHash': -4504585791368671746,
 					'imY': 237,
 					'hexHash': '40d39c436e14282dcda06e8aff367307',
@@ -160,7 +160,7 @@ class TestSequenceFunctions(unittest.TestCase):
 			('dangerous-to-go-alone.jpg',
 				{
 					'type': 'image/jpeg',
-					'pHash': -149413575039568585,
+					'pHash': -7813072021139921681,
 					# 'dHash': 4576150637722077151,
 					'imY': 307,
 					'hexHash': 'dcd6097eeac911efed3124374f44085b',
@@ -170,7 +170,7 @@ class TestSequenceFunctions(unittest.TestCase):
 			('lolcat-crocs.jpg',
 				{
 					'type': 'image/jpeg',
-					'pHash': -5569898607211671279,
+					'pHash': -7472365462264617431,
 					# 'dHash': 167400391896309758,
 					'imY': 363,
 					'hexHash': '6d0a977694630ac9d1d33a7f068e10f8',
@@ -180,7 +180,7 @@ class TestSequenceFunctions(unittest.TestCase):
 			('lolcat-oregon-trail.jpg',
 				{
 					'type': 'image/jpeg',
-					'pHash': -4955310669995365332,
+					'pHash': -3164295607292040329,
 					# 'dHash': -8660145558008088574,
 					'imY': 356,
 					'hexHash': '7227289a017988b6bdcf61fd4761f6b9',
@@ -215,7 +215,7 @@ class TestSequenceFunctions(unittest.TestCase):
 			# 'dHash': 4576150637722077151,
 			'hexHash': 'dcd6097eeac911efed3124374f44085b',
 			'imX': 325,
-			'pHash': -149413575039568585,
+			'pHash': -7813072021139921681,
 			'type': 'image/jpeg',
 			'imY': 307
 		}

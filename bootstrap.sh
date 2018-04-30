@@ -165,7 +165,7 @@ setup_python()
 	sudo pip3 install git+https://github.com/fake-name/UniversalArchiveInterface.git
 
 	# So pillow keeps changing the behaviour of image.resize. Arrrgh.
-	sudo pip3 install pillow=='3.3.1'
+	sudo pip3 install pillow=='5.1.0'
 
 }
 

@@ -26,18 +26,28 @@ class UiReadout(object):
 
 	def run(self):
 		commits = 0
+		pbar = tqdm
+
+		skipped = 0
+		match = 0
+		clean = 0
+		processed = 0
+
+		pbar = tqdm.tqdm()
 		while scanner.runState.run:
 
 			try:
 				item = self.hashQueue.get(timeout=0.1)
+				pbar.update()
+
 				if item == "skipped":
-					continue
+					skipped +=1
 				elif item == "hash_match":
-					continue
+					match += 1
 				elif item == "clean":
-					continue
+					clean += 1
 				elif item == "processed":
-					continue
+					processed += 1
 
 				else:
 					print()
@@ -48,10 +58,11 @@ class UiReadout(object):
 					print()
 					print()
 
+				pbar.set_description("%s remaining, %s skipped, %s match, %s clean, %s processed" % (
+					self.processingHashQueue.qsize(), skipped, match, clean, processed
+					))
 
-				if commits % 250 == 0:
-					self.log.info("Have ~%s items remaining to process", self.processingHashQueue.qsize())
-					self.dbInt.commit()
+
 			except queue.Empty:
 				if self.stopOnEmpty:
 					break

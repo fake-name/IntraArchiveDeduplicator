@@ -5,6 +5,7 @@ import os
 import os.path
 import sys
 import time
+import tqdm
 import scanner.logSetup
 
 import multiprocessing
@@ -115,9 +116,9 @@ class DedupScanTool(object):
 		self.log.info("Starting scan.")
 
 		try:
-			for root, dummy_dirs, files in os.walk(scanPath):
+			for root, dummy_dirs, files in tqdm.tqdm(os.walk(scanPath), desc="Root walk"):
 				#print root, dir#, files
-				for fileN in files:
+				for fileN in tqdm.tqdm(files, desc='Files walk'):
 					wholePath = os.path.join(root, fileN)
 					# print("File", wholePath)
 					self.toProcessQueue.put((wholePath, fileN))

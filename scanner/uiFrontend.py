@@ -32,7 +32,8 @@ class UiReadout(object):
 		match = 0
 		clean = 0
 		processed = 0
-
+		qmax = 0
+		processed
 		pbar = tqdm.tqdm()
 		while scanner.runState.run:
 
@@ -58,7 +59,9 @@ class UiReadout(object):
 					print()
 					print()
 
-				pbar.set_description("%s remaining, %s skipped, %s match, %s clean, %s processed" % (
+				qmax = max(qmax, self.processingHashQueue.qsize())
+				pbar.total = qmax + skipped + match + clean + processed
+				pbar.set_description("Hasher: %s remaining, %s skipped, %s match, %s clean, %s processed" % (
 					self.processingHashQueue.qsize(), skipped, match, clean, processed
 					))
 

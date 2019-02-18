@@ -72,6 +72,8 @@ class DedupScanTool(object):
 
 
 		targetDir = cmdArgs.sourcePath
+		purgeExisting = cmdArgs.purge
+		removeDeleted = cmdArgs.noCleanTemps
 
 
 
@@ -88,7 +90,7 @@ class DedupScanTool(object):
 
 		scanPath = os.path.abspath(targetDir)
 
-		if cmdArgs.purge:
+		if purgeExisting:
 			self.log.warning("Purging all extant scan results on specified path")
 			if os.path.isdir(targetDir):
 				if not targetDir.endswith("/"):
@@ -97,7 +99,7 @@ class DedupScanTool(object):
 			else:
 				self.hashEngine.dbApi.deleteBasePath(targetDir)
 			self.log.warning("Purge complete.")
-		elif not cmdArgs.noCleanTemps:
+		elif not removeDeleted:
 			self.log.info("Checking for removed files.")
 			self.hashEngine.cleanPathCache(targetDir)
 			self.log.info("Check complete")
@@ -147,8 +149,8 @@ class DedupScanTool(object):
 
 		self.log.info("Waiting for all queued file scans complete.")
 		while self.toProcessQueue.qsize():
-			self.log.info("Remaining items to process: %s", self.toProcessQueue.qsize())
-			time.sleep(1)
+			self.log.info("Enqueue complete. Remaining items to process: %s", self.toProcessQueue.qsize())
+			time.sleep(10)
 		self.toProcessQueue.close()
 		self.toProcessQueue.join_thread()
 

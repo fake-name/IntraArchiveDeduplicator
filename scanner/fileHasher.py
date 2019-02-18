@@ -95,7 +95,7 @@ class HashEngine(object):
 		self.log.info("total unique items = %s", len(items))
 
 
-		for itemPath in tqdm.tqdm(items):
+		for itemPath in tqdm.tqdm(items, desc="Exist check"):
 			if not os.path.exists(itemPath):
 				self.log.info("Item %s does not exist. Should delete from DB", itemPath)
 				self.dbApi.deleteBasePath(itemPath)

@@ -10,3 +10,4 @@ __pycache__
 /Tests/test_ptree
 /venv
 /.vagrant
+/pillow_test/venv/bin

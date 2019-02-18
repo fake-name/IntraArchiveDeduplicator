@@ -14,9 +14,6 @@ import deduplicator.ProcessArchive
 if __name__ == "__main__":
 	# signal.signal(signal.SIGINT, signal.SIG_IGN)
 
-
-	# procDdTool = proc.DedupTool()
-
 	parser = argparse.ArgumentParser()
 	subparsers = parser.add_subparsers(title='subcommands', description='valid subcommands')
 
@@ -32,7 +29,6 @@ if __name__ == "__main__":
 	parserDirScan.set_defaults(subproc=parserDirScan)
 
 
-
 	# ---------------  Processing  ----------------------
 	archProc = subparsers.add_parser('arch-process', help="Scan set of directory, and generate a list of hashes of all the files therein")
 	archProc.add_argument('-i', '--in-archive',   required=True,  dest="sourcePath")
@@ -40,12 +36,6 @@ if __name__ == "__main__":
 	archProc.add_argument('-c', '--nocontext',     required=False, dest="noContext", action='store_true')
 
 	archProc.set_defaults(func=deduplicator.ProcessArchive.commandLineProcess)
-	archProc.set_defaults(subproc=archProc)
-
-
-	# ---------------  Tree Management  ----------------------
-	archProc = subparsers.add_parser('tree-reload', help="Reload the phash-tree from the database")
-	archProc.set_defaults(func=deduplicator.ProcessArchive.commandLineReloadTree)
 	archProc.set_defaults(subproc=archProc)
 
 

@@ -48,8 +48,11 @@ class DbApi():
 
 			cur.execute("SELECT * FROM information_schema.tables WHERE table_name=%s", (self.tableName,))
 			have = cur.fetchall()
-			tableExists = bool(have)
-			if not tableExists:
+			mainTableExists = bool(have)
+			cur.execute("SELECT * FROM information_schema.tables WHERE table_name=%s", (self.tableName+"_plink",))
+			have = cur.fetchall()
+			linkTableExists = bool(have)
+			if not mainTableExists:
 				self.log.info("Need to create table!")
 				cur.execute('''CREATE TABLE IF NOT EXISTS {table} (
 													dbId            SERIAL PRIMARY KEY,
@@ -80,6 +83,20 @@ class DbApi():
 				self.log.info("Done!")
 
 				# CREATE        INDEX dedupitems_scantime_index ON dedupitems(scantime)
+
+			if not linkTableExists:
+				self.log.info("Checking plink table")
+				cur.execute('''CREATE TABLE IF NOT EXISTS {table}_plink (
+
+													item_1_link          BIGINT REFERENCES {table}(dbId) ON DELETE CASCADE,
+													item_2_link          BIGINT REFERENCES {table}(dbId) ON DELETE CASCADE,
+													distance             INT,
+													PRIMARY KEY (item_1_link, item_2_link, distance),
+													UNIQUE (item_1_link, item_2_link),
+													CHECK (item_1_link < item_2_link)
+
+													);'''.format(table=self.tableName))
+
 
 		self.table = sql.Table(self.tableName.lower())
 
@@ -113,8 +130,6 @@ class DbApi():
 				# "dhash_text"    : self.table.dhash_text
 
 			}
-
-
 
 	def connect(self):
 
@@ -396,6 +411,23 @@ class DbApi():
 	# More complex queries
 	# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+
+
+	def insert_phash_link(self, item_1, item_2, distance):
+		item_1, item_2 = min(item_1, item_2), max(item_1, item_2)
+
+		self.insert_phash_link_many([(item_1, item_2, distance), ])
+
+	def insert_phash_link_many(self, link_tuples):
+
+		with self.transaction() as cur:
+			for item_1, item_2, distance in link_tuples:
+				item_1, item_2 = min(item_1, item_2), max(item_1, item_2)
+				cur.execute(''' INSERT INTO
+								{table}_plink (item_1_link, item_2_link, distance)
+							VALUES (%s, %s, %s)
+							ON CONFLICT DO NOTHING
+						'''.format(table=self.tableName), (item_1, item_2, distance))
 
 	def getDuplicateImages(self, basePath):
 		cur = self.conn.cursor()

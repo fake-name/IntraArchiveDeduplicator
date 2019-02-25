@@ -25,6 +25,7 @@ if __name__ == "__main__":
 	parserDirScan.add_argument('-t', '--threads',     required=False, dest="threadNo")
 	parserDirScan.add_argument('-s', '--nophash',     required=False, dest="noPhash", action='store_true')
 	parserDirScan.add_argument('-c', '--noIntegrity', required=False, dest="noIntegrityCheck", action='store_true')
+	parserDirScan.add_argument('-m', '--mask-path',   required=False, dest="mask_path", action='append')
 	parserDirScan.set_defaults(func=scanner.scanner.doScan)
 	parserDirScan.set_defaults(subproc=parserDirScan)
 

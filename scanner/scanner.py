@@ -45,6 +45,15 @@ class DedupScanTool(object):
 		except:
 			self.checkIntegrity = True
 
+		if scanConf.mask_path:
+			self.mask_path = [os.path.abspath(tmp) for tmp in scanConf.mask_path]
+			self.log.info("Masked paths: ")
+			for path in self.mask_path:
+				self.log.info("	 - %s", path)
+		else:
+			self.log.info("No paths masked.")
+			self.mask_path = []
+
 
 
 		self.toProcessQueue = multiprocessing.Queue()
@@ -123,9 +132,12 @@ class DedupScanTool(object):
 				for fileN in tqdm.tqdm(files, desc='Files walk'):
 					wholePath = os.path.join(root, fileN)
 					# print("File", wholePath)
-					self.toProcessQueue.put((wholePath, fileN))
-					if self.toProcessQueue.qsize() > 10000:
-						time.sleep(1)
+					if any([wholePath.startswith(tmp) for tmp in self.mask_path]):
+						pass
+					else:
+						self.toProcessQueue.put((wholePath, fileN))
+						if self.toProcessQueue.qsize() > 10000:
+							time.sleep(1)
 
 		except (KeyboardInterrupt, SystemExit, GeneratorExit):
 
@@ -173,8 +185,11 @@ class DedupScanTool(object):
 
 def doScan(scanConf):
 
+	print("ScanConf: ", scanConf)
+
 
 	ddT = DedupScanTool(scanConf)
+
 
 	signal.signal(signal.SIGINT, ddT.sigIntHandler)
 	print("Doing scan")

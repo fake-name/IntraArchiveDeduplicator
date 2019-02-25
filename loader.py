@@ -78,7 +78,7 @@ class Importer():
 		return entries
 
 	def build_tree(self, entries):
-		self.log.entries("Building tree with %s entries", len(entries))
+		self.log.info("Building tree with %s entries", len(entries))
 		tree = cdb.CPPBkHammingTree()
 		for key, phash in tqdm.tqdm(entries.items()):
 			if phash:
@@ -101,7 +101,7 @@ class Importer():
 		with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
 
 			for item_rid, value in pbar:
-				res = executor.submit(tree, search_dist, do_search, item_rid, value)
+				res = executor.submit(do_search, tree, search_dist, item_rid, value)
 
 				active[res] = None
 
@@ -114,13 +114,11 @@ class Importer():
 						del active[job]
 
 
-
 				while len(insert_set) > chunk_size:
 					pbar.set_description("Links found: %s. Inserting %s" % (links, len(insert_set)))
 					self.db.insert_phash_link_many(insert_set)
 					links += len(insert_set)
 					insert_set = set()
-
 
 
 			self.db.insert_phash_link_many(insert_set)
@@ -132,18 +130,15 @@ class Importer():
 def run_importer():
 
 	importer = Importer()
-
 	entries = importer.load_db_entries()
-
 	tree = importer.build_tree(entries)
-
 	importer.extract_edges(entries, tree)
 
 
 
 if __name__ == "__main__":
 
-	scanner.logSetup.initLogging(logLevel=logging.WARNING)
+	scanner.logSetup.initLogging(logLevel=logging.INFO)
 
 	run_importer()
 

@@ -419,15 +419,27 @@ class DbApi():
 		self.insert_phash_link_many([(item_1, item_2, distance), ])
 
 	def insert_phash_link_many(self, link_tuples):
-
-		with self.transaction() as cur:
+		try:
+			with self.transaction() as cur:
+				for item_1, item_2, distance in link_tuples:
+					item_1, item_2 = min(item_1, item_2), max(item_1, item_2)
+					cur.execute(''' INSERT INTO
+									{table}_plink (item_1_link, item_2_link, distance)
+								VALUES (%s, %s, %s)
+								ON CONFLICT DO NOTHING
+							'''.format(table=self.tableName), (item_1, item_2, distance))
+		except (psycopg2.OperationalError, psycopg2.IntegrityError):
 			for item_1, item_2, distance in link_tuples:
 				item_1, item_2 = min(item_1, item_2), max(item_1, item_2)
-				cur.execute(''' INSERT INTO
-								{table}_plink (item_1_link, item_2_link, distance)
-							VALUES (%s, %s, %s)
-							ON CONFLICT DO NOTHING
-						'''.format(table=self.tableName), (item_1, item_2, distance))
+				try:
+					with self.transaction() as cur:
+						cur.execute(''' INSERT INTO
+										{table}_plink (item_1_link, item_2_link, distance)
+									VALUES (%s, %s, %s)
+									ON CONFLICT DO NOTHING
+								'''.format(table=self.tableName), (item_1, item_2, distance))
+				except (psycopg2.OperationalError, psycopg2.IntegrityError):
+					self.log.error("Failure inserting link between %s and %s with distance %s. Skipping", distance, item_1, item_2)
 
 	def getDuplicateImages(self, basePath):
 		cur = self.conn.cursor()

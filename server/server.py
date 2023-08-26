@@ -48,11 +48,16 @@ class DbInterfaceServer(rpyc.Service):
 
 
 
+	def exposed_check(self):
+		return "OK"
+
+
+
 
 def run_server():
 	print("Started.")
 	serverLog = logging.getLogger("Main.RPyCServer")
-	srv = ThreadPoolServer(service=DbInterfaceServer, port = 12345, hostname='localhost', logger=serverLog, nbThreads=6)
+	srv = ThreadPoolServer(service=DbInterfaceServer, port = 12345, hostname='0.0.0.0', logger=serverLog, nbThreads=6)
 	srv.start()
 
 

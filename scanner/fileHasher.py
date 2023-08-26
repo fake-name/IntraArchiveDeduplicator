@@ -189,6 +189,9 @@ class HashThread(object):
 	def scanArchive(self, archPath, archData):
 		# print("Scanning archive", archPath)
 
+
+		added_items = 0
+
 		archIterator = uar.ArchiveReader(archPath, fileContents=archData)
 
 		fnames = [item[0] for item in archIterator]
@@ -219,15 +222,22 @@ class HashThread(object):
 
 				self.dbApi.insertIntoDb(**insertArgs)
 				self.putProgQueue("processed")
+
+				added_items += 1
+
 				if not scanner.runState.run:
 					break
 		except:
 			print(archPath)
 			self.dbApi.rollback()
 			raise
+		finally:
+			archIterator.close()
 
+		self.tlog.info("Added %s hashes to DB from archive", added_items)
 		self.dbApi.commit()
-		archIterator.close()
+
+
 
 	def processImageFile(self, wholePath, dbFilePath):
 
@@ -297,6 +307,7 @@ class HashThread(object):
 
 
 	def processArchive(self, wholePath):
+
 		fType = "none"
 		fCont = None
 		archRow = self.dbApi.getItemsOnBasePathInternalPath(wholePath, "")

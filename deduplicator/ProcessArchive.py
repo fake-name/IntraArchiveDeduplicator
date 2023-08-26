@@ -722,6 +722,7 @@ class ArchChecker(ProxyDbBase):
 		self.log.info("Adding archive to database. Hashing file: %s", self.archPath)
 
 		# Delete any existing hashes that collide
+		self.log.info("Clearing any existing hashes for path")
 		self.deleteArchFromDb()
 
 		# And tell the hasher to process the new archive.
